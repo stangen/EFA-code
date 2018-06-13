@@ -1,0 +1,107 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Dec 22 11:01:08 2017
+
+@author: stangen
+"""
+
+from netCDF4 import Dataset, num2date, date2num
+from datetime import datetime, timedelta
+from subprocess import check_output
+import numpy as np
+import efa_files.cfs_utilities_st as ut
+from efa_xray.state.ensemble import EnsembleState
+from mpl_toolkits.basemap import Basemap
+
+
+analysis_file = '/home/disk/hot/stangen/Documents/ensembles/analysis/combined/oct-mar.nc'
+ensemble_file = '/home/disk/hot/stangen/Documents/ensembles/all/oct2016/2016-10-18_12.nc'
+
+date = datetime(2016,10,28,0)
+#print(date)
+datestr = date.strftime('%Y%m%d%H') # yyyymmddhh
+#print(datestr)
+
+with Dataset(analysis_file, 'r') as anl:
+    lats = anl.variables['lat'][:]
+    lons = anl.variables['lon'][:]
+    
+    #print(anl.variables)
+    #print('\n')
+    tunit = anl.variables['time'].units
+    ftime = num2date(anl.variables['time'][:],tunit)
+    #print(ftime)
+#    strtime = ftime.strftime('%Y%m%d%H')
+#    print(strtime)
+    timestring = []
+    for i, times in enumerate(ftime):
+        strtime = ftime[i].strftime('%Y%m%d%H')
+        #print(strtime)
+        timestring.append(strtime)
+    #print(len(ftime))
+
+    index_anl = timestring.index(datestr)
+    print(index_anl)
+    t2m_anl = anl.variables['T2M'][index_anl,:,:]
+    t2m_units = anl.variables['T2M'].units
+    
+    tcw_anl = anl.variables['TCW'][index_anl,:,:]
+    tcw_units = anl.variables['TCW'].units
+    
+    z500_anl = anl.variables['Z500'][index_anl,:,:]
+    z500_units = anl.variables['Z500'].units
+    #print(t2m_anl)
+    
+with Dataset(ensemble_file, 'r') as ens:
+    #print(ens.variables)
+    tunit = ens.variables['time'].units
+    ftime = num2date(ens.variables['time'][:],tunit)
+    timestring = []
+    for i, times in enumerate(ftime):
+        strtime = ftime[i].strftime('%Y%m%d%H')
+        timestring.append(strtime)
+        
+    index_ens = timestring.index(datestr)
+    print(index_ens)
+    
+    t2m_ens = ens.variables['T2M'][index_ens,:,:,:]
+    
+    tcw_ens = ens.variables['TCW'][index_ens,:,:,:]
+    
+    z500_ens = ens.variables['Z500'][index_ens,:,:,:]
+    
+t2m_ensmean = np.mean(t2m_ens, axis=2)
+t2m_diff = t2m_ensmean - t2m_anl
+
+tcw_ensmean = np.mean(tcw_ens, axis=2)
+tcw_diff = tcw_ensmean - tcw_anl
+
+z500_ensmean = np.mean(z500_ens, axis=2)
+z500_diff = z500_ensmean - z500_anl
+
+# Plot the difference between the prior and posterior
+map = Basemap(projection='ortho',lat_0=45,lon_0=-130,resolution='l')
+# draw coastlines, country boundaries, fill continents.
+map.drawcoastlines(linewidth=0.25)
+map.drawcountries(linewidth=0.25)
+#map.fillcontinents(color='coral',lake_color='aqua')
+# draw the edge of the map projection region (the projection limb)
+map.drawmapboundary(fill_color='aqua')
+# draw lat/lon grid lines every 30 degrees.
+map.drawmeridians(np.arange(0,360,30))
+map.drawparallels(np.arange(-90,90,30))
+
+# compute native map projection coordinates of lat/lon grid.
+lon, lat = np.meshgrid(lons, lats)
+x, y = map(lon, lat)
+
+#cs = map.contourf(x,y,Z500_diff[0,:,:,0])#,levels=np.arange(-90, 91, 30), cmap=plt.cm.RdBu_r,linewidths=1.5, extend='both')
+cs = map.contourf(x,y,z500_diff)
+
+# Add Colorbar
+cbar = map.colorbar(cs, location='bottom', pad="10%")
+cbar.set_label(z500_units)
+
+#plt.title('{}'.format(ftimes[time_ind]))
+#plt.show()
