@@ -138,6 +138,10 @@ class Run_efa():
         #find nearest 4 points, in order from closest to farthest
         #argpartition just puts the 4 smallest indices in front, array (1,k) puts the 
         #first four in order, the rest are not necessarily sorted
+        
+        #check about changing argpartition to argsort, like in ensemble.py:
+        #nearest_raw = dist.argsort(axis=None)[:npt]
+
         k = 4
         idx = np.argpartition(dist_flat, (1,k))
         
