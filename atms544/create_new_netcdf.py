@@ -9,8 +9,8 @@ from netCDF4 import Dataset, num2date, date2num
 from datetime import datetime, timedelta
 from subprocess import check_output
 import numpy as np
-import efa_files.cfs_utilities_st as ut
-from efa_xray.state.ensemble import EnsembleState
+import EFA.efa_files.cfs_utilities_st as ut
+from EFA.efa_xray.state.ensemble import EnsembleState
 import os
 
 def create_new_netcdf(y,m,d,h,ens_type, vrbls):
@@ -44,11 +44,11 @@ def create_new_netcdf(y,m,d,h,ens_type, vrbls):
             }
     
     # This is the input directory for the raw TIGGE netcdf
-    indir  = '/home/disk/hot/stangen/Documents/ensembles/'+ens_type+'/'+m_dict[m]+y+'/'+y+'-'+m+'-'+d+'_'+h+'_'+ens_type+'_T_SP_Precip_TCW_240hr.nc'
+    indir  = '/home/disk/hot/stangen/Documents/ensembles/'+ens_type+'/'+m_dict[m]+y+'/'+y+'-'+m+'-'+d+'_'+h+'_'+ens_type+'_T_SP.nc'
     # This is the directory for the orography file
     orography = '/home/disk/hot/stangen/Documents/ensembles/orography/2013-04-01_00_'+ens_type+'.nc'
     # This is the output directory for the netcdf with altimeter setting 
-    outdir = '/home/disk/hot/stangen/Documents/atms544/ensembles/'+ens_type+'/'+m_dict[m]+y+'/'
+    outdir = '/home/disk/hot/stangen/Documents/EFA/atms544/ensembles/'+ens_type+'/'+m_dict[m]+y+'/'
     
     #Create output directories if they don't yet exit
     if (os.path.isdir(outdir)):
@@ -123,14 +123,14 @@ def create_new_netcdf(y,m,d,h,ens_type, vrbls):
     valid_times = date2num(ftimes,tunit)
     
     # Write ensemble forecast to netcdf - change name here
-    dset = Dataset(outdir+y+'-'+m+'-'+d+'_'+h+'_'+ens_type+'4var.nc','w')
+    dset = Dataset(outdir+y+'-'+m+'-'+d+'_'+h+'_'+ens_type+'.nc','w')
     dset.createDimension('time',None)
     dset.createDimension('lat',nlats)
     dset.createDimension('lon',nlons)
     dset.createDimension('ens',nmems)
     dset.createVariable('time','i4',('time',))
-    dset.createVariable('lat',np.float64,('lat',))
-    dset.createVariable('lon',np.float64,('lon'))
+    dset.createVariable('lat',np.float32,('lat',))
+    dset.createVariable('lon',np.float32,('lon'))
     dset.createVariable('ens','i4',('ens',))
     dset.variables['time'].units = tunit
     dset.variables['lat'].units = 'degrees_north'
@@ -167,7 +167,7 @@ hour = ['00']#,'12']
 # ecmwf, eccc for euro/canadian ensembles, ncep
 ensemble_type = ['ecmwf']
 #variables with names I want to have after it is processed
-variables = ['T2M', 'ALT', 'P6HR', 'TCW']
+variables = ['T2M', 'ALT']#, 'P6HR', 'TCW']
 
 for ens in ensemble_type:
     for d in day_string:
