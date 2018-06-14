@@ -54,7 +54,7 @@ class Run_efa():
     
     def load_data(self):
         # directory where the ensemble of all times is - ADDED HARDCODED FILENAME SPECIFIC FOR 1 FILE AT THE END
-        infile = '/home/disk/hot/stangen/Documents/atms544/ensembles/'+self.ens_type+'/'+self.m_dict[self.m]+self.y+'/'+self.y+'-'+self.m+'-'+self.d+'_'+self.h+'_'+self.ens_type+'4var.nc' 
+        infile = '/home/disk/hot/stangen/Documents/EFA/atms544/ensembles/'+self.ens_type+'/'+self.m_dict[self.m]+self.y+'/'+self.y+'-'+self.m+'-'+self.d+'_'+self.h+'_'+self.ens_type+'4var.nc' 
         
         print('loading netcdf file: '+self.y+self.m+self.d+'_'+self.h+'00')
         # loading/accessing the netcdf data            
@@ -108,7 +108,7 @@ class Run_efa():
         dth = dtstr[9:11]
         
         # directory where the observations are
-        obs_file = '/home/disk/hot/stangen/Documents/EFA/surface_obs/MADIS/'+dty+dtm+'/combined_'+self.ob_type+'/'+self.ob_type+'_'+dty+dtm+dtd+'_'+dth+'00.txt'
+        obs_file = '/home/disk/hot/stangen/Documents/surface_obs/MADIS/'+dty+dtm+'/combined_'+self.ob_type+'/'+self.ob_type+'_'+dty+dtm+dtd+'_'+dth+'00.txt'
         print('loading '+self.ob_type+ ' from '+dty+dtm+dtd+'_'+dth+'00')
         #print(obs_file)
         f1 = open(obs_file, 'r')
@@ -141,13 +141,18 @@ class Run_efa():
         
         #check about changing argpartition to argsort, like in ensemble.py:
         #nearest_raw = dist.argsort(axis=None)[:npt]
-
+        
         k = 4
-        idx = np.argpartition(dist_flat, (1,k))
+        idx = dist_flat.argsort(axis=None)[:k]
+        #print(idx2)
+
+
+#        idx = np.argpartition(dist_flat, (1,k))
+#        print(idx[0:4])
         
         #check if the 4 closest points have elevations which differ by more than 300 meters
         elev_flat = elevs.flatten()
-        elev_four_closest = elev_flat[idx[:k]]
+        elev_four_closest = elev_flat[idx]
         elev_diff = abs(ob_elev-elev_four_closest)
         #print(elev_diff)
         if elev_diff.max() > 300:

@@ -7,20 +7,16 @@ Created on Tue May  8 11:48:09 2018
 """
 from netCDF4 import Dataset, num2date, date2num
 import numpy as np
-from nicks_files.operational_cfsv2 import get_cfsv2_ensemble
 from datetime import datetime, timedelta
 from mpl_toolkits.basemap import Basemap
 import matplotlib.pyplot as plt
-import efa_files.cfs_utilities_st as ut
-import efa_files.madis_example.madis_utilities as mt
+import EFA.efa_files.cfs_utilities_st as ut
+import surface_obs.madis_example.madis_utilities as mt
 import time
 import os
 #from old_ensemble_verification import error_vs_spread
 # Luke's (super useful) assimilation tools:
-from efa_xray.state.ensemble import EnsembleState
-from efa_xray.observation.observation import Observation
-from efa_xray.assimilation.ensrf import EnSRF
-import efa_xray.postprocess.postprocess as pp
+from EFA.efa_xray.observation.observation import Observation
 from do_efa import Run_efa
 
 
@@ -62,7 +58,7 @@ for datestr in dates:
     
     
     
-    efa = Run_efa(datestr,ensemble_type,variables,m_dict,var_dict[ob_type])
+    efa = Run_efa(datestr,ensemble_type,variables,var_dict[ob_type])
     statecls, lats, lons, elevs = efa.load_data()
     
     obs = efa.load_obs(6)
