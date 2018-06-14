@@ -66,15 +66,12 @@ class EnSRF(Assimilation):
             H[Nstate+obnum] = 1.0
             #ST This gets the mean/pertubation of just the interpolated ob value.
             mye = np.dot(H, xbm)
-            print(mye)
             ye = np.dot(H, Xbp)
-            print(ye)
 
             ob.prior_mean = mye
             #print "ye", ye
             # Find the variance among the ensemble members
             varye = np.var(ye, ddof=1)
-            print(varye)
             ob.prior_var = varye
 
             # IMPORTANT --- here we check to see if we should actually
@@ -87,19 +84,16 @@ class EnSRF(Assimilation):
             # And find the observation error variance from the R matrix
             # (Assumes ob errors are uncorrelated)
             obs_err = ob.error
-            print(obs_err)
 
             # Find the innovation --the difference between the ob value
             # and the ensemble mean estimate of the ob
             # This is y-HXb
             innov = ob.value - mye
-            print(innov)
 
             # Now find the innovation variance -- the sum of the variance of the ob
             # and the varaiance of the ensemble estimate
             # This goes into the denominator of the Kalman gain
             kdenom = (varye + obs_err)
-            print(kdenom)
 
             # The numerator of the Kalman gain is the covariance between
             # the ensemble members and the obs-transformed ensemble members
@@ -142,7 +136,7 @@ class EnSRF(Assimilation):
             #print "innov", np.shape(innov)
             #xam = xbm + np.dot(kmat,innov)
             xam = xbm + np.multiply(kmat,innov)
-            print(np.dot(H,xam))
+            
 
             # And each ensemble member perturbation
             # This is the "Square Root" 
@@ -152,11 +146,13 @@ class EnSRF(Assimilation):
 
             ye = np.array(ye)[np.newaxis]
             kmat = np.array(kmat)[np.newaxis]
-            print(Xbp.shape)
-            print(ye.shape)
-            print(kmat.shape)
 
             Xap = Xbp - np.dot(kmat.T, ye)
+            
+            check_ob_estimate = True
+            if check_ob_estimate == True:
+                print('posterior ob estimate mean: ',np.dot(H,xam))
+                print('posterior ob estimate perts:\n'np.dot(H,Xap))
 
             # For reference, grab the post mean and variance
             post_ye = np.dot(H,xam)
