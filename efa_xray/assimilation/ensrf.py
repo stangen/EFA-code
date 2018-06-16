@@ -152,7 +152,7 @@ class EnSRF(Assimilation):
             check_ob_estimate = True
             if check_ob_estimate == True:
                 print('posterior ob estimate mean: ',np.dot(H,xam))
-                print('posterior ob estimate perts:\n'np.dot(H,Xap))
+                print('posterior ob estimate perts:\n',np.dot(H,Xap))
 
             # For reference, grab the post mean and variance
             post_ye = np.dot(H,xam)
