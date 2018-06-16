@@ -50,7 +50,25 @@ def make_datelist(start_date = '20130401_0000', end_date = '20130406_0000', torf
         dt = dt + timedelta(0,timestep)
         
     return dt_list
-        
+
+def make_datetimelist(start_date = datetime(2013,4,1,0), end_date = datetime(2013,4,6,0), timestep=21600):
+    """
+    Similar to make_datelist, but this accepts and returns a list of datetime objects instead of 
+    a list of strings.
+    """
+    
+    #Truncate datetime to hour precision
+    dt_start = start_date.replace(minute = 0, second=0, microsecond=0)
+    dt_end = end_date.replace(minute = 0, second=0, microsecond=0)
+    
+    #Use while loop to generate list of date/times between start and end date every 6 hours
+    dt = dt_start; dt_list = []
+    while (dt <= dt_end):
+        dt_list.append(dt)
+        dt = dt + timedelta(0,timestep)
+    
+    return dt_list
+
 
 def get_ob_info(sstr_str):
     """    
