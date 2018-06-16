@@ -11,16 +11,16 @@ from nicks_files.operational_cfsv2 import get_cfsv2_ensemble
 from datetime import datetime, timedelta
 from mpl_toolkits.basemap import Basemap
 import matplotlib.pyplot as plt
-import efa_files.cfs_utilities_st as ut
-import efa_files.madis_example.madis_utilities as mt
+import EFA.efa_files.cfs_utilities_st as ut
+import surface_obs.madis_example.madis_utilities as mt
 import time
 import os
 #from old_ensemble_verification import error_vs_spread
 # Luke's (super useful) assimilation tools:
-from efa_xray.state.ensemble import EnsembleState
-from efa_xray.observation.observation import Observation
-from efa_xray.assimilation.ensrf import EnSRF
-import efa_xray.postprocess.postprocess as pp
+from EFA.efa_xray.state.ensemble import EnsembleState
+from EFA.efa_xray.observation.observation import Observation
+from EFA.efa_xray.assimilation.ensrf import EnSRF
+import EFA.efa_xray.postprocess.postprocess as pp
 from do_efa import Run_efa
 
 
