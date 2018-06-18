@@ -39,10 +39,10 @@ from efa_xray.observation.observation import Observation
 from efa_xray.assimilation.ensrf import EnSRF
 
 # Filepath of the precip analysis
-orog1_path = '/home/disk/hot/stangen/Documents/ensembles/orography/2013-04-01_00_eccc.nc'
+orog1_path = '/home/disk/hot/stangen/Documents/tigge_ensembles/orography/2013-04-01_00_eccc.nc'
 
 # Filepath of the observed (analysis)
-orog2_path = '/home/disk/hot/stangen/Documents/ensembles/orography/2013-04-03_12_eccc.nc'
+orog2_path = '/home/disk/hot/stangen/Documents/tigge_ensembles/orography/2013-04-01_00_eccc.nc'
                 
 # only variable I am using is 500mb height            
 vrbls=['orog']
@@ -65,7 +65,7 @@ with Dataset(orog2_path, 'r') as ncdata:
 #    T500_post = ncdata.variables['T500'][:]
 #    T2M_post = ncdata.variables['T2M'][:]
     
-difference_orog= orog2[1,:,:]-orog2[4,:,:]
+difference_orog= orog2[0,:,:]-orog2[0,:,:]
 
 # Plot the difference between the prior and posterior
 map = Basemap(projection='ortho',lat_0=45,lon_0=-100,resolution='l')
