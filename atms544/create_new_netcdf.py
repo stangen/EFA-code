@@ -6,30 +6,48 @@ Created on Thu Apr 26 12:22:51 2018
 @author: stangen
 """
 from netCDF4 import Dataset, num2date, date2num
-from datetime import datetime, timedelta
-from subprocess import check_output
+from datetime import datetime
 import numpy as np
 import EFA.efa_files.cfs_utilities_st as ut
-from EFA.efa_xray.state.ensemble import EnsembleState
+import surface_obs.madis_example.madis_utilities as mt
 import os
 
-def create_new_netcdf(y,m,d,h,ens_type, vrbls):
+#start and end date to get ensembles. 
+start_date = datetime(2013,4,1,0) #YYYY,m,d,h
+end_date = datetime(2013,6,30,12)
+hourstep = 12 #how often you want a new forecast initialization, usually 12 hr
+# ecmwf, eccc for euro/canadian ensembles, ncep
+ensemble_type = ['ecmwf','eccc']
+#variables with names coming from the raw TIGGE- see get_tigge_data if unsure of names.
+#the order matters to make filename match exactly. 
+in_variables = ['T2M', 'SP']
+#sfc for surface, pl for elevated
+lev = 'sfc'
+#variables with names I want to have after it is processed
+variables = ['T2M', 'ALT']#, 'P6HR', 'TCW']
 
-    m_dict = {
-               '01' : 'jan',
-               '02' : 'feb',
-               '03' : 'mar',
-               '04' : 'apr',
-               '05' : 'may',
-               '06' : 'jun',
-               '07' : 'jul',
-               '08' : 'aug',
-               '09' : 'sep',
-               '10' : 'oct',
-               '11' : 'nov',
-               '12' : 'dec'           
-               }
+#a list of dates to loop through to load each forecast initialized on these dates
+dates = mt.make_datetimelist(start_date,end_date,timestep = 3600*hourstep)   
+
+
+
+def create_new_netcdf(date,ens_type,in_vrbls,vrbls):
+    """
+    This function creates a netCDF from a raw TIGGE netCDF. The main purpose
+    of this is to change surface pressure to altimeter setting, calculate
+    6-hourly precipitation, and to rename/shorten variable names. Unfortunately
+    using the float32 format for the variables uses twice the memory of the 
+    raw TIGGE int16 format. 
+    """
+
+    y = date.strftime('%Y')
+    m = date.strftime('%m')
+    d = date.strftime('%d')
+    h = date.strftime('%H')
     
+    print('Working on '+d+'_'+h+' '+ens_type)
+    
+    #rename TIGGE variable names
     vardict = {
                 'T2M' : 't2m',
                 'ALT' : 'sp',
@@ -43,12 +61,25 @@ def create_new_netcdf(y,m,d,h,ens_type, vrbls):
             
             }
     
+    #build a var string corresponding with naming convention of tigge files
+    invar_string = ''
+    for p in in_vrbls[:-1]:  
+        invar_string = invar_string+p+'_'
+    invar_string = invar_string+in_vrbls[-1]
+    
+    #build a var string corresponding with naming convention of output files
+    outvar_string = ''
+    for p in vrbls[:-1]:  
+        outvar_string = outvar_string+p+'_'
+    outvar_string = outvar_string+vrbls[-1]
+    
+    
     # This is the input directory for the raw TIGGE netcdf
-    indir  = '/home/disk/hot/stangen/Documents/ensembles/'+ens_type+'/'+m_dict[m]+y+'/'+y+'-'+m+'-'+d+'_'+h+'_'+ens_type+'_T_SP.nc'
+    indir  = '/home/disk/hot/stangen/Documents/tigge_ensembles/'+ens_type+'/'+y+m+'/'+y+'-'+m+'-'+d+'_'+h+'_'+ens_type+'_'+invar_string+'_'+lev+'.nc'
     # This is the directory for the orography file
-    orography = '/home/disk/hot/stangen/Documents/ensembles/orography/2013-04-01_00_'+ens_type+'.nc'
+    orography = '/home/disk/hot/stangen/Documents/tigge_ensembles/orography/2013-04-01_00_'+ens_type+'.nc'
     # This is the output directory for the netcdf with altimeter setting 
-    outdir = '/home/disk/hot/stangen/Documents/EFA/atms544/ensembles/'+ens_type+'/'+m_dict[m]+y+'/'
+    outdir = '/home/disk/hot/stangen/Documents/prior_ensembles/'+ens_type+'/'+y+m+'/'
     
     #Create output directories if they don't yet exit
     if (os.path.isdir(outdir)):
@@ -85,6 +116,8 @@ def create_new_netcdf(y,m,d,h,ens_type, vrbls):
     memarr = np.arange(1,nmems+1)
     
     #Read the orography netcdf file- for calculating altimeter setting
+    #has a time index, even when only one time is gotten from TIGGE- requires
+    #indexing like [0,:,:] to get this first(and only) time.
     orogdata = Dataset(orography, 'r')
     #print(orogdata.variables)
     elev = orogdata.variables[vardict['elev']][0,:,:]    
@@ -123,7 +156,7 @@ def create_new_netcdf(y,m,d,h,ens_type, vrbls):
     valid_times = date2num(ftimes,tunit)
     
     # Write ensemble forecast to netcdf - change name here
-    dset = Dataset(outdir+y+'-'+m+'-'+d+'_'+h+'_'+ens_type+'.nc','w')
+    dset = Dataset(outdir+y+'-'+m+'-'+d+'_'+h+'_'+ens_type+'_'+outvar_string+'.nc','w')
     dset.createDimension('time',None)
     dset.createDimension('lat',nlats)
     dset.createDimension('lon',nlons)
@@ -150,29 +183,9 @@ def create_new_netcdf(y,m,d,h,ens_type, vrbls):
     del state
 
 
-
-# form 'YYYY'
-year = '2013'
-# form 'mmm'
-month = '04'
-# form 'DD'
-d = range(1,2)
-day_string = []
-for day in d:
-    day = format(day, '02d')
-    day = str(day)
-    day_string.append('%s' % (day))
-# form 'HH'
-hour = ['00']#,'12']
-# ecmwf, eccc for euro/canadian ensembles, ncep
-ensemble_type = ['ecmwf']
-#variables with names I want to have after it is processed
-variables = ['T2M', 'ALT']#, 'P6HR', 'TCW']
-
+#--------Code that calls the function to make a new netCDF--------------------
 for ens in ensemble_type:
-    for d in day_string:
-        for h in hour:
-            print('Working on '+d+'_'+h+' '+ens)
-            create_new_netcdf(year,month,d,h,ens,variables)
+    for d in dates:
+        create_new_netcdf(d,ens,in_variables,variables)
         
         
