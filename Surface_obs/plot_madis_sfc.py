@@ -16,10 +16,10 @@ dstr = '20130401'
 time = '0600'
 var = 'alts'
 
-save_dir = '/home/disk/hot/stangen/Documents/atms544/plots/'
+#save_dir = '/home/disk/hot/stangen/Documents/atms544/plots/'
 
 #Open MADIS text data file
-f = open('/home/disk/hot/stangen/Documents/atms544/obs.txt','r')
+f = open('/home/disk/hot/stangen/Documents/EFA/atms544/obs.txt','r')
 #f = open("/home/disk/hot/stangen/Documents/EFA/surface_obs/MADIS/"+dstr[0:6]+"/combined_"+var+"/"+var+"_"+dstr+"_"+time+".txt","r")
 #f = open("/home/disk/hot/stangen/Documents/EFA/surface_obs/MADIS/"+dstr[0:6]+"/raw/metar_alts_"+dstr+"_"+time+".txt","r")
 
@@ -88,7 +88,7 @@ cbar = plt.colorbar(fraction=0.023)
 plt.title("Metar/Maritime 2m Temp, "+time+" UTC "+dstr[4:6]+"/"+dstr[6:8]+"/"+dstr[0:4],weight='bold',fontsize=16)
 cbar.ax.set_title('(K)',y=1.02)
 #Save figure
-plt.savefig(save_dir+"madis_sfc.png",frameon=False,bbox_inches='tight')
+#plt.savefig(save_dir+"madis_sfc.png",frameon=False,bbox_inches='tight')
 
 print(N_A)
 print(Euro)
