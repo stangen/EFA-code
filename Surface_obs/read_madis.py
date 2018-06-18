@@ -262,7 +262,7 @@ for dates in date_list:
                     yyyy = hours[0:4]
                     mons = hours[4:6]
                 
-                    #Call the function to read a MADIS netCDF file and filter the data.
+#-------------------Call the function to read a MADIS netCDF file and filter the data.
                     #This function appends QC'd observations to sstr. 
                     sstr = read_madis(ob,ob_var,hours)
                 except:
@@ -300,7 +300,7 @@ for dates in date_list:
                         prev_ob_time = mt.timestamp2utc(sstr_one_station_prev_split['time'])
                         #if the name of the station is 'SHIP' it isn't a unique name- check lat/lon as well
                         if sstr_split['name'] == 'SHIP':
-                            #if the lat/lon differ from the previous entry and are less than 1 degree 
+                            #if the lat/lon differ from the previous entry and are not less than 1 degree 
                             #from the previous entry (to eliminate duplicates of moving ships), append ob to one per station list.
                             sprev_lat = sstr_one_station_prev_split['lat']
                             sprev_lon = sstr_one_station_prev_split['lon']
