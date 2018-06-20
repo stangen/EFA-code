@@ -19,6 +19,8 @@ def check_elev(lats,lons,elevs,ob_lat,ob_lon,ob_elev,k=4):
     ob_lon: longitude of the observation
     ob_elev: elevation of the observation
     k: number of gridpoints to compare with, default is 4
+    
+    Returns: True or False
     """
     
     #make a lat/lon array for comparison with station lat/lon
@@ -63,3 +65,14 @@ def check_elev(lats,lons,elevs,ob_lat,ob_lon,ob_elev,k=4):
         TorF = True
     
     return TorF
+
+def var_string(vrbls):
+    """
+    Function which takes in a list of variables and returns a string, formatted
+    like var1_var2_var3, for use in saving files. 
+    """
+    var_string = ''
+    for v in vrbls[:-1]:  
+        var_string = var_string+v+'_'
+    var_string = var_string+vrbls[-1]
+    return var_string
