@@ -14,7 +14,7 @@ import os
 
 #start and end date to get ensembles. 
 start_date = datetime(2013,4,1,0) #YYYY,m,d,h
-end_date = datetime(2013,6,30,12)
+end_date = datetime(2013,4,1,0)
 hourstep = 12 #how often you want a new forecast initialization, usually 12 hr
 # ecmwf, eccc for euro/canadian ensembles, ncep
 ensemble_type = ['ecmwf','eccc']
@@ -131,8 +131,8 @@ def create_new_netcdf(date,ens_type,in_vrbls,vrbls):
         if var=='ALT': 
             #Convert surface pressure to altimeter setting in mb
             #pressure in netcdf file is in pascals
-            presinHg = field*.00029528744
-            field = (presinHg/((288-0.0065*elev)/288)**5.2561)/.029528744
+            presinmb = field/100
+            field = presinmb/((288-0.0065*elev)/288)**5.2561
         if var=='P6HR':
             #create dummy field to facilitate subtracting of total precipitation
             #t-1 from t without saving over t, so the next subtraction still works
