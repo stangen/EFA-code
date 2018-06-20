@@ -8,7 +8,7 @@ import os
 import netCDF4 
 import madis_utilities as mt
 
-base_dir = "/home/disk/hot/stangen/Documents/EFA/surface_obs/MADIS/"
+base_dir = "/home/disk/hot/stangen/Documents/surface_obs/MADIS/"
 
 #Set extent of MADIS data to extract from file
 minLat = 0.01 
@@ -18,7 +18,7 @@ maxLng = 180
 
 # Change these to read different data and times
 start_date = '20130401_0000'
-end_date = '20130512_1800'
+end_date = '20130703_1800'
 ob_type = ['metar','maritime'] #Can add 'raob'
 ob_vars = ['altimeter','temperature'] #or 'altimeter'
 
@@ -89,7 +89,7 @@ def read_madis(ob_type='metar', ob_var='altimeter', dtstr='20130401_0000'):
     stns = []
     for s in stn_name:
     	#decode list of bytes and join them to get the station identifier string
-    	stns.append(b''.join(s).decode('utf-8'))
+        	stns.append(b''.join(s).decode('utf-8'))
     
     #decode other character arrays (decoding is only necessary in Python 3)
     qc_var = [b.decode() for b in qc_var0]
@@ -167,7 +167,7 @@ def read_madis(ob_type='metar', ob_var='altimeter', dtstr='20130401_0000'):
         		#Save station identifier, latitude, longitude, elevation, epoch time, and observation
             #if (alts[t] != '--'):
                 if ob_var == 'altimeter':
-                    if var[t] > 94000 and var[t] < 106000:
+                    if var[t] > 93000 and var[t] < 107000:
                         sstr.append(str(stns[t])+","+str(lats[t])+","+str(lngs[t])+","+str(elevs[t])+","+str(epoch[t])+","+str(var[t]/100)+","+ob_type.upper()+"\n")
                 else:
                     sstr.append(str(stns[t])+","+str(lats[t])+","+str(lngs[t])+","+str(elevs[t])+","+str(epoch[t])+","+str(var[t])+","+ob_type.upper()+"\n")
@@ -177,7 +177,7 @@ def read_madis(ob_type='metar', ob_var='altimeter', dtstr='20130401_0000'):
         		#If the MADIS ob exists, is in the lat/lng bounding box and has passed all MADIS QC checks applied
         		#add the altimeter observation to the string array
                 if ob_var == 'altimeter':
-                    if var[t] > 94000 and var[t] < 106000:
+                    if var[t] > 93000 and var[t] < 107000:
                         sstr.append(str(stns[t])+","+str(lats[t])+","+str(lngs[t])+","+str(elevs[t])+","+str(epoch[t])+","+str(var[t]/100)+","+ob_type.upper()+"\n")
                 else:
                     sstr.append(str(stns[t])+","+str(lats[t])+","+str(lngs[t])+","+str(elevs[t])+","+str(epoch[t])+","+str(var[t])+","+ob_type.upper()+"\n")
@@ -208,9 +208,9 @@ for dates in date_list:
 
         #Shorten input ob variable to match naming convention to read file
         if ob_var == 'altimeter':
-            var_short = 'alts'
+            var_short = 'ALT'
         elif ob_var =='temperature':
-            var_short = 'temp'
+            var_short = 'T2M'
         
         #Convert 6-hourly date string to datetime object, useful for later but 
         #doesn't need to be redefined in the loop where it is accessed, so defined here.
