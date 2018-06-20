@@ -1,0 +1,18 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Aug 29 15:38:12 2017
+
+@author: stangen
+"""
+
+from netCDF4 import Dataset
+import numpy as np
+
+my_example_nc_file = '/home/disk/hot/stangen/Documents/GEFS/netcdf/pgbf_2017081400_00.nc'
+fh = Dataset(my_example_nc_file, mode='r')
+#print(fh.variables)
+
+lons = fh.variables['lon'][:]
+lats = fh.variables['lat'][:]
+500mb = fh.variables['Tmax'][:]
