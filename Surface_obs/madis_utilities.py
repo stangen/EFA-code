@@ -74,15 +74,16 @@ def get_ob_info(sstr_str):
     """    
     Split the station string and return a dictionary containing their names, 
     lats, lons, time, elevation, and ob value. 
+    **********Changed these to floats 6/19, not 100% sure how this will affect other code*****
     """
     
     sstr_split = sstr_str.split(',')
     sstr_name = sstr_split[0]
-    sstr_lat = sstr_split[1]
-    sstr_lon = sstr_split[2]
-    sstr_elev = sstr_split[3]    
-    sstr_time = sstr_split[4]
-    sstr_ob = sstr_split[5]
+    sstr_lat = float(sstr_split[1])
+    sstr_lon = float(sstr_split[2])
+    sstr_elev = float(sstr_split[3]) 
+    sstr_time = float(sstr_split[4])
+    sstr_ob = float(sstr_split[5])
     
     info = {'name':sstr_name, 'lat':sstr_lat, 'lon':sstr_lon, 'time':sstr_time, 'elev':sstr_elev, 'ob':sstr_ob}
     return info
