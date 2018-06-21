@@ -7,6 +7,8 @@ Created on Tue Jun 19 16:23:50 2018
 """
 
 import numpy as np
+from netCDF4 import Dataset, num2date, date2num
+import EFA.efa_files.cfs_utilities_st as ut
 
 def check_elev(lats,lons,elevs,ob_lat,ob_lon,ob_elev,k=4):
     """
@@ -35,7 +37,7 @@ def check_elev(lats,lons,elevs,ob_lat,ob_lon,ob_elev,k=4):
     dlon = ob_lon-lonarr
     #Haversine formula to calculate the great circle distance between ob and each lat/lon point (in km)
     a = np.sin(dlat/2)**2 + np.cos(ob_lat) * np.cos(latarr) * np.sin(dlon/2)**2
-    print(a.min())
+    #print(a.min()) #was to check if negative values were really occurring, don't think so.
     dist = 2*R*np.arcsin(np.sqrt(a))
     #flatten the distance array to 1D
     dist_flat = dist.flatten()
@@ -45,7 +47,7 @@ def check_elev(lats,lons,elevs,ob_lat,ob_lon,ob_elev,k=4):
     
     #get the indices of the k closest gridpoints
     idx = dist_flat.argsort(axis=None)[:k]
-    print(dist_flat[idx])
+    #print(dist_flat[idx]) #prints distances of 4 closest gridpoints
 
     #find nearest 4 points, in order from closest to farthest
     #argpartition just puts the 4 smallest indices in front, array (1,k) puts the 
@@ -76,3 +78,33 @@ def var_string(vrbls):
         var_string = var_string+v+'_'
     var_string = var_string+vrbls[-1]
     return var_string
+
+def make_netcdf(state,outfile):
+    """
+    Function which creates/saves a netCDF file
+    """
+    #tunit='seconds since 1970-01-01'
+    tunit='hours since 1900-01-01'
+    # Write ensemble forecast to netcdf
+    with Dataset(outfile,'w') as dset:
+            dset.createDimension('time',None)
+            dset.createDimension('lat',state.ny())
+            dset.createDimension('lon',state.nx())
+            dset.createDimension('ens',state.nmems())
+            dset.createVariable('time','i4',('time',))
+            dset.createVariable('lat',np.float32,('lat',))
+            dset.createVariable('lon',np.float32,('lon'))
+            dset.createVariable('ens','i4',('ens',))
+            dset.variables['time'].units = tunit
+            dset.variables['lat'].units = 'degrees_north'
+            dset.variables['lon'].units = 'degrees_east'
+            dset.variables['ens'].units = 'member_number'
+            dset.variables['time'][:] = date2num(state.ensemble_times(),tunit)
+            dset.variables['lat'][:] = state['lat'].values[:,0]
+            dset.variables['lon'][:] = state['lon'].values[0,:]
+            dset.variables['ens'][:] = state['mem'].values
+            for var in state.vars():
+                print('Writing variable {}'.format(var))
+                dset.createVariable(var, np.float32, ('time','lat','lon','ens',))
+                dset.variables[var].units = ut.get_units(var)
+                dset.variables[var][:] = state[var].values
