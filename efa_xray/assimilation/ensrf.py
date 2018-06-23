@@ -48,8 +48,8 @@ class EnSRF(Assimilation):
         # Now loop over all observations
         if self.verbose: print("Beginning observation loop")
         for obnum,ob in enumerate(self.obs):
-            if (obnum % 100==0) and self.verbose: print("    On ob:", obnum)
-            print('on ob '+str(obnum))
+            #if (obnum % 100==0) and self.verbose: print("    On ob:", obnum)
+            #print('on ob '+str(obnum))
             # Reset the mean and perturbations
             
             #ST
@@ -149,7 +149,7 @@ class EnSRF(Assimilation):
 
             Xap = Xbp - np.dot(kmat.T, ye)
             
-            check_ob_estimate = True
+            check_ob_estimate = False
             if check_ob_estimate == True:
                 print('posterior ob estimate mean: ',np.dot(H,xam))
                 print('posterior ob estimate perts:\n',np.dot(H,Xap))
@@ -162,7 +162,8 @@ class EnSRF(Assimilation):
             # Record that this ob was assimilated
             ob.assimilated = True
             numobs_assim = numobs_assim+1
-            print('total number of obs assimilated so far: ',numobs_assim)
+            #print('total number of obs assimilated so far: ',numobs_assim)
+        print('total number of obs assimilated: ',numobs_assim)
         # After having assimilated everything, rebuild the state
         return self.format_posterior_state(xam, Xap)
         
