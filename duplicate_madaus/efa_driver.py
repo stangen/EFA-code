@@ -88,27 +88,20 @@ def run_efa(ob_type,update_var):
         for ob in obs:
             #this gets the observation information from the text file
             ob_dict = mt.get_ob_info(ob)
-            #ob_split = ob.split(',')
-            #get the lat/lon of the station
-            #ob_lat = float(ob_split[1])
-            #ob_lon = float(ob_split[2])
             #get longitude positive-definite- ie -130 lon is 230 E
             if ob_dict['lon'] < 0:
                 ob_dict['lon'] = ob_dict['lon'] + 360
-            #ob_elev = float(ob_split[3])
-            #ob_time = float(ob_split[4])
             utctime = datetime.utcfromtimestamp(ob_dict['time'])
-            #ob_value = float(ob_split[5])
-            
+            #find 4 closest points and shape of lon array
+            closest_4, lonarr_shape = ef.closest_points(ob_dict['lat'],ob_dict['lon'],lats,lons)            
             #call function to check elevation to see whether or not to assimilate ob
-            TorF = ef.check_elev(lats,lons,elevs,ob_dict['lat'],ob_dict['lon'],ob_dict['elev'])
-            
+            TorF = ef.check_elev(closest_4,elevs,ob_dict['elev'])
+            #fill the observation class object with information for assimilation
             obser = Observation(value=ob_dict['ob'], time=utctime,
                             lat=ob_dict['lat'],lon=ob_dict['lon'], obtype=o_type, localize_radius=loc_rad,
                             assimilate_this=TorF, error=1)
             observations.append(obser)
-        print(len(observations))
-    print('done loading obs for assimilation')
+    print('loaded '+str(len(observations))+' obs for assimilation')
             
 #    ob1 = Observation(value=10000.25, time=datetime(2013,4,1,6),lat=24.55,lon=278.21,
 #                  obtype = ob_type[0], localize_radius=1000, assimilate_this=True,
@@ -147,7 +140,7 @@ def run_efa(ob_type,update_var):
     else:
         os.makedirs(outdir)
     
-    outdir_date_ens = outdir+y+'-'+m+'-'+d+'_'+h+'_'+ensemble_type
+    outdir_date_ens = outdir+y+'goodbye-'+m+'-'+d+'_'+h+'_'+ensemble_type
             
     #if we are only updating the variable type that matches the observation type
     if self_update == True:
@@ -165,6 +158,7 @@ def run_efa(ob_type,update_var):
                 existing_file = existing_file[0]
                 # append to the existing file
                 with Dataset(existing_file,'a') as dset:
+                    print('Writing variable {}'.format(var))
                     dset.createVariable(var, np.float32, ('time','lat','lon','ens',))
                     dset.variables[var].units = ut.get_units(var)
                     dset.variables[var][:] = state[var].values
@@ -173,6 +167,7 @@ def run_efa(ob_type,update_var):
                 newfile = existing_file+'_'+ef.var_string(ob_type)
                 if last_ob == True:
                     newfile += '.nc'
+                    print('Done!')
     
                 os.system('mv {} {}'.format(existing_file,newfile))
                 # ALL DONE!!
@@ -190,8 +185,9 @@ def run_efa(ob_type,update_var):
 #----------Call the run_efa function. Use a for loop if self-updating variables
 #----------This is to update each variable one at a time.----------------------
 if self_update == True:
-    for i, obs in enumerate(obs_type):
+    for obs in obs_type:
         #put back into list format or won't run in the function properly (due to ob_type loop)
-        run_efa([obs],[update_vars[i]])
+        #make the ob_type and update_var match, so order of entry shouldn't matter
+        run_efa([obs],[update_vars[update_vars.index(obs)]])
 elif self_update == False:
     run_efa(obs_type,update_vars)
