@@ -8,7 +8,7 @@ Created on Tue May  8 12:10:56 2018
 
 from netCDF4 import Dataset, num2date, date2num
 import numpy as np
-from datetime import datetime
+from datetime import datetime, timedelta
 import EFA.efa_files.cfs_utilities_st as ut
 import surface_obs.madis_example.madis_utilities as mt
 import os
@@ -22,7 +22,8 @@ from EFA.duplicate_madaus.load_data import Load_data
 import EFA.duplicate_madaus.efa_functions as ef
 
 
-
+start_time = datetime.now()
+print('start time: ',start_time)
 ensemble_type = sys.argv[1]
 
 #ensemble_type = 'ecmwf'
@@ -51,8 +52,15 @@ loc_type = sys.argv[6]
 #localization radius (for Gaspari-Cohn)
 localize_radius = int(sys.argv[7])
 #localize_radius = 1000
-datenum = int(sys.argv[8]) - 1
-date = datetime(2013,4,1,0)
+datestr = sys.argv[8]
+firstdate = datetime.strptime(datestr,'%Y%m%d_%H%M')
+#firstdate = datetime(2013,4,1,0)
+#get index of job number (make index start at 0)
+dateind = int(sys.argv[9]) - 1
+#use the index to access files corresponding with 12*ind hours after first 
+#forecast datetime
+date = firstdate+timedelta(hours=dateind*12)
+
 
 
 
@@ -84,6 +92,7 @@ def run_efa(ob_type,update_var):
     d = date.strftime('%d')
     h = date.strftime('%H')
     
+    observations = []
     for o, o_type in enumerate(ob_type):
         efa = Load_data(date,ensemble_type,variables,o_type,update_var)
         #only need to load the netCDF once (first time through the obtype loop)
@@ -93,41 +102,34 @@ def run_efa(ob_type,update_var):
     
     
     
-#        #load in the obs file
-#        obs = efa.load_obs()
-#        
-        observations = []
-#        #loop through each line in the text file (loop through each observation)
-#        for ob in obs:
-#            #this gets the observation information from the text file
-#            ob_dict = mt.get_ob_info(ob)
-#            #ob_split = ob.split(',')
-#            #get the lat/lon of the station
-#            #ob_lat = float(ob_split[1])
-#            #ob_lon = float(ob_split[2])
-#            #get longitude positive-definite- ie -130 lon is 230 E
-#            if ob_dict['lon'] < 0:
-#                ob_dict['lon'] = ob_dict['lon'] + 360
-#            #ob_elev = float(ob_split[3])
-#            #ob_time = float(ob_split[4])
-#            utctime = datetime.utcfromtimestamp(ob_dict['time'])
-#            #ob_value = float(ob_split[5])
-#            
-#            #call function to check elevation to see whether or not to assimilate ob
-#            TorF = ef.check_elev(lats,lons,elevs,ob_dict['lat'],ob_dict['lon'],ob_dict['elev'])
-#            
-#            obser = Observation(value=ob_dict['ob'], time=utctime,
-#                            lat=ob_dict['lat'],lon=ob_dict['lon'], obtype=o_type, localize_radius=loc_rad,
-#                            assimilate_this=TorF, error=1)
-#            observations.append(obser)
-#    print('done loading obs for assimilation')
+        #load in the obs file
+        obs = efa.load_obs()
+        
+        #loop through each line in the text file (loop through each observation)
+        for ob in obs:
+            #this gets the observation information from the text file
+            ob_dict = mt.get_ob_info(ob)
+            #get longitude positive-definite- ie -130 lon is 230 E
+            if ob_dict['lon'] < 0:
+                ob_dict['lon'] = ob_dict['lon'] + 360
+            utctime = datetime.utcfromtimestamp(ob_dict['time'])
+            #find 4 closest points and shape of lon array
+            closest_4, lonarr_shape = ef.closest_points(ob_dict['lat'],ob_dict['lon'],lats,lons)            
+            #call function to check elevation to see whether or not to assimilate ob
+            TorF = ef.check_elev(closest_4,elevs,ob_dict['elev'])
+            #fill the observation class object with information for assimilation
+            obser = Observation(value=ob_dict['ob'], time=utctime,
+                            lat=ob_dict['lat'],lon=ob_dict['lon'], obtype=o_type, localize_radius=loc_rad,
+                            assimilate_this=TorF, error=1)
+            observations.append(obser)
+    print('loaded '+str(len(observations))+' obs for assimilation')
             
-    ob1 = Observation(value=10000.25, time=datetime(2013,4,1,6),lat=24.55,lon=278.21,
-                  obtype = ob_type[0], localize_radius=1000, assimilate_this=True,
-                  error=1)
-    
-    
-    observations.append(ob1)
+#    ob1 = Observation(value=10000.25, time=datetime(2013,4,2,6),lat=24.55,lon=278.21,
+#                  obtype = ob_type[0], localize_radius=1000, assimilate_this=True,
+#                  error=1)
+#    
+#    
+#    observations.append(ob1)
     #    
     # Put the state class object and observation objects into EnSRF object
     assimilator = EnSRF(statecls, observations, loc=loc_type)
@@ -177,6 +179,7 @@ def run_efa(ob_type,update_var):
                 existing_file = existing_file[0]
                 # append to the existing file
                 with Dataset(existing_file,'a') as dset:
+                    print('Writing variable {}'.format(var))
                     dset.createVariable(var, np.float32, ('time','lat','lon','ens',))
                     dset.variables[var].units = ut.get_units(var)
                     dset.variables[var][:] = state[var].values
@@ -185,6 +188,7 @@ def run_efa(ob_type,update_var):
                 newfile = existing_file+'_'+ef.var_string(ob_type)
                 if last_ob == True:
                     newfile += '.nc'
+                    print('Done!')
     
                 os.system('mv {} {}'.format(existing_file,newfile))
                 # ALL DONE!!
@@ -199,16 +203,16 @@ def run_efa(ob_type,update_var):
         outfile = outdir_date_ens+'_'+ef.var_string(ob_type)+'.nc'
         ef.make_netcdf(state,outfile)
 
-#----------Call the run_efa function. Use a for loop if self-updating variables.
+#----------Call the run_efa function. Use a for loop if self-updating variables
+#----------This is to update each variable one at a time.----------------------
 if self_update == True:
-    for i, obs in enumerate(obs_type):
+    for obs in obs_type:
         #put back into list format or won't run in the function properly (due to ob_type loop)
-        run_efa([obs],[update_vars[i]])
+        #make the ob_type and update_var match, so order of entry shouldn't matter
+        run_efa([obs],[update_vars[update_vars.index(obs)]])
 elif self_update == False:
     run_efa(obs_type,update_vars)
-#    
-#    
-#    #create observations
-#    ob1 = Observation(value=5900, time=datetime(2017,9,6,12),lat=24.55,lon=278.21,
-#                  obtype = 'Z500', localize_radius=2000, assimilate_this=True,
-#                  error=10)
+
+end_time = datetime.now()
+print('end time: ',end_time)
+print('total time elapsed: ',end_time-start_time)
