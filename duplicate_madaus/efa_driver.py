@@ -77,7 +77,6 @@ def run_efa(ob_type,update_var):
         if o == 0:
             #initialize an instance of the Load_data class (load in data)
             statecls, lats, lons, elevs = efa.load_netcdfs()   
-            print(statecls['validtime'].values)
         
         #load in the obs file
         obs = efa.load_obs()
