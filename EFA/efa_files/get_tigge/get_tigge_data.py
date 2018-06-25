@@ -13,12 +13,12 @@ server = ECMWFDataServer()
 
 ###---------Change these variables accordingly---------------------------------
 #start and end date to get ensembles. 
-start_date = datetime(2013,4,1,0) #YYYY,m,d,h
-end_date = datetime(2013,6,30,18)
+start_date = datetime(2013,4,1,12) #YYYY,m,d,h
+end_date = datetime(2013,4,1,12)
 start_fh = '0' #first forecast hour of each forecast
 end_fh = '54' #last forecast hour of each forecast
 fh_step = '6' #increment of forecast hour to retrieve
-ens = 'eccc' #ensemble
+ens = 'ecmwf' #ensemble
 param = ['T2M', 'SP'] #parameters to get
 surface = True #True if surface variables, false if aloft (500mb?)
 hourstep = 12 #how often you want a new forecast initialization, usually 12 hr
@@ -61,7 +61,7 @@ var_string = var_string+param[-1]
 timestep = start_fh+'/TO/'+end_fh+'/BY/'+fh_step
 
 #a list of dates to loop through to load each forecast initialized on these dates
-dates = mt.make_datetimelist(start_date,end_date,timestep = 3600*hourstep)    
+dates = mt.make_datetimelist(start_date,end_date,hourstep)    
     
 def retreive_tigge_data(date):
     y = date.strftime('%Y')
