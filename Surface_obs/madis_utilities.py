@@ -51,7 +51,7 @@ def make_datelist(start_date = '20130401_0000', end_date = '20130406_0000', torf
         
     return dt_list
 
-def make_datetimelist(start_date = datetime(2013,4,1,0), end_date = datetime(2013,4,6,0), timestep=21600):
+def make_datetimelist(start_date = datetime(2013,4,1,0), end_date = datetime(2013,4,6,0), hourstep=6):
     """
     Similar to make_datelist, but this accepts and returns a list of datetime objects instead of 
     a list of strings.
@@ -65,7 +65,7 @@ def make_datetimelist(start_date = datetime(2013,4,1,0), end_date = datetime(201
     dt = dt_start; dt_list = []
     while (dt <= dt_end):
         dt_list.append(dt)
-        dt = dt + timedelta(0,timestep)
+        dt = dt + timedelta(hours=hourstep)
     
     return dt_list
 
