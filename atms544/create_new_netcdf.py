@@ -27,7 +27,7 @@ lev = 'sfc'
 variables = ['T2M', 'ALT']#, 'P6HR', 'TCW']
 
 #a list of dates to loop through to load each forecast initialized on these dates
-dates = mt.make_datetimelist(start_date,end_date,timestep = 3600*hourstep)   
+dates = mt.make_datetimelist(start_date,end_date,hourstep)   
 
 
 
