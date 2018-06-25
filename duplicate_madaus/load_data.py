@@ -13,14 +13,14 @@ import efa_functions as ef
 #from old_ensemble_verification import error_vs_spread
 from EFA.efa_xray.state.ensemble import EnsembleState
 
-class Load_data():
+class Load_Data():
     """
     This class exists mainly because the two functions share some variables,
     and this helps reduce the amount of redundant inputs into each function. 
     #ens_type, ob_type are str; vrbls, update_var are lists of str, date is datetime object.
     """
     
-    def __init__(self, date,ens_type,vrbls,ob_type,update_var):
+    def __init__(self,date,ens_type,vrbls,ob_type,update_var):
         self.date = date  
         self.y = self.date.strftime('%Y')
         self.m = self.date.strftime('%m')
@@ -35,11 +35,12 @@ class Load_data():
     
     
     
-    def load_netcdfs(self):
+    def load_netcdfs(self,post=False,ob_upd='ob_update_self',lr='1000'):
         """
-        Loads the ensemble netCDF and the elevation netCDF. Packages the 
-        ensemble data into an EnsembleState object for use in Luke's code.
-        Returns this, lats, lons, and elevations
+        Loads the ensemble netCDF and the elevation netCDF. 
+        Allows an option to package the ensemble data into an EnsembleState 
+        object for use in Luke's code. If posterior ensemble, there are more 
+        options for exactly what EFA took place for finding the right file.
         """
         #block of code to access netCDF files, according to naming convention.
         #deals with names of variables, since names of variables are included
@@ -47,8 +48,10 @@ class Load_data():
         var_string = ef.var_string(self.vrbls)
         
         # directory where the ensemble of all times is
-        infile = '/home/disk/hot/stangen/Documents/prior_ensembles/'+self.ens_type+'/'+self.y+self.m+'/'+self.y+'-'+self.m+'-'+self.d+'_'+self.h+'_'+self.ens_type+'_'+var_string+'.nc' 
-        
+        if post==False:
+            infile = '/home/disk/hot/stangen/Documents/prior_ensembles/'+self.ens_type+'/'+self.y+self.m+'/'+self.y+'-'+self.m+'-'+self.d+'_'+self.h+'_'+self.ens_type+'_'+var_string+'.nc' 
+        elif post==True:
+            infile = '/home/disk/hot/stangen/Documents/posterior_ensembles/'+ob_upd+'/loc_'+str(lr)+'/'+self.ens_type+'/'+self.y+self.m+'/'+self.y+'-'+self.m+'-'+self.d+'_'+self.h+'_'+self.ens_type+'_'+var_string+'.nc' 
         print('loading netcdf file: '+self.ens_type+' '+self.y+self.m+self.d+'_'+self.h+'00')
         # loading/accessing the netcdf data            
         ncdata = Dataset(infile,'r')
@@ -60,6 +63,12 @@ class Load_data():
         lons = ncdata.variables['lon'][:]
         mems = ncdata.variables['ens'][:]
         #print(ncdata.variables)
+        
+        # directory where the orography file is
+        orography = '/home/disk/hot/stangen/Documents/tigge_ensembles/orography/2013-04-01_00_'+self.ens_type+'.nc'
+        orog_data = Dataset(orography,"r")
+        #print(of.variables)
+        elevs = orog_data.variables['orog'][0,:] # Elevation of ecmwf or eccc  
         
         # storing the variable data in a dict (state?)
         allvars = {}
@@ -78,16 +87,8 @@ class Load_data():
                                        'mem' : mems,
                                        })
         
-        
-        # directory where the orography file is
-        orography = '/home/disk/hot/stangen/Documents/tigge_ensembles/orography/2013-04-01_00_'+self.ens_type+'.nc'
-        orog_data = Dataset(orography,"r")
-        #print(of.variables)
-        elevs = orog_data.variables['orog'][0,:] # Elevation of ecmwf or eccc         
-        
         return statecls, lats, lons, elevs
-
-        
+             
     def load_obs(self, forecast_hour=6):
         """
         Loads the observations corresponding with n hours after ensemble was
