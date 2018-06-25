@@ -17,7 +17,7 @@ import glob
 # Luke's (super useful) assimilation tools:
 from EFA.efa_xray.observation.observation import Observation
 from EFA.efa_xray.assimilation.ensrf import EnSRF
-from EFA.duplicate_madaus.load_data import Load_data
+from EFA.duplicate_madaus.load_data import Load_Data
 import EFA.duplicate_madaus.efa_functions as ef
 
 
@@ -72,18 +72,16 @@ def run_efa(ob_type,update_var):
 
     observations = []   
     for o, o_type in enumerate(ob_type):
-        efa = Load_data(date,ensemble_type,variables,o_type,update_var)
+        efa = Load_Data(date,ensemble_type,variables,o_type,update_var)
         #only need to load the netCDF once (first time through the obtype loop)
         if o == 0:
             #initialize an instance of the Load_data class (load in data)
-            statecls, lats, lons, elevs = efa.load_netcdfs()
-    
-    
-    
+            statecls, lats, lons, elevs = efa.load_netcdfs()   
+            print(statecls['validtime'].values)
+        
         #load in the obs file
         obs = efa.load_obs()
         
-
         #loop through each line in the text file (loop through each observation)
         for ob in obs:
             #this gets the observation information from the text file
@@ -92,10 +90,9 @@ def run_efa(ob_type,update_var):
             if ob_dict['lon'] < 0:
                 ob_dict['lon'] = ob_dict['lon'] + 360
             utctime = datetime.utcfromtimestamp(ob_dict['time'])
-            #find 4 closest points and shape of lon array
-            closest_4, lonarr_shape = ef.closest_points(ob_dict['lat'],ob_dict['lon'],lats,lons)            
-            #call function to check elevation to see whether or not to assimilate ob
-            TorF = ef.check_elev(closest_4,elevs,ob_dict['elev'])
+            #check elevation of 4 nearest gridpoints to see whether or not to assimilate ob
+            TorF = ef.closest_points(ob_dict['lat'],ob_dict['lon'],lats,
+                                          lons,ob_dict['elev'],elevs)            
             #fill the observation class object with information for assimilation
             obser = Observation(value=ob_dict['ob'], time=utctime,
                             lat=ob_dict['lat'],lon=ob_dict['lon'], obtype=o_type, localize_radius=loc_rad,

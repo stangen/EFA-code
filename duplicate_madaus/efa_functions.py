@@ -10,16 +10,28 @@ import numpy as np
 from netCDF4 import Dataset, num2date, date2num
 import EFA.efa_files.cfs_utilities_st as ut
 
-def closest_points(ob_lat, ob_lon, lats, lons, k=4):
+def closest_points(ob_lat, ob_lon, lats, lons, ob_elev, elevs, ob_time=None, 
+                   times=None, variable=None, k=4, need_interp=False):
     """
-    Function which uses the Haversine formula to compute the distances from an observation lat/lon to each gridpoint.
-    It returns the indices of the n closest gridpoints (default 4) and the shape of the lonarr.
+    Function which uses the Haversine formula to compute the distances from one 
+    observation lat/lon to each gridpoint. It finds the indices of the n closest 
+    gridpoints (default 4). It then calls functions to check elevation and/or
+    interpolate the ensemble to the observation location.
     
     ob_lat: latitude of the observation
     ob_lon: longitude of the observation
     lats: 1-d (masked) array of latitudes from ens netCDF file
     lons: 1-d (masked) array of longitudes from ens netCDF file
+    ob_elev: required for check elevation function
+    elevs: required for check elevation function
+    ob_time: required for interpolate function
+    times: required for interpolate function
+    variable: required for interpolate function   
     k = number of points to find
+    need_interp: if False, call function to check the elevation of the 4 
+    nearest gridpoints. If True, call function to interpolate the ensemble 
+    to the ob location/time.
+    returns: output from check elevation or interpolate functions.
     """  
     #make a lat/lon array for comparison with station lat/lon
     lonarr, latarr = np.radians(np.meshgrid(lons, lats))
@@ -39,9 +51,25 @@ def closest_points(ob_lat, ob_lon, lats, lons, k=4):
 
     #find nearest 4 points (indices), in order from closest to farthest
     closest_4 = dist_flat.argsort(axis=None)[:k]
-    print(dist_flat[closest_4])
-
-    return closest_4, lonarr.shape
+    #print(dist_flat[closest_4])
+    #do we need to do interpolation?
+    if need_interp==True:
+        #call function to check elevation
+        TorF = check_elev(closest_4,elevs,ob_elev)
+        #if it passes terrain check, we need to interpolate
+        if TorF==True:
+            #4 closest distances
+            distances = dist_flat[closest_4]
+            #return to lat/lon gridbox indices
+            closey, closex = np.unravel_index(closest_4, lonarr.shape)
+            interp = interpolate(closey,closex,distances,times,variable,ob_time)
+            return interp
+        #if it fails terrain check, no need to interpolate, so return empty array
+        elif TorF==False:
+            return np.array(())
+    #if no need to do interpolation, just call/return terrain check function
+    elif need_interp==False:
+        return check_elev(closest_4,elevs,ob_elev)
 
 
 def interpolate(closey, closex, distances, times, variable, ob_time):
@@ -54,13 +82,9 @@ def interpolate(closey, closex, distances, times, variable, ob_time):
     times = forecast times of the ensemble, in datetime format
     variable = ensemble values of variable (ALT or T2M)
     ob_time = observation time, in datetime format
+    returns: value of ensemble interpolated to ob location.
 
     """
-    
-    #4 closest distances
-    distances = dist_flat[closest_4]
-    #return to lat/lon gridbox indices
-    closey, closex = np.unravel_index(closest_4, lonarr.shape)
     
     spaceweights = np.zeros(distances.shape)
     if (distances < 1.0).sum() > 0:
@@ -118,11 +142,12 @@ def interpolate(closey, closex, distances, times, variable, ob_time):
 def check_elev(idx,elevs,ob_elev):
     """
     Function that takes in several variables to perform a terrain check 
-    on observations. 
+    on observations- is the ens elevation of the 4 nearest gridpoints within 
+    300 m of the ob elevation? 
     idx: index of 4 closest gridpoints of flattened lat/lon array
     elevs: nlat x nlon grid of elevations of the ens netCDF file
     ob_elev: elevation of the observation    
-    Returns: True or False
+    Returns: True or False- True if passes terrain check, false if it doesn't.
     """
     #check if the 4 closest points have elevations which differ by more than 300 meters
     elev_flat = elevs.flatten()
