@@ -5,35 +5,79 @@ Created on Tue May  8 11:48:09 2018
 
 @author: stangen
 """
-from netCDF4 import Dataset, num2date, date2num
 import numpy as np
-from datetime import datetime, timedelta
-from mpl_toolkits.basemap import Basemap
-import EFA.efa_files.cfs_utilities_st as ut
+from datetime import datetime
 import surface_obs.madis_example.madis_utilities as mt
-import time
-import os
-#from old_ensemble_verification import error_vs_spread
-# Luke's (super useful) assimilation tools:
-from EFA.efa_xray.observation.observation import Observation
+import sys
 from load_data import Load_Data
 import efa_functions as ef
 
+start_time = datetime.now()
+print('start time: ',start_time)
+#to run this in spyder, change this to False, to run in shell script, change to True
+shell_script=False
 
+if shell_script==False:
+    ensemble_type = 'eccc'
+    #mainly used for loading/saving files-order matters for loading the file
+    variables = ['T2M', 'ALT'] 
+    #which ob type we're getting stats for, can be more than 1 ['T2M','ALT']
+    obs = ['ALT']
+    #date range of ensembles used
+    start_date = datetime(2013,4,1,0)
+    end_date = datetime(2013,4,1,12)
+    #hour increment between ensemble forecasts
+    incr = 12
+    
+    #change for how far into the forecast to get observations, 1 is 6 hours in,
+    #end_index is the last forecast hour to get obs for
+    start_index = 1
+    end_index = 2
+    
+    #if True, will load/do stats on posterior ensembles, if False, will load prior
+    post=False
+       
+    #create strings for saving file at the end
+    sy = start_date.strftime('%Y')
+    sm = start_date.strftime('%m')
+    sd = start_date.strftime('%d')
+    sh = start_date.strftime('%H')
+    
+    ey = end_date.strftime('%Y')
+    em = end_date.strftime('%m')
+    ed = end_date.strftime('%d')
+    eh = end_date.strftime('%H')
+    
+    datestr=sy+sm+sd+sh+'-'+ey+em+ed+eh
+    
+elif shell_script==True:
+    ensemble_type = sys.argv[1]
+    variables = sys.argv[2].split(',')
+    obs = sys.argv[3].split(',')
+    startstr = sys.argv[4]
+    start_date = datetime.strptime(startstr,'%Y%m%d%H')
+    endstr = sys.argv[5]
+    end_date = datetime.strptime(endstr,'%Y%m%d%H')
+    incr=int(sys.argv[6])
+    start_index = int(sys.argv[7])
+    end_index=int(sys.argv[8])
+    boolstr=sys.argv[9]
+    #change string to boolean for loading prior or posterior ensembles
+    if boolstr == 'true':
+        post=True
+    elif boolstr =='false':
+        post=False     
+        
+    datestr = startstr+'-'+endstr
 
-ensemble_type = 'ecmwf'
-variables = ['T2M', 'ALT']
-obs = ['T2M']
-#change this later
-start_date = datetime(2013,4,1,0)#'20130401_0000'
-end_date = datetime(2013,4,2,12)#'20130401_0000'
-
-#change for how far into the forecast to get observations, 1 is 6 hours
-start_index = 1
-end_index = 1
-
-save_dir = '/home/disk/hot/stangen/Documents/EFA/duplicate_madaus/mse_var_output/'
-
+save_dir = '/home/disk/hot/stangen/Documents/EFA/duplicate_madaus/mse_var_output/'    
+#variable string
+varstr = ef.var_string(variables)
+#prior/post string
+if post==True:
+    prior_or_post='posterior'
+if post==False:
+    prior_or_post='prior'
 #last forecast hour I want to get observations for
 end_hour = 6*end_index
 
@@ -46,16 +90,18 @@ for ob_type in obs:
     ob_dict[ob_type] = ob_dict.get(ob_type,{})
     data_dict[ob_type] = data_dict.get(ob_type,{})
     #creates a datelist which increments in 12 or 24 hour chunks
-    dates = mt.make_datetimelist(start_date, end_date, 12)
+    dates = mt.make_datetimelist(start_date, end_date, incr)
     for date in dates:
         hour = date.strftime('%H')
         
         
         #Load in the ensemble data for a given initilization
         efa = Load_Data(date,ensemble_type,variables,ob_type,[ob_type])
-        statecls, lats, lons, elevs = efa.load_netcdfs()
+        statecls, lats, lons, elevs = efa.load_netcdfs(post)
         
-        #Want to interpolate ALL observations valid during a given ensemble forecast
+        #Want to interpolate ALL observations valid during a given ensemble forecast.
+        #Or not, to minimize runtime of script. 1 ens, var, and forecast hour takes
+        #about 1 minute to run. 
         hour_step = 6
         j = start_index
         fh = hour_step*j
@@ -143,9 +189,9 @@ for ob_type in obs:
                     ob_dict[ob_type][sfh][hour][ob_id]['se'].append((np.mean(hx_oneob)-ob_value)**2)
                     
                     #ob_counter +=1
-                    print("on observation "+str(ob_counter)+" out of "+str(len(obs)))                
+                    #print("on observation "+str(ob_counter)+" out of "+str(len(obs)))                
                     
-                        
+            print('Added stats from '+str(len(obs_pass))+' obs')        
                 #print(len(variance))
                 #i = i +1
             
@@ -159,9 +205,9 @@ for ob_type in obs:
 #now go through all the data, convert to numpy arrays, and calculate the bias, 
 #mse, and mean variance for each station and forecast hour
 
+#create list to save for creating plots
+stats_list = []
 for var in ob_dict:
-    #create list to save for creating plots
-    stats_list = []
     for f_h in ob_dict[var]:
         for h in ob_dict[var][f_h]:
             for sID in ob_dict[var][f_h][h]:
@@ -229,20 +275,27 @@ for var in ob_dict:
 #        data_dict[var][f_h]['station_all_mean_variance'] = np.sort(data_dict[var][f_h]['station_all_mean_variance'])
 #        #data_dict[var][f_h]['station_all_mean_variance_unbiased'] = np.sort(data_dict[var][f_h]['station_all_mean_variance_unbiased'])
 #        data_dict[var][f_h]['station_all_error_variance'] = np.sort(data_dict[var][f_h]['station_all_error_variance'])
-        
+        print('Calculating ensemble average statistics')
         data_dict[var][f_h]['average_mse'] = np.average(data_dict[var][f_h]['station_all_mse'],weights=data_dict[var][f_h]['weight'])
         data_dict[var][f_h]['average_variance'] = np.average(data_dict[var][f_h]['station_all_mean_variance'],weights=data_dict[var][f_h]['weight'])
         data_dict[var][f_h]['average_error_variance'] = np.average(data_dict[var][f_h]['station_all_error_variance'],weights=data_dict[var][f_h]['weight'])
         #data_dict[var][f_h]['average_variance_hx_each_bias_removed'] = np.mean(data_dict[var][f_h]['station_all_mean_variance_unbiased'])
  
-        #append to the stats list each stuff from forecast hour, for one variable
-        stats_list.append(ensemble_type+','+var+','+f_h+','+str(data_dict[var][f_h]['average_mse'])+','+str(data_dict[var][f_h]['average_variance'])+','+str(data_dict[var][f_h]['average_error_variance'])+'\n')#','+str(data_dict[var][f_h]['average_variance_hx_each_bias_removed'])+'\n')
+        #append to the stats list each statistic and info for one ens type, variable, and forecast hour
+        stats_list.append(prior_or_post+','+ensemble_type+','+var+','+f_h+','+str(data_dict[var][f_h]['average_mse'])+','+str(data_dict[var][f_h]['average_variance'])+','+str(data_dict[var][f_h]['average_error_variance'])+'\n')#','+str(data_dict[var][f_h]['average_variance_hx_each_bias_removed'])+'\n')
         
-        #save the stats list after all forecast hours have been appended for one variable
-        f = open(save_dir+ensemble_type+'_'+var+'_'+str(start_index*6)+'-'+str(end_index*6)+'.txt', 'a')
-        for s in stats_list:
-            f.write(s)
-        f.close()
+#save the stats list after all forecast hours have been appended for one variable
+print('Writing statistics to .txt file')
+f = open(save_dir+datestr+'_'+varstr+'.txt', 'a')
+for s in stats_list:
+    f.write(s)
+f.close()
+
+end_time = datetime.now()
+print('end time: ',end_time)
+print('total time elapsed: ',end_time-start_time)
+print('Done!')
+
 #want to save ens type, ob, forecast hour in string identifier, followed by mse, variance, and error variance
 
 ##this was to save all the stations that pass the elevation check so I could plot them. 
