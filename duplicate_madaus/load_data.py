@@ -50,9 +50,11 @@ class Load_Data():
         # directory where the ensemble of all times is
         if post==False:
             infile = '/home/disk/hot/stangen/Documents/prior_ensembles/'+self.ens_type+'/'+self.y+self.m+'/'+self.y+'-'+self.m+'-'+self.d+'_'+self.h+'_'+self.ens_type+'_'+var_string+'.nc' 
+            prior_or_post='prior'
         elif post==True:
             infile = '/home/disk/hot/stangen/Documents/posterior_ensembles/'+ob_upd+'/loc_'+str(lr)+'/'+self.ens_type+'/'+self.y+self.m+'/'+self.y+'-'+self.m+'-'+self.d+'_'+self.h+'_'+self.ens_type+'_'+var_string+'.nc' 
-        print('loading netcdf file: '+self.ens_type+' '+self.y+self.m+self.d+'_'+self.h+'00')
+            prior_or_post='posterior'
+        print('loading netcdf file: '+prior_or_post+': '+self.ens_type+' '+self.y+self.m+self.d+'_'+self.h+'00')
         # loading/accessing the netcdf data            
         ncdata = Dataset(infile,'r')
         #print(ncdata.variables.keys())
