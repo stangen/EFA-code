@@ -30,6 +30,7 @@ from mpl_toolkits.basemap import Basemap
 import matplotlib.pyplot as plt
 import time
 
+ens = 'ecmwf'
 
 f = open('/home/disk/hot/stangen/Documents/surface_obs/MADIS/201304/combined_T2M/T2M_20130410_0600.txt','r')
 lines = f.readlines()
@@ -55,13 +56,13 @@ minn = 265
 maxx = 305
 
 # Filepath of the prior forecast
-prior_path = '/home/disk/hot/stangen/Documents/prior_ensembles/ecmwf/201304/2013-04-10_00_ecmwf_T2M_ALT.nc'
+prior_path = '/home/disk/hot/stangen/Documents/prior_ensembles/'+ens+'/201304/2013-04-10_00_'+ens+'_T2M_ALT.nc'
 
 # Filepath of the posterior forecast
-post_path = '/home/disk/hot/stangen/Documents/posterior_ensembles/ob_update_self/loc_1000/ecmwf/201304/2013-04-10_00_ecmwf_T2M_ALT.nc'
+post_path = '/home/disk/hot/stangen/Documents/posterior_ensembles/ob_update_self/loc_1000/'+ens+'/201304/2013-04-10_00_'+ens+'_T2M_ALT.nc'
  
 # Filepath of the analysis at the desired time 
-analysis_path = '/home/disk/hot/stangen/Documents/prior_ensembles/ecmwf/201304/2013-04-10_12_ecmwf_T2M_ALT.nc'             
+analysis_path = '/home/disk/hot/stangen/Documents/prior_ensembles/'+ens+'/201304/2013-04-10_12_'+ens+'_T2M_ALT.nc'             
 # only variable I am using is 500mb height            
 vrbls=['T2M']
 
@@ -102,58 +103,80 @@ anal_prior_diff = prior_mean[1,:,:]-analysis_mean[0,:,:]
 anal_post_diff = post_mean[1,:,:]-analysis_mean[0,:,:]
 
 #calculate the covariance of the ensemble with a certain point (KMKN, ~32N, 98.5W)
+point_lon = -98.5#163
+point_lat = 32#116
+yy = int((90-point_lat)*2)
+xx = int(abs(-180-point_lon)*2)
 prior_perts = prior-prior_mean[:,:,:,None]
-point_prior = prior[1,116,163,:]
+point_prior = prior[1,yy,xx,:]
 point2_prior = prior[1,115,162,:]
 point_prior_perts = point_prior-np.mean(point_prior)
-point_prior_var = np.var(prior[1,116,163,:],ddof=1)
+point_prior_var = np.var(point_prior_perts,ddof=1)
 cov_point = np.dot(prior_perts,point_prior_perts)/(nens-1)
 point_cov = np.dot(point_prior,point2_prior)/(nens-1)
 
-fig = plt.figure(figsize=(18,12))
-ax1 = plt.subplot(111)
-# Plot the difference between the prior and posterior
-#map = Basemap(projection='ortho',lat_0=45,lon_0=-100,resolution='l')
-m1 = Basemap(projection='merc',llcrnrlat=27,urcrnrlat=40,\
-            llcrnrlon=-103,urcrnrlon=-90,lat_ts=30,resolution='c')
-# draw coastlines, country boundaries, fill continents.
-m1.drawcoastlines(linewidth=1.25)
-m1.drawcountries(linewidth=1.25)
-m1.drawstates()
+#kalman gain matrix
+kal_gain = cov_point/(point_prior_var+1)
 
-#Convert lat/lon to mercator coordinates
-xalti,yalti = m1(lngs,lts)
+for j in range(0,2):
+    fig = plt.figure(figsize=(18,12))
+    ax1 = plt.subplot(111)
+    # Plot the difference between the prior and posterior
+    #map = Basemap(projection='ortho',lat_0=45,lon_0=-100,resolution='l')
+    m1 = Basemap(projection='merc',llcrnrlat=27,urcrnrlat=38,\
+                llcrnrlon=-103,urcrnrlon=-92,lat_ts=30,resolution='c')
+    # draw coastlines, country boundaries, fill continents.
+    m1.drawcoastlines(linewidth=1.25)
+    m1.drawcountries(linewidth=1.25)
+    m1.drawstates()
+    
+    #Convert lat/lon to mercator coordinates
+    xalti,yalti = m1(lngs,lts)
+    
+    xpoint,ypoint=m1(point_lon,point_lat)
+    #map.fillcontinents(color='coral',lake_color='aqua')
+    # draw the edge of the map projection region (the projection limb)
+    m1.drawmapboundary(fill_color='aqua')
+    #map.fillcontinents(color='coral',lake_color='aqua')
+    # draw lat/lon grid lines every 30 degrees.
+    m1.drawmeridians(np.arange(0,360,.5))
+    m1.drawparallels(np.arange(-90,90,.5))
+    
+    # compute native map projection coordinates of lat/lon grid.
+    lon, lat = np.meshgrid(lons, lats)
+    x, y = m1(lon, lat)
+    m1.scatter(xpoint,ypoint,s=100, zorder=4,c='black',marker='o',edgecolor='k')
+    for i, txt in enumerate(alts):
+        ax1.annotate(txt, (xalti[i],yalti[i]),clip_on=True)
+    cs2= m1.scatter(xalti,yalti,c=alts,zorder=4,s=50,vmin=minn,vmax=maxx,marker="o",edgecolor='k',cmap=plt.cm.gist_rainbow)
+    
+    time_ind = 2
+    if j ==0:
+        #cs = map.contourf(x,y,Z500_diff[0,:,:,0])#,levels=np.arange(-90, 91, 30), cmap=plt.cm.RdBu_r,linewidths=1.5, extend='both')
+        cs = m1.contour(x,y,prior_mean[1,:,:],20,vmin=minn, vmax=maxx) #contours of prior mean
+        #cs1 = m1.contourf(x,y,post_mean[1,:,:],20,vmin=minn, vmax=maxx) #color fill of post mean
+        plt.clabel(cs, inline=1, fontsize=10)
+        #cs1 = m1.contourf(x,y,prior_variance[1,:,:])
+        #cs1 = m1.contourf(x,y,cov_point[1,:,:])#,vmin=minn, vmax=maxx)
+        cs1 = m1.contourf(x,y,kal_gain[1,:,:])
+        #cs3 = m1.contour(x,y,analysis_mean[0,:,:],[286],vmin=minn, vmax=maxx)
+        #plt.clabel(cs3, inline=1, fontsize=10)
+        #cs2 = m1.scatter(xalti,yalti)
+        
+        # Add Colorbar
+        cbar = m1.colorbar(cs1, location='top')
+        
+        cbar.set_label(prior_units)
+        cbar = m1.colorbar(cs, location='bottom', pad="10%")
+        cbar2 = m1.colorbar(cs2,fraction=0.023)
+        plt.title('{}'.format(ftimes[time_ind]))
+        plt.show()
 
-#map.fillcontinents(color='coral',lake_color='aqua')
-# draw the edge of the map projection region (the projection limb)
-m1.drawmapboundary(fill_color='aqua')
-#map.fillcontinents(color='coral',lake_color='aqua')
-# draw lat/lon grid lines every 30 degrees.
-m1.drawmeridians(np.arange(0,360,.5))
-m1.drawparallels(np.arange(-90,90,.5))
+    if j ==1:
+        cs = m1.contourf(x,y,post_prior_diff[:,:])
+        cbar = m1.colorbar(cs, location='bottom', pad="10%")
+        plt.title('{}'.format(ftimes[time_ind]))
+        plt.show()
 
-# compute native map projection coordinates of lat/lon grid.
-lon, lat = np.meshgrid(lons, lats)
-x, y = m1(lon, lat)
 
-time_ind = 2
-#cs = map.contourf(x,y,Z500_diff[0,:,:,0])#,levels=np.arange(-90, 91, 30), cmap=plt.cm.RdBu_r,linewidths=1.5, extend='both')
-cs = m1.contour(x,y,prior_mean[1,:,:],20,vmin=minn, vmax=maxx)
-cs1 = m1.contourf(x,y,post_mean[1,:,:],20,vmin=minn, vmax=maxx)
-plt.clabel(cs, inline=1, fontsize=10)
-#cs1 = m1.contour(x,y,post_variance[2,:,:],[286],vmin=minn, vmax=maxx)
-#cs3 = m1.contour(x,y,analysis_mean[0,:,:],[286],vmin=minn, vmax=maxx)
-#plt.clabel(cs3, inline=1, fontsize=10)
-#cs2 = m1.scatter(xalti,yalti)
-for i, txt in enumerate(alts):
-    ax1.annotate(txt, (xalti[i],yalti[i]),clip_on=True)
-cs2= m1.scatter(xalti,yalti,c=alts,zorder=4,s=50,vmin=minn,vmax=maxx,marker="o",edgecolor='k',cmap=plt.cm.gist_rainbow)
-
-# Add Colorbar
-cbar = m1.colorbar(cs1, location='bottom', pad="10%")
-cbar2 = m1.colorbar(cs2,fraction=0.023)
-cbar.set_label(prior_units)
-
-plt.title('{}'.format(ftimes[time_ind]))
-plt.show()
     
