@@ -194,6 +194,9 @@ def run_efa(ob_type,update_var):
                 
                 # If the checkfile does not exist, make a new file
                 outfile = outdir_date_ens+'_'+ef.var_string(ob_type)
+                #if we are assimilating only one type of observation
+                if len(obs_type == 1):
+                    outfile = outfile + '.nc'
                 ef.make_netcdf(state,outfile)
     
     #if we are updating all variable types with the observation (regardless of its type)

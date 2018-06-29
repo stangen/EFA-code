@@ -15,14 +15,16 @@ import efa_functions as ef
 start_time = datetime.now()
 print('start time: ',start_time)
 #to run this in spyder, change this to False, to run in shell script, change to True
-shell_script=False
+shell_script=True
 
 if shell_script==False:
     ensemble_type = 'eccc'
-    #mainly used for loading/saving files-order matters for loading the file
-    variables = ['T2M', 'ALT'] 
+    #mainly used for loading files-order matters for loading the file
+    variables = ['ALT']  #['T2M','ALT']
     #which ob type we're getting stats for, can be more than 1 ['T2M','ALT']
     obs = ['ALT']
+    #all obs we will have in the end- for saving the file
+    allobs = ['ALT']
     #date range of ensembles used
     start_date = datetime(2013,4,1,0)
     end_date = datetime(2013,4,1,12)
@@ -35,8 +37,11 @@ if shell_script==False:
     end_index = 2
     
     #if True, will load/do stats on posterior ensembles, if False, will load prior
-    post=False
-       
+    post=True
+     
+    #localization radius
+    loc_rad = '500'
+    
     #create strings for saving file at the end
     sy = start_date.strftime('%Y')
     sm = start_date.strftime('%m')
@@ -54,28 +59,30 @@ elif shell_script==True:
     ensemble_type = sys.argv[1]
     variables = sys.argv[2].split(',')
     obs = sys.argv[3].split(',')
-    startstr = sys.argv[4]
+    allobs = sys.argv[4].split(',')
+    startstr = sys.argv[5]
     start_date = datetime.strptime(startstr,'%Y%m%d%H')
-    endstr = sys.argv[5]
+    endstr = sys.argv[6]
     end_date = datetime.strptime(endstr,'%Y%m%d%H')
-    incr=int(sys.argv[6])
-    start_index = int(sys.argv[7])
-    end_index=int(sys.argv[8])
-    boolstr=sys.argv[9]
+    incr=int(sys.argv[7])
+    start_index = int(sys.argv[8])
+    end_index=int(sys.argv[9])
+    boolstr=sys.argv[10]
     #change string to boolean for loading prior or posterior ensembles
     if boolstr == 'true':
         post=True
     elif boolstr =='false':
         post=False     
-        
+    loc_rad = sys.argv[11]    
+    
     datestr = startstr+'-'+endstr
 
 save_dir = '/home/disk/hot/stangen/Documents/EFA/duplicate_madaus/mse_var_output/'    
 #variable string
-varstr = ef.var_string(variables)
+varstr = ef.var_string(allobs)
 #prior/post string
 if post==True:
-    prior_or_post='posterior'
+    prior_or_post='loc'+loc_rad
 if post==False:
     prior_or_post='prior'
 #last forecast hour I want to get observations for
@@ -97,7 +104,7 @@ for ob_type in obs:
         
         #Load in the ensemble data for a given initilization
         efa = Load_Data(date,ensemble_type,variables,ob_type,[ob_type])
-        statecls, lats, lons, elevs = efa.load_netcdfs(post)
+        statecls, lats, lons, elevs = efa.load_netcdfs(post,lr=loc_rad)
         
         #Want to interpolate ALL observations valid during a given ensemble forecast.
         #Or not, to minimize runtime of script. 1 ens, var, and forecast hour takes
@@ -286,7 +293,7 @@ for var in ob_dict:
         
 #save the stats list after all forecast hours have been appended for one variable
 print('Writing statistics to .txt file')
-f = open(save_dir+datestr+'_'+varstr+'.txt', 'a')
+f = open(save_dir+datestr+'_'+varstr+'loc500.txt', 'a')
 for s in stats_list:
     f.write(s)
 f.close()
