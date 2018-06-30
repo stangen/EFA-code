@@ -15,12 +15,12 @@ import efa_functions as ef
 start_time = datetime.now()
 print('start time: ',start_time)
 #to run this in spyder, change this to False, to run in shell script, change to True
-shell_script=True
+shell_script=False
 
 if shell_script==False:
     ensemble_type = 'eccc'
     #mainly used for loading files-order matters for loading the file
-    variables = ['ALT']  #['T2M','ALT']
+    variables = ['T2M','ALT']  #['T2M','ALT']
     #which ob type we're getting stats for, can be more than 1 ['T2M','ALT']
     obs = ['ALT']
     #all obs we will have in the end- for saving the file
@@ -37,7 +37,7 @@ if shell_script==False:
     end_index = 2
     
     #if True, will load/do stats on posterior ensembles, if False, will load prior
-    post=True
+    post=False
      
     #localization radius
     loc_rad = '500'
@@ -217,7 +217,7 @@ stats_list = []
 for var in ob_dict:
     for f_h in ob_dict[var]:
         for h in ob_dict[var][f_h]:
-            for sID in ob_dict[var][f_h][h]:
+            for sID in list(ob_dict[var][f_h][h].keys()):
                 #ob_dict[var][f_h][h][sID]['hx'] = np.array(ob_dict[var][f_h][h][sID]['hx'])
                 #ob_dict[var][f_h][h][sID]['hx_error'] = np.array(ob_dict[var][f_h][h][sID]['hx_error'])
                 #ob_dict[var][f_h][h][sID]['obs'] = np.array(ob_dict[var][f_h][h][sID]['obs'])
@@ -275,7 +275,8 @@ for var in ob_dict:
                 #data_dict[var][f_h]['station_all_mse_no_bias'] = np.append(data_dict[var][f_h]['station_all_mse_no_bias'],ob_dict[var][f_h][h][sID]['mse_no_bias'])
                 data_dict[var][f_h]['station_all_error_variance'] = np.append(data_dict[var][f_h]['station_all_error_variance'],ob_dict[var][f_h][h][sID]['error_variance'])
                 data_dict[var][f_h]['weight'] = np.append(data_dict[var][f_h]['weight'],len(ob_dict[var][f_h][h][sID]['se']))
-                #data_dict[var][f_h]['total_weight'] = data_dict[var][f_h]['total_weight'] + len(ob_dict[var][f_h][h][sID]['se'])    
+                #data_dict[var][f_h]['total_weight'] = data_dict[var][f_h]['total_weight'] + len(ob_dict[var][f_h][h][sID]['se']) 
+                del ob_dict[var][f_h][h][sID]
 #        #data_dict[var][f_h]['station_all_mse_no_bias'] = np.sort(data_dict[var][f_h]['station_all_mse_no_bias'])
 #        #data_dict[var][f_h]['station_all_mse_unbiased'] = np.sort(data_dict[var][f_h]['station_all_mse_unbiased'])
 #        data_dict[var][f_h]['station_all_mse'] = np.sort(data_dict[var][f_h]['station_all_mse'])
