@@ -181,6 +181,10 @@ def run_efa(ob_type,update_var):
                     dset.createVariable(var, np.float32, ('time','lat','lon','ens',))
                     dset.variables[var].units = ut.get_units(var)
                     dset.variables[var][:] = state[var].values
+                #if the filename already contains a .nc because we created the
+                #file we are appending to separately from this run, delete
+                #the .nc
+                existing_file = existing_file.replace('.nc', '')
                 # Rename the checkfile so the filename no longer specifies a 
                 # single variable type
                 newfile = existing_file+'_'+ef.var_string(ob_type)
