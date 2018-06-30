@@ -293,7 +293,7 @@ for var in ob_dict:
         
 #save the stats list after all forecast hours have been appended for one variable
 print('Writing statistics to .txt file')
-f = open(save_dir+datestr+'_'+varstr+'loc500.txt', 'a')
+f = open(save_dir+datestr+'_'+varstr+'.txt', 'a')
 for s in stats_list:
     f.write(s)
 f.close()
