@@ -15,7 +15,7 @@ import efa_functions as ef
 start_date = datetime(2013,4,1,0)
 end_date = datetime(2013,6,30,12)
 
-variables = ['ALT']
+variables = ['T2M','ALT']
 
 var_units = {
             'ALT' : 'hPa$^{2}$',
@@ -24,6 +24,7 @@ var_units = {
 
 ls = {
       'prior' : 'solid',
+      'posterior' : 'dashed',
       'loc1000' : 'dashed',
       'loc500' : 'dotted'
       }
@@ -52,7 +53,7 @@ datestr=sy+sm+sd+sh+'-'+ey+em+ed+eh
 
 varstr = ef.var_string(variables)
 
-filepath = filedir+datestr+'_'+varstr+.txt'
+filepath = filedir+datestr+'_'+varstr+'.txt'
 
 f1 = open(filepath, 'r')
 stats = f1.readlines()
