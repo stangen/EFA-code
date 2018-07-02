@@ -21,25 +21,27 @@ from EFA.duplicate_madaus.load_data import Load_Data
 import EFA.duplicate_madaus.efa_functions as ef
 
 
+start_time = datetime.now()
+print('start time: ',start_time)
 
 ensemble_type = 'ecmwf'
 #change this later
-date = datetime(2013,4,1,0)
+date = datetime(2013,4,10,0)
 #end_date = datetime(2013,4,1,0)
 #hourstep=12
 #All variables in the netCDF
 variables = ['T2M','ALT']#['T2M', 'ALT', 'P6HR', 'TCW']
 #the ob type of the observations we are assimilating
-obs_type = ['T2M','ALT']
+obs_type = ['T2M']
 #the variables in the netCDF we want to update
-update_vars= ['T2M','ALT']
+update_vars= ['T2M']
 #are the observations only updating their corresponding variable, or
 #are they updating all variables? -ie t2m only updates t2m, alt only updates alt
 self_update=True #true if you want the above updates, otherwise false
 #localization type
 loc_type = 'GC'
 #localization radius (for Gaspari-Cohn)
-localize_radius = 1000
+localize_radius = 100
 
 
 #if update_var == ob_type and len(ob_type)==1:
@@ -102,9 +104,9 @@ def run_efa(ob_type,update_var):
 #    ob1 = Observation(value=10000.25, time=datetime(2013,4,1,6),lat=24.55,lon=278.21,
 #                  obtype = ob_type[0], localize_radius=1000, assimilate_this=True,
 #                  error=1)
-    
-    
-    #observations.append(ob1)
+#    
+#    
+#    observations.append(ob1)
     #    
     # Put the state class object and observation objects into EnSRF object
     assimilator = EnSRF(statecls, observations, loc=loc_type)
@@ -136,7 +138,7 @@ def run_efa(ob_type,update_var):
     else:
         os.makedirs(outdir)
     
-    outdir_date_ens = outdir+y+'goodbye-'+m+'-'+d+'_'+h+'_'+ensemble_type
+    outdir_date_ens = outdir+y+'T2M-'+m+'-'+d+'_'+h+'_'+ensemble_type
             
     #if we are only updating the variable type that matches the observation type
     if self_update == True:
@@ -158,6 +160,10 @@ def run_efa(ob_type,update_var):
                     dset.createVariable(var, np.float32, ('time','lat','lon','ens',))
                     dset.variables[var].units = ut.get_units(var)
                     dset.variables[var][:] = state[var].values
+                #if the filename already contains a .nc because we created the
+                #file we are appending to separately from this run, delete
+                #the .nc
+                existing_file = existing_file.replace('.nc', '')
                 # Rename the checkfile so the filename no longer specifies a 
                 # single variable type
                 newfile = existing_file+'_'+ef.var_string(ob_type)
@@ -171,6 +177,9 @@ def run_efa(ob_type,update_var):
                 
                 # If the checkfile does not exist, make a new file
                 outfile = outdir_date_ens+'_'+ef.var_string(ob_type)
+                #if we are assimilating only one type of observation
+                if len(obs_type) == 1:
+                    outfile = outfile + '.nc'
                 ef.make_netcdf(state,outfile)
     
     #if we are updating all variable types with the observation (regardless of its type)
@@ -187,3 +196,7 @@ if self_update == True:
         run_efa([obs],[update_vars[update_vars.index(obs)]])
 elif self_update == False:
     run_efa(obs_type,update_vars)
+
+end_time = datetime.now()
+print('end time: ',end_time)
+print('total time elapsed: ',end_time-start_time)

@@ -29,42 +29,94 @@ from datetime import datetime, timedelta
 from mpl_toolkits.basemap import Basemap
 import matplotlib.pyplot as plt
 import time
+import efa_functions as ef
 
 ens = 'ecmwf'
+loc_rad = '100'
+base_time = datetime(2013,4,10,0)
+time_ind = 1
+prior_var = ['T2M','ALT']
+post_var = ['T2M']
+vrbl= 'T2M'
+point_lon = -98#163
+point_lat = 33#116
 
-f = open('/home/disk/hot/stangen/Documents/surface_obs/MADIS/201304/combined_T2M/T2M_20130410_0600.txt','r')
-lines = f.readlines()
+assim_time = base_time + timedelta(hours=6)
+
+analysis_time = base_time + timedelta(hours=6*time_ind)
+
+bty = base_time.strftime('%Y')
+btm = base_time.strftime('%m')
+btd = base_time.strftime('%d')
+bth = base_time.strftime('%H')
+
+aty = analysis_time.strftime('%Y')
+atm = analysis_time.strftime('%m')
+atd = analysis_time.strftime('%d')
+ath = analysis_time.strftime('%H')
+
+aaty = assim_time.strftime('%Y')
+aatm = assim_time.strftime('%m')
+aatd = assim_time.strftime('%d')
+aath = assim_time.strftime('%H')
+
+prior_var_string = ef.var_string(prior_var)
+post_var_string = ef.var_string(post_var)
+
+
+# Filepath of the prior forecast
+prior_path = '/home/disk/hot/stangen/Documents/prior_ensembles/'+ens+'/'+bty+btm+'/'+bty+'-'+btm+'-'+btd+'_'+bth+'_'+ens+'_'+prior_var_string+'.nc'
+
+# Filepath of the posterior forecast
+post_path = '/home/disk/hot/stangen/Documents/posterior_ensembles/ob_update_self/loc_'+loc_rad+'/'+ens+'/'+bty+btm+'/'+bty+'T2M-'+btm+'-'+btd+'_'+bth+'_'+ens+'_'+post_var_string+'.nc'
+ 
+# Filepath of the analysis at the desired time 
+analysis_path = '/home/disk/hot/stangen/Documents/prior_ensembles/'+ens+'/'+aty+atm+'/'+aty+'-'+atm+'-'+atd+'_'+ath+'_'+ens+'_'+prior_var_string+'.nc'             
+# only variable I am using is 500mb height            
+
+#load the observations 6 hours in to the forecast (the assimilated observations)
+f = open('/home/disk/hot/stangen/Documents/surface_obs/MADIS/'+aaty+aatm+'/combined_'+vrbl+'/'+vrbl+'_'+aaty+aatm+aatd+'_'+aath+'00.txt','r')
+obs_assim = f.readlines()
 f.close()
 
-name = []; alts = [];lts = []; lngs = []; tms=[];
-for l in lines:
+name = []; ob_var = [];lts = []; lngs = []; tms=[];
+for l in obs_assim:
     temp = l.split(',')
     name.append(temp[0])
     lts.append(temp[1])
     lngs.append(temp[2])
     tms.append(temp[4])
-    alts.append(temp[5])
+    ob_var.append(temp[5])
+    
+#load the observations for our analysis time (i.e. 6, 12, 18, etc hours into the forecast)
+f = open('/home/disk/hot/stangen/Documents/surface_obs/MADIS/'+aty+atm+'/combined_'+vrbl+'/'+vrbl+'_'+aty+atm+atd+'_'+ath+'00.txt','r')
+obs_analysis = f.readlines()
+f.close()
 
+anl_name = []; anl_ob_var = [];anl_lts = []; anl_lngs = []; anl_tms=[];
+for l in obs_analysis:
+    temp = l.split(',')
+    anl_name.append(temp[0])
+    anl_lts.append(temp[1])
+    anl_lngs.append(temp[2])
+    anl_tms.append(temp[4])
+    anl_ob_var.append(temp[5])
+
+#convert to numpy arrays
 lts = np.float64(lts)
 lngs = np.float64(lngs)   
 tms = np.float64(tms) 
-alts = np.float64(alts)
+ob_var = np.float64(ob_var)
+anl_lts = np.float64(anl_lts)
+anl_lngs = np.float64(anl_lngs)   
+anl_tms = np.float64(anl_tms) 
+anl_ob_var = np.float64(anl_ob_var)
+
 #set min/max for colorbar
 #minn = round(min(alts)-2,0)
 #maxx = round(max(alts)+2,0)
 minn = 265
 maxx = 305
-
-# Filepath of the prior forecast
-prior_path = '/home/disk/hot/stangen/Documents/prior_ensembles/'+ens+'/201304/2013-04-10_00_'+ens+'_T2M_ALT.nc'
-
-# Filepath of the posterior forecast
-post_path = '/home/disk/hot/stangen/Documents/posterior_ensembles/ob_update_self/loc_1000/'+ens+'/201304/2013-04-10_00_'+ens+'_T2M_ALT.nc'
- 
-# Filepath of the analysis at the desired time 
-analysis_path = '/home/disk/hot/stangen/Documents/prior_ensembles/'+ens+'/201304/2013-04-10_12_'+ens+'_T2M_ALT.nc'             
-# only variable I am using is 500mb height            
-vrbls=['T2M']
 
 # Load the prior data            
 with Dataset(prior_path,'r') as ncdata:
@@ -74,37 +126,38 @@ with Dataset(prior_path,'r') as ncdata:
     lats = ncdata.variables['lat'][:]
     lons = ncdata.variables['lon'][:]
     nens = len(ncdata.variables['ens'][:])
-    for vrbl in vrbls:
-        prior = ncdata.variables[vrbl][:]
-        prior_units = ncdata.variables[vrbl].units
+    prior = ncdata.variables[vrbl][:]
+    prior_units = ncdata.variables[vrbl].units
 
 
 # Load the posterior data
 with Dataset(post_path, 'r') as ncdata:
-    post = ncdata.variables[vrbls[0]][:] 
+    post = ncdata.variables[vrbl][:]
     times2 = ncdata.variables['time']
 
-# Load the analysis data
-with Dataset(analysis_path, 'r') as ncdata:
-    analysis = ncdata.variables[vrbls[0]][:] 
-    times3 = ncdata.variables['time']
-    atimes = num2date(times3[:],times3.units)
+if time_ind != 1:
+    # Load the analysis data
+    with Dataset(analysis_path, 'r') as ncdata:
+        analysis = ncdata.variables[vrbl][:]
+        times3 = ncdata.variables['time']
+        atimes = num2date(times3[:],times3.units)
+
+    analysis_mean = np.mean(analysis,axis=3)
+    analysis_variance=np.var(analysis,axis=3,ddof=1)
+    anal_prior_diff = prior_mean[time_ind,:,:]-analysis_mean[0,:,:]
+    anal_post_diff = post_mean[time_ind,:,:]-analysis_mean[0,:,:]
 
 #get the ensemble mean and variance of the prior, posterior, and analysis
 prior_mean = np.mean(prior,axis=3)    
 post_mean = np.mean(post,axis=3)
-analysis_mean = np.mean(analysis,axis=3)
+
 prior_variance = np.var(prior,axis=3,ddof=1)
 post_variance = np.var(post,axis=3,ddof=1)
-analysis_variance=np.var(analysis,axis=3,ddof=1)
 #differences between combos of prior, post, and analysis ens means at a certain time
-post_prior_diff= post_mean[1,:,:]-prior_mean[1,:,:]
-anal_prior_diff = prior_mean[1,:,:]-analysis_mean[0,:,:]
-anal_post_diff = post_mean[1,:,:]-analysis_mean[0,:,:]
+post_prior_diff= post_mean[time_ind,:,:]-prior_mean[time_ind,:,:]
 
 #calculate the covariance of the ensemble with a certain point (KMKN, ~32N, 98.5W)
-point_lon = -98.5#163
-point_lat = 32#116
+
 yy = int((90-point_lat)*2)
 xx = int(abs(-180-point_lon)*2)
 prior_perts = prior-prior_mean[:,:,:,None]
@@ -118,7 +171,8 @@ point_cov = np.dot(point_prior,point2_prior)/(nens-1)
 #kalman gain matrix
 kal_gain = cov_point/(point_prior_var+1)
 
-for j in range(0,2):
+for j in range(0,5):   
+
     fig = plt.figure(figsize=(18,12))
     ax1 = plt.subplot(111)
     # Plot the difference between the prior and posterior
@@ -131,52 +185,98 @@ for j in range(0,2):
     m1.drawstates()
     
     #Convert lat/lon to mercator coordinates
-    xalti,yalti = m1(lngs,lts)
+    xassimob,yassimob = m1(lngs,lts)
+    xanlob,yanlob = m1(anl_lngs,anl_lts)
     
     xpoint,ypoint=m1(point_lon,point_lat)
     #map.fillcontinents(color='coral',lake_color='aqua')
     # draw the edge of the map projection region (the projection limb)
     m1.drawmapboundary(fill_color='aqua')
+    
     #map.fillcontinents(color='coral',lake_color='aqua')
-    # draw lat/lon grid lines every 30 degrees.
-    m1.drawmeridians(np.arange(0,360,.5))
-    m1.drawparallels(np.arange(-90,90,.5))
+    # draw lat/lon grid lines every half degree.
+    #labels[left,right,top,bottom]  1=True 0=False
+    m1.drawmeridians(np.arange(0,360,1),labels=[1,1,0,1],fontsize=10,linewidth=0.5)
+    m1.drawparallels(np.arange(-90,90,1),labels=[1,1,0,1],fontsize=10,linewidth=0.5)
     
     # compute native map projection coordinates of lat/lon grid.
     lon, lat = np.meshgrid(lons, lats)
     x, y = m1(lon, lat)
-    m1.scatter(xpoint,ypoint,s=100, zorder=4,c='black',marker='o',edgecolor='k')
-    for i, txt in enumerate(alts):
-        ax1.annotate(txt, (xalti[i],yalti[i]),clip_on=True)
-    cs2= m1.scatter(xalti,yalti,c=alts,zorder=4,s=50,vmin=minn,vmax=maxx,marker="o",edgecolor='k',cmap=plt.cm.gist_rainbow)
     
-    time_ind = 2
-    if j ==0:
+
+    #prior variance, prior mean values, and observation values 6 hours into forecast
+    if j == 0:
+        #cs = m1.contourf(x,y,post_mean[time_ind,:,:],20,vmin=minn, vmax=maxx)
+        cs = m1.contour(x,y,prior_mean[1,:,:],20,vmin=minn, vmax=maxx,cmap=plt.cm.gist_rainbow)
+        plt.clabel(cs, inline=0, fontsize=10,fmt='%2d')#,cmap=plt.cm.Reds)
+        cs1 = m1.contourf(x,y,prior_variance[1,:,:],20,cmap=plt.cm.YlOrRd)
+        cbar = m1.colorbar(cs, location='bottom', pad="10%")   
+        cbar1 = m1.colorbar(cs1, location='top', pad="10%")
+        for i, txt in enumerate(ob_var):
+            ax1.annotate(txt, (xassimob[i],yassimob[i]),clip_on=True)
+        cs2= m1.scatter(xassimob,yassimob,c=ob_var,zorder=4,s=50,vmin=minn,vmax=maxx,marker="o",edgecolor='k',cmap=plt.cm.gist_rainbow)        
+        cbar2 = m1.colorbar(cs2,fraction=0.023)        
+        plt.title('Prior variance, ens. mean, and obs at time of assim.')       
+        plt.show()
+    
+    #Kalman gain at analysis time from an "ob" at one ensemble point taken 6 hours into forecast, 
+    #prior mean values, and ob values 6 hours into forecast
+    if j ==1:
         #cs = map.contourf(x,y,Z500_diff[0,:,:,0])#,levels=np.arange(-90, 91, 30), cmap=plt.cm.RdBu_r,linewidths=1.5, extend='both')
-        cs = m1.contour(x,y,prior_mean[1,:,:],20,vmin=minn, vmax=maxx) #contours of prior mean
+        cs = m1.contour(x,y,prior_mean[1,:,:],20,vmin=minn, vmax=maxx,cmap=plt.cm.gist_rainbow)#,cmap=plt.cm.RdBu_r,) #contours of prior mean
         #cs1 = m1.contourf(x,y,post_mean[1,:,:],20,vmin=minn, vmax=maxx) #color fill of post mean
-        plt.clabel(cs, inline=1, fontsize=10)
+        plt.clabel(cs, inline=0, fontsize=10,fmt='%2d')
         #cs1 = m1.contourf(x,y,prior_variance[1,:,:])
         #cs1 = m1.contourf(x,y,cov_point[1,:,:])#,vmin=minn, vmax=maxx)
-        cs1 = m1.contourf(x,y,kal_gain[1,:,:])
+        cs1 = m1.contourf(x,y,kal_gain[time_ind,:,:])
         #cs3 = m1.contour(x,y,analysis_mean[0,:,:],[286],vmin=minn, vmax=maxx)
         #plt.clabel(cs3, inline=1, fontsize=10)
         #cs2 = m1.scatter(xalti,yalti)
-        
+        m1.scatter(xpoint,ypoint,s=100, zorder=4,c='black',marker='o',edgecolor='k')
+        for i, txt in enumerate(ob_var):
+            ax1.annotate(txt, (xassimob[i],yassimob[i]),clip_on=True)
+        cs2= m1.scatter(xassimob,yassimob,c=ob_var,zorder=4,s=50,vmin=minn,vmax=maxx,marker="o",edgecolor='k',cmap=plt.cm.gist_rainbow)
         # Add Colorbar
-        cbar = m1.colorbar(cs1, location='top')
-        
+        cbar = m1.colorbar(cs1, location='top')        
         cbar.set_label(prior_units)
         cbar = m1.colorbar(cs, location='bottom', pad="10%")
-        cbar2 = m1.colorbar(cs2,fraction=0.023)
-        plt.title('{}'.format(ftimes[time_ind]))
+        cbar2 = m1.colorbar(cs2,fraction=0.023)        
+        plt.title(str(ftimes[time_ind])+' Kalman gain & innovation')
         plt.show()
 
-    if j ==1:
+    #Posterior ensemble mean and observation values at analysis time  
+    if j == 2:
+        m1.fillcontinents(color='coral',lake_color='aqua')
+        #cs = m1.contourf(x,y,post_mean[time_ind,:,:],20,vmin=minn, vmax=maxx)
+        cs = m1.contour(x,y,post_mean[time_ind,:,:],20,vmin=minn, vmax=maxx,cmap=plt.cm.gist_rainbow)
+        plt.clabel(cs, inline=0, fontsize=10,fmt='%2d')
+        for i, txt in enumerate(anl_ob_var):
+            ax1.annotate(txt, (xanlob[i],yanlob[i]),clip_on=True)
+        cs2= m1.scatter(xanlob,yanlob,c=anl_ob_var,zorder=4,s=50,vmin=minn,vmax=maxx,marker="o",edgecolor='k',cmap=plt.cm.gist_rainbow)
+        cbar = m1.colorbar(cs, location='bottom', pad="10%")   
+        cbar2 = m1.colorbar(cs2,fraction=0.023) 
+        plt.title(str(ftimes[time_ind])+' Posterior ensemble mean & obs')
+        plt.show()
+    
+    #Change in forecast after assimilation at analysis time: posterior - prior    
+    if j ==3:
         cs = m1.contourf(x,y,post_prior_diff[:,:])
         cbar = m1.colorbar(cs, location='bottom', pad="10%")
-        plt.title('{}'.format(ftimes[time_ind]))
+        plt.title(str(ftimes[time_ind])+' Change in ensemble mean after assimilation')
         plt.show()
-
+    
+    #286 K contour of prior, posterior, and analysis ensemble means    
+    if j == 4: 
+        m1.fillcontinents(color='coral',lake_color='aqua')
+        m1.contour(x,y,prior_mean[time_ind,:,:],[286], colors='r')
+        m1.contour(x,y,post_mean[time_ind,:,:],[286],colors='k')
+        if time_ind !=1:
+            m1.contour(x,y,analysis_mean[0,:,:],[286],colors='b')
+        for i, txt in enumerate(anl_ob_var):
+            ax1.annotate(txt, (xanlob[i],yanlob[i]),clip_on=True)
+        cs2= m1.scatter(xanlob,yanlob,c=anl_ob_var,zorder=4,s=50,vmin=minn,vmax=maxx,marker="o",edgecolor='k',cmap=plt.cm.gist_rainbow)
+        cbar2 = m1.colorbar(cs2,fraction=0.023) 
+        plt.title('286K isotherms: red=prior, black=posterior, blue=analysis')
+        plt.show()
 
     
