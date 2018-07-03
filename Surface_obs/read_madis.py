@@ -18,7 +18,7 @@ maxLng = 180
 
 # Change these to read different data and times
 start_date = '20130401_0000'
-end_date = '20130703_1800'
+end_date = '20130503_1800'
 ob_type = ['metar','maritime'] #Can add 'raob'
 ob_vars = ['altimeter','temperature'] #or 'altimeter'
 
@@ -163,34 +163,34 @@ def read_madis(ob_type='metar', ob_var='altimeter', dtstr='20130401_0000'):
         if MADIS_QC == True:
         	#If the MADIS ob is in the lat/lng bounding box and has passed MADIS QC checks add the altimeter observation to the string array
             #If "S" is not included, the QC will only accept passing at least QC 3 - for global coverage, must contain S
-            if ((not QCR) and (float(lats[t]) >= minLat) and (float(lats[t]) <= maxLat) and (float(lngs[t]) >= minLng) and (float(lngs[t]) <= maxLng) and station_type[t] == 0 and ((qc_var[t] == "K") or (qc_var[t] == "V") or (qc_var[t] == "S"))):
+            if ((not QCR) and (float(lats[t]) >= minLat) and (float(lats[t]) <= maxLat) and (float(lngs[t]) >= minLng) and (float(lngs[t]) <= maxLng) and ((qc_var[t] == "K") or (qc_var[t] == "V") or (qc_var[t] == "S"))):
         		#Save station identifier, latitude, longitude, elevation, epoch time, and observation
             #if (alts[t] != '--'):
                 if ob_var == 'altimeter':
                     if var[t] > 93000 and var[t] < 107000:
-                        sstr.append(str(stns[t])+","+str(lats[t])+","+str(lngs[t])+","+str(elevs[t])+","+str(epoch[t])+","+str(var[t]/100)+","+ob_type.upper()+"\n")
+                        sstr.append(str(stns[t])+","+str(lats[t])+","+str(lngs[t])+","+str(elevs[t])+","+str(epoch[t])+","+str(var[t]/100)+","+ob_type.upper()+","+str(station_type[t])+"\n")
                 else:
-                    sstr.append(str(stns[t])+","+str(lats[t])+","+str(lngs[t])+","+str(elevs[t])+","+str(epoch[t])+","+str(var[t])+","+ob_type.upper()+"\n")
+                    sstr.append(str(stns[t])+","+str(lats[t])+","+str(lngs[t])+","+str(elevs[t])+","+str(epoch[t])+","+str(var[t])+","+ob_type.upper()+","+str(station_type[t])+"\n")
                 #sstr.append(str(stns[t])+","+str(lats[t])+","+str(lngs[t])+","+str(elevs[t])+","+str(epoch[t])+","+str(var[t])+","+ob_type.upper()+"\n")
             #If QCR is set to "True", use the MADIS QC check
-            elif ((QCR) and (var[t] != '--') and (float(lats[t]) >= minLat) and (float(lats[t]) <= maxLat) and (float(lngs[t]) >= minLng) and (float(lngs[t]) <= maxLng) and station_type[t] == 0 and (qcr_var[t] == 0)):
+            elif ((QCR) and (var[t] != '--') and (float(lats[t]) >= minLat) and (float(lats[t]) <= maxLat) and (float(lngs[t]) >= minLng) and (float(lngs[t]) <= maxLng) and (qcr_var[t] == 0)):
         		#If the MADIS ob exists, is in the lat/lng bounding box and has passed all MADIS QC checks applied
         		#add the altimeter observation to the string array
                 if ob_var == 'altimeter':
                     if var[t] > 93000 and var[t] < 107000:
-                        sstr.append(str(stns[t])+","+str(lats[t])+","+str(lngs[t])+","+str(elevs[t])+","+str(epoch[t])+","+str(var[t]/100)+","+ob_type.upper()+"\n")
+                        sstr.append(str(stns[t])+","+str(lats[t])+","+str(lngs[t])+","+str(elevs[t])+","+str(epoch[t])+","+str(var[t]/100)+","+ob_type.upper()+","+str(station_type[t])+"\n")
                 else:
-                    sstr.append(str(stns[t])+","+str(lats[t])+","+str(lngs[t])+","+str(elevs[t])+","+str(epoch[t])+","+str(var[t])+","+ob_type.upper()+"\n")
+                    sstr.append(str(stns[t])+","+str(lats[t])+","+str(lngs[t])+","+str(elevs[t])+","+str(epoch[t])+","+str(var[t])+","+ob_type.upper()+","+str(station_type[t])+"\n")
         #Use Luke's method of QCing data: altimeter setting 880-1100 hPa, temp -40 to 40 C (233.15-313.15)
         elif MADIS_QC == False:
             #for altimeter setting---- CONVERTED TO hPa:
             if ob_var == 'altimeter':
-                if ((var[t] != '--') and (float(lats[t]) >= minLat) and (float(lats[t]) <= maxLat) and (float(lngs[t]) >= minLng) and (float(lngs[t]) <= maxLng) and var[t] > 88000 and var[t] < 110000 and station_type[t] == 0):
-                    sstr.append(str(stns[t])+","+str(lats[t])+","+str(lngs[t])+","+str(elevs[t])+","+str(epoch[t])+","+str(var[t]/100)+","+ob_type.upper()+"\n")
+                if ((var[t] != '--') and (float(lats[t]) >= minLat) and (float(lats[t]) <= maxLat) and (float(lngs[t]) >= minLng) and (float(lngs[t]) <= maxLng) and var[t] > 88000 and var[t] < 110000):# and station_type[t] == 0):
+                    sstr.append(str(stns[t])+","+str(lats[t])+","+str(lngs[t])+","+str(elevs[t])+","+str(epoch[t])+","+str(var[t]/100)+","+ob_type.upper()+","+str(station_type[t])+"\n")
             #for temperature:
             elif ob_var == 'temperature':
-                if ((var[t] != '--') and (float(lats[t]) >= minLat) and (float(lats[t]) <= maxLat) and (float(lngs[t]) >= minLng) and (float(lngs[t]) <= maxLng) and var[t] > 233.15 and var[t] < 313.15 and station_type[t] == 0):
-                    sstr.append(str(stns[t])+","+str(lats[t])+","+str(lngs[t])+","+str(elevs[t])+","+str(epoch[t])+","+str(var[t])+","+ob_type.upper()+"\n")            
+                if ((var[t] != '--') and (float(lats[t]) >= minLat) and (float(lats[t]) <= maxLat) and (float(lngs[t]) >= minLng) and (float(lngs[t]) <= maxLng) and var[t] > 233.15 and var[t] < 313.15):# and station_type[t] == 0):
+                    sstr.append(str(stns[t])+","+str(lats[t])+","+str(lngs[t])+","+str(elevs[t])+","+str(epoch[t])+","+str(var[t])+","+ob_type.upper()+","+str(station_type[t])+"\n")            
     
     #Sort the observations by station identifier 
     #list.sort(sstr)
