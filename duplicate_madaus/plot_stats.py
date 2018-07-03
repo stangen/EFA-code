@@ -135,5 +135,26 @@ for v in variables:
         plt.xlabel('Forecast Hour',fontsize=14)
         plt.ylabel(var_units[v],fontsize=14)
         
-        fig.savefig(savedir+v+'_'+s+'_'+datestr+'.png')
-    
+        fig.savefig(savedir+v+'_'+s+'_'+datestr+'.png',frameon=False,bbox_inches='tight')
+        
+##separate plot for each variable type
+#for v in variables:
+#    #separate plot for MSE and variance
+#    for s in stats_list:
+#        #separate plot for ensemble type
+#        for m in stats_dict[v]:
+#            fig = plt.figure(figsize=(14,8))
+#            for l in stats_dict[v][m]:
+#                plt.plot(stats_dict[v][m][l]['Forecast_Hour'],stats_dict[v][m][l][s],
+#                         linestyle=ls[l],marker='o',color=clr[m],label=l+' '+m)
+#                
+#            plt.xticks(np.arange(min(stats_dict[var]['ecmwf']['prior']['Forecast_Hour'])-6, 
+#                     max(stats_dict[var]['ecmwf']['prior']['Forecast_Hour'])+6, 6))
+#            plt.grid()
+#            plt.legend(loc = 'upper left')
+#            plt.title(v+' '+s,fontsize=20)
+#            plt.xlabel('Forecast Hour',fontsize=14)
+#            plt.ylabel(var_units[v],fontsize=14)
+#            
+#            fig.savefig(savedir+v+'_'+s+'_'+m+'_'+datestr+'.png')
+#    
