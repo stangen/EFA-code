@@ -38,8 +38,13 @@ time_ind = 1
 prior_var = ['T2M','ALT']
 post_var = ['T2M']
 vrbl= 'T2M'
-point_lon = -98#163
-point_lat = 33#116
+point_lon = -99#163
+point_lat = 32#116
+
+#number of Hours After Initialization- corresponds with the analysis time
+hai = str(time_ind*6)
+
+savedir = '/home/disk/hot/stangen/Documents/EFA/duplicate_madaus/plots/'
 
 assim_time = base_time + timedelta(hours=6)
 
@@ -49,6 +54,8 @@ bty = base_time.strftime('%Y')
 btm = base_time.strftime('%m')
 btd = base_time.strftime('%d')
 bth = base_time.strftime('%H')
+
+bstr = bty+btm+btd+bth
 
 aty = analysis_time.strftime('%Y')
 atm = analysis_time.strftime('%m')
@@ -134,6 +141,15 @@ with Dataset(prior_path,'r') as ncdata:
 with Dataset(post_path, 'r') as ncdata:
     post = ncdata.variables[vrbl][:]
     times2 = ncdata.variables['time']
+    
+#get the ensemble mean and variance of the prior, posterior, and analysis
+prior_mean = np.mean(prior,axis=3)    
+post_mean = np.mean(post,axis=3)
+
+prior_variance = np.var(prior,axis=3,ddof=1)
+post_variance = np.var(post,axis=3,ddof=1)
+#differences between combos of prior, post, and analysis ens means at a certain time
+post_prior_diff= post_mean[time_ind,:,:]-prior_mean[time_ind,:,:]
 
 if time_ind != 1:
     # Load the analysis data
@@ -147,14 +163,7 @@ if time_ind != 1:
     anal_prior_diff = prior_mean[time_ind,:,:]-analysis_mean[0,:,:]
     anal_post_diff = post_mean[time_ind,:,:]-analysis_mean[0,:,:]
 
-#get the ensemble mean and variance of the prior, posterior, and analysis
-prior_mean = np.mean(prior,axis=3)    
-post_mean = np.mean(post,axis=3)
 
-prior_variance = np.var(prior,axis=3,ddof=1)
-post_variance = np.var(post,axis=3,ddof=1)
-#differences between combos of prior, post, and analysis ens means at a certain time
-post_prior_diff= post_mean[time_ind,:,:]-prior_mean[time_ind,:,:]
 
 #calculate the covariance of the ensemble with a certain point (KMKN, ~32N, 98.5W)
 
@@ -174,7 +183,7 @@ kal_gain = cov_point/(point_prior_var+1)
 for j in range(0,5):   
 
     fig = plt.figure(figsize=(18,12))
-    ax1 = plt.subplot(111)
+    ax1 = fig.add_subplot(111)
     # Plot the difference between the prior and posterior
     #map = Basemap(projection='ortho',lat_0=45,lon_0=-100,resolution='l')
     m1 = Basemap(projection='merc',llcrnrlat=27,urcrnrlat=38,\
@@ -196,8 +205,8 @@ for j in range(0,5):
     #map.fillcontinents(color='coral',lake_color='aqua')
     # draw lat/lon grid lines every half degree.
     #labels[left,right,top,bottom]  1=True 0=False
-    m1.drawmeridians(np.arange(0,360,1),labels=[1,1,0,1],fontsize=10,linewidth=0.5)
-    m1.drawparallels(np.arange(-90,90,1),labels=[1,1,0,1],fontsize=10,linewidth=0.5)
+    m1.drawmeridians(np.arange(0,360,1),labels=[1,0,0,1],fontsize=10,linewidth=0.5)
+    m1.drawparallels(np.arange(-90,90,1),labels=[1,0,0,1],fontsize=10,linewidth=0.5)
     
     # compute native map projection coordinates of lat/lon grid.
     lon, lat = np.meshgrid(lons, lats)
@@ -208,16 +217,21 @@ for j in range(0,5):
     if j == 0:
         #cs = m1.contourf(x,y,post_mean[time_ind,:,:],20,vmin=minn, vmax=maxx)
         cs = m1.contour(x,y,prior_mean[1,:,:],20,vmin=minn, vmax=maxx,cmap=plt.cm.gist_rainbow)
-        plt.clabel(cs, inline=0, fontsize=10,fmt='%2d')#,cmap=plt.cm.Reds)
+        plt.clabel(cs, inline=0, fontsize=12,fmt='%.1f')#,cmap=plt.cm.Reds)
         cs1 = m1.contourf(x,y,prior_variance[1,:,:],20,cmap=plt.cm.YlOrRd)
-        cbar = m1.colorbar(cs, location='bottom', pad="10%")   
-        cbar1 = m1.colorbar(cs1, location='top', pad="10%")
+        #cbar = m1.colorbar(cs, location='bottom', pad="10%")   
+
         for i, txt in enumerate(ob_var):
             ax1.annotate(txt, (xassimob[i],yassimob[i]),clip_on=True)
         cs2= m1.scatter(xassimob,yassimob,c=ob_var,zorder=4,s=50,vmin=minn,vmax=maxx,marker="o",edgecolor='k',cmap=plt.cm.gist_rainbow)        
-        cbar2 = m1.colorbar(cs2,fraction=0.023)        
-        plt.title('Prior variance, ens. mean, and obs at time of assim.')       
+        cbar2 = m1.colorbar(cs2,fraction=0.023) 
+        cbar2.set_label('ob temperature (K)',fontsize=12)
+        cbar1 = m1.colorbar(cs1, location='bottom',pad="3%")
+        cbar1.set_label('Variance (hPa$^{2}$)',fontsize=12)
+        plt.title('Prior variance, prior mean, and obs at time of assim.',weight='bold',fontsize=16, y=1.01)       
         plt.show()
+        
+        fig.savefig(savedir+bstr+'_6hr_var_prior_mean_obs.png',frameon=False,bbox_inches='tight')
     
     #Kalman gain at analysis time from an "ob" at one ensemble point taken 6 hours into forecast, 
     #prior mean values, and ob values 6 hours into forecast
@@ -225,7 +239,7 @@ for j in range(0,5):
         #cs = map.contourf(x,y,Z500_diff[0,:,:,0])#,levels=np.arange(-90, 91, 30), cmap=plt.cm.RdBu_r,linewidths=1.5, extend='both')
         cs = m1.contour(x,y,prior_mean[1,:,:],20,vmin=minn, vmax=maxx,cmap=plt.cm.gist_rainbow)#,cmap=plt.cm.RdBu_r,) #contours of prior mean
         #cs1 = m1.contourf(x,y,post_mean[1,:,:],20,vmin=minn, vmax=maxx) #color fill of post mean
-        plt.clabel(cs, inline=0, fontsize=10,fmt='%2d')
+        plt.clabel(cs, inline=0, fontsize=12,fmt='%.1f')
         #cs1 = m1.contourf(x,y,prior_variance[1,:,:])
         #cs1 = m1.contourf(x,y,cov_point[1,:,:])#,vmin=minn, vmax=maxx)
         cs1 = m1.contourf(x,y,kal_gain[time_ind,:,:])
@@ -237,34 +251,43 @@ for j in range(0,5):
             ax1.annotate(txt, (xassimob[i],yassimob[i]),clip_on=True)
         cs2= m1.scatter(xassimob,yassimob,c=ob_var,zorder=4,s=50,vmin=minn,vmax=maxx,marker="o",edgecolor='k',cmap=plt.cm.gist_rainbow)
         # Add Colorbar
-        cbar = m1.colorbar(cs1, location='top')        
-        cbar.set_label(prior_units)
-        cbar = m1.colorbar(cs, location='bottom', pad="10%")
-        cbar2 = m1.colorbar(cs2,fraction=0.023)        
-        plt.title(str(ftimes[time_ind])+' Kalman gain & innovation')
+              
+        #cbar = m1.colorbar(cs, location='bottom', pad="10%")
+        cbar2 = m1.colorbar(cs2,fraction=0.023)
+        cbar2.set_label('ob temperature (K)',fontsize=12)
+        cbar = m1.colorbar(cs1, location='bottom',pad='3%') 
+        cbar.set_label('Kalman Gain',fontsize=12)         
+        plt.title(str(ftimes[time_ind])+' Kalman gain & innovation',weight='bold',fontsize=16, y=1.01)
         plt.show()
+        
+        fig.savefig(savedir+bstr+'_'+hai+'hr_Kal_gain_innov.png',frameon=False,bbox_inches='tight')
 
     #Posterior ensemble mean and observation values at analysis time  
     if j == 2:
         m1.fillcontinents(color='coral',lake_color='aqua')
         #cs = m1.contourf(x,y,post_mean[time_ind,:,:],20,vmin=minn, vmax=maxx)
         cs = m1.contour(x,y,post_mean[time_ind,:,:],20,vmin=minn, vmax=maxx,cmap=plt.cm.gist_rainbow)
-        plt.clabel(cs, inline=0, fontsize=10,fmt='%2d')
+        plt.clabel(cs, inline=0, fontsize=12,fmt='%.1f')
         for i, txt in enumerate(anl_ob_var):
             ax1.annotate(txt, (xanlob[i],yanlob[i]),clip_on=True)
         cs2= m1.scatter(xanlob,yanlob,c=anl_ob_var,zorder=4,s=50,vmin=minn,vmax=maxx,marker="o",edgecolor='k',cmap=plt.cm.gist_rainbow)
-        cbar = m1.colorbar(cs, location='bottom', pad="10%")   
-        cbar2 = m1.colorbar(cs2,fraction=0.023) 
-        plt.title(str(ftimes[time_ind])+' Posterior ensemble mean & obs')
+        #cbar = m1.colorbar(cs, location='bottom', pad="10%")   
+        cbar2 = m1.colorbar(cs2,fraction=0.023)
+        cbar2.set_label('ob temperature (K)',fontsize=12)
+        plt.title(str(ftimes[time_ind])+' Posterior ensemble mean & obs',weight='bold',fontsize=16, y=1.01)
         plt.show()
+        
+        fig.savefig(savedir+bstr+'_'+hai+'hr_loc'+loc_rad+'_post_mean_obs.png',frameon=False,bbox_inches='tight')
     
     #Change in forecast after assimilation at analysis time: posterior - prior    
     if j ==3:
         cs = m1.contourf(x,y,post_prior_diff[:,:])
-        cbar = m1.colorbar(cs, location='bottom', pad="10%")
-        plt.title(str(ftimes[time_ind])+' Change in ensemble mean after assimilation')
+        cbar = m1.colorbar(cs, location='bottom', pad="3%")
+        cbar.set_label('Difference (K)',fontsize=12)
+        plt.title(str(ftimes[time_ind])+' Change in ensemble mean after assimilation',weight='bold',fontsize=16, y=1.01)
         plt.show()
     
+        fig.savefig(savedir+bstr+'_'+hai+'hr_loc'+loc_rad+'_change_ens_mean.png',frameon=False,bbox_inches='tight')
     #286 K contour of prior, posterior, and analysis ensemble means    
     if j == 4: 
         m1.fillcontinents(color='coral',lake_color='aqua')
@@ -275,8 +298,11 @@ for j in range(0,5):
         for i, txt in enumerate(anl_ob_var):
             ax1.annotate(txt, (xanlob[i],yanlob[i]),clip_on=True)
         cs2= m1.scatter(xanlob,yanlob,c=anl_ob_var,zorder=4,s=50,vmin=minn,vmax=maxx,marker="o",edgecolor='k',cmap=plt.cm.gist_rainbow)
-        cbar2 = m1.colorbar(cs2,fraction=0.023) 
-        plt.title('286K isotherms: red=prior, black=posterior, blue=analysis')
+        cbar2 = m1.colorbar(cs2,fraction=0.023)
+        cbar2.set_label('ob temperature (K)',fontsize=12)
+        plt.title(str(ftimes[time_ind])+' 286K isotherms: red=prior, black=posterior',weight='bold',fontsize=16, y=1.01)
         plt.show()
+        
+        fig.savefig(savedir+bstr+'_'+hai+'hr_loc'+loc_rad+'_286K_isotherms.png',frameon=False,bbox_inches='tight')
 
     
