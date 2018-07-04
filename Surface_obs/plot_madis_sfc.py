@@ -16,10 +16,10 @@ dstr = '20130401'
 time = '0600'
 var = 'alts'
 
-#save_dir = '/home/disk/hot/stangen/Documents/atms544/plots/'
+save_dir = '/home/disk/hot/stangen/Documents/EFA/duplicate_madaus/plots/'
 
 #Open MADIS text data file
-f = open('/home/disk/hot/stangen/Documents/EFA/atms544/obs.txt','r')
+f = open('/home/disk/hot/stangen/Documents/EFA/duplicate_madaus/plots/2013040100obs_allmaritime.txt','r')
 #f = open("/home/disk/hot/stangen/Documents/EFA/surface_obs/MADIS/"+dstr[0:6]+"/combined_"+var+"/"+var+"_"+dstr+"_"+time+".txt","r")
 #f = open("/home/disk/hot/stangen/Documents/EFA/surface_obs/MADIS/"+dstr[0:6]+"/raw/metar_alts_"+dstr+"_"+time+".txt","r")
 
@@ -81,14 +81,14 @@ m1.fillcontinents(color='coral',lake_color='aqua')
 xalti,yalti = m1(lngs,lats)
 
 #Convert lat lon to x,y coordinates for plotting
-m1.scatter(xalti,yalti,c=alts,zorder=4,s=50,vmin=minn,vmax=maxx,marker="o",edgecolor='k',cmap=plt.cm.gist_rainbow)
+m1.scatter(xalti,yalti,c='b',zorder=4,s=10,vmin=minn,vmax=maxx,marker="o")#,edgecolor='w',cmap=plt.cm.gist_rainbow)
 #Plot colorbar
-cbar = plt.colorbar(fraction=0.023)
+#cbar = plt.colorbar(fraction=0.023)
 #Set plot and colorbar titles
-plt.title("Metar/Maritime 2m Temp, "+time+" UTC "+dstr[4:6]+"/"+dstr[6:8]+"/"+dstr[0:4],weight='bold',fontsize=16)
-cbar.ax.set_title('(K)',y=1.02)
+plt.title("Metar & Stationary Maritime Altimeter Obs, "+time+" UTC "+dstr[4:6]+"/"+dstr[6:8]+"/"+dstr[0:4],weight='bold',fontsize=16)
+#cbar.ax.set_title('(K)',y=1.02)
 #Save figure
-#plt.savefig(save_dir+"madis_sfc.png",frameon=False,bbox_inches='tight')
+plt.savefig(save_dir+"madis_sfc_allmaritime.png",frameon=False,bbox_inches='tight')
 
 print(N_A)
 print(Euro)
