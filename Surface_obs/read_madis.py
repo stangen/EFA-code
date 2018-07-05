@@ -88,8 +88,12 @@ def read_madis(ob_type='metar', ob_var='altimeter', dtstr='20130401_0000'):
     #join station name (convert from list of bytes to string)
     stns = []
     for s in stn_name:
+        #get rid of the masked elements of the name of the station
+        s = s[~s.mask]
+        #s.rstrip('\x00')
     	#decode list of bytes and join them to get the station identifier string
-        	stns.append(b''.join(s).decode('utf-8'))
+        stns.append(b''.join(s).decode('utf-8'))
+    #print(stns)
     
     #decode other character arrays (decoding is only necessary in Python 3)
     qc_var = [b.decode() for b in qc_var0]
@@ -299,25 +303,24 @@ for dates in date_list:
                         ob_time = mt.timestamp2utc(sstr_split['time'])
                         prev_ob_time = mt.timestamp2utc(sstr_one_station_prev_split['time'])
                         #if the name of the station is 'SHIP' it isn't a unique name- check lat/lon as well
-                        if sstr_split['name'] == 'SHIP':
-                            #if the lat/lon differ from the previous entry and are not less than 1 degree 
-                            #from the previous entry (to eliminate duplicates of moving ships), append ob to one per station list.
-                            sprev_lat = sstr_one_station_prev_split['lat']
-                            sprev_lon = sstr_one_station_prev_split['lon']
-                            if sprev_lat != sstr_split['lat'] or sprev_lon != sstr_split['lon']:
-                                #check if the lat/lon are both off by less than 1 degree- if so, assume same ship
-                                if abs(float(sprev_lat)-float(sstr_split['lat']))<1 and abs(float(sprev_lon)-float(sstr_split['lon']))<1:
-                                    #find observation of ship that occurs closest to desired hour
-                                    if (abs(ob_time-desired_time) < abs(prev_ob_time - desired_time)):
-                                        sstr_one_station[-1] = sstr_str
-                                else:
+                        if sstr_split['name'] == 'SHIP' and sstr_one_station_prev_split['name'] == 'SHIP':
+                            #print(len(sstr_one_station))
+                            #call function to check if lat/lon are within 1 degree of another ship-
+                            #if it is, assume same ship. This will incorrectly eliminate some unique
+                            #ships (close together), but not too many,and will eliminate moving ships.
+                            #ship_check is boolean, ind is index of sstr_one_station where assume ob
+                            #is the same ship.
+                            [ship_check,ind] = mt.ship_check(sstr_str,sstr_one_station)
+                            #if same ship, check the time
+                            if ship_check == False:
+                                #get the time from the one_station list
+                                corr_ob_time = mt.timestamp2utc(mt.get_ob_info(sstr_one_station[ind])['time'])
+                                #keep the ob with a closer time to the desired time                                 
+                                if (abs(ob_time-desired_time) < abs(corr_ob_time - desired_time)):
+                                    sstr_one_station[ind] = sstr_str
+                            #if off by more than 1 degree each, assume different ship, append ob to list.
+                            elif ship_check == True:
                                     sstr_one_station.append(sstr_str)
-                            #If the name, lat, and lon are the same, need to do a time check:
-                            #if current ob has a time closer to the desired hour, replace the 
-                            #previous ob with the current ob    
-                            else:
-                                if (abs(ob_time-desired_time) < abs(prev_ob_time - desired_time)):
-                                    sstr_one_station[-1] = sstr_str
                  
                         #if the names are the same, only keep the observation closest to 00,06,12,18Z
                         #by doing a time check

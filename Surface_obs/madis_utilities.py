@@ -114,4 +114,21 @@ def month_dict():
            }
     return m_dict
     
+def ship_check(sstr_str, stn_list):
+    """
+    Accepts an observation string to check, and a list of observation strings
+    already appended.
+    Checks whether any SHIP lat/lon pair already in the the one station list
+    is within plus or minus one degree. As soon as this occurs, the function
+    returns false. If it never occurs, the function returns true, and the 
+    observation will be appended to the one station list.
+    Also returns the index of the stn_list where the check fails.
+    """
+    sstr_split = get_ob_info(sstr_str)
+    for i in stn_list:
+        i_split = get_ob_info(i)
+        if i_split['name'] == 'SHIP' and abs(i_split['lat']-sstr_split['lat'])<1 and abs(i_split['lon']-sstr_split['lon'])<1:
+            return False, stn_list.index(i)
+    return True, ''
+    
     
