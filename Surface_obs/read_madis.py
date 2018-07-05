@@ -90,10 +90,8 @@ def read_madis(ob_type='metar', ob_var='altimeter', dtstr='20130401_0000'):
     for s in stn_name:
         #get rid of the masked elements of the name of the station
         s = s[~s.mask]
-        #s.rstrip('\x00')
     	#decode list of bytes and join them to get the station identifier string
         stns.append(b''.join(s).decode('utf-8'))
-    #print(stns)
     
     #decode other character arrays (decoding is only necessary in Python 3)
     qc_var = [b.decode() for b in qc_var0]
