@@ -84,8 +84,10 @@ def get_ob_info(sstr_str):
     sstr_elev = float(sstr_split[3]) 
     sstr_time = float(sstr_split[4])
     sstr_ob = float(sstr_split[5])
+    sstr_stationary = float(sstr_split[7])
     
-    info = {'name':sstr_name, 'lat':sstr_lat, 'lon':sstr_lon, 'time':sstr_time, 'elev':sstr_elev, 'ob':sstr_ob}
+    info = {'name':sstr_name, 'lat':sstr_lat, 'lon':sstr_lon, 'time':sstr_time, 
+            'elev':sstr_elev, 'ob':sstr_ob, 'stationary':sstr_stationary}
     return info
 
 def timestamp2utc(timestamp):
