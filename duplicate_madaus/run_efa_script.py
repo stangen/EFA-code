@@ -24,53 +24,70 @@ import EFA.duplicate_madaus.efa_functions as ef
 
 start_time = datetime.now()
 print('start time: ',start_time)
-ensemble_type = sys.argv[1]
+shell_script = True
 
-#ensemble_type = 'ecmwf'
-#change this later
-#end_date = datetime(2013,4,1,0)
-#hourstep=12
-#All variables in the netCDF
-variables = sys.argv[2].split(',')
-#variables = ['T2M','ALT']#['T2M', 'ALT', 'P6HR', 'TCW']
-#the ob type of the observations we are assimilating
-obs_type = sys.argv[3].split(',')
-#obs_type = ['T2M','ALT']
-#the variables in the netCDF we want to update
-update_vars = sys.argv[4].split(',')
-#update_vars= ['T2M','ALT']
-#are the observations only updating their corresponding variable, or
-#are they updating all variables? -ie t2m only updates t2m, alt only updates alt
-self_update = sys.argv[5]
-if self_update == 'true':
+if shell_script == False:
+    ensemble_type = 'ecmwf'
+    #All variables in the prior netCDF
+    variables = ['T2M','ALT']#['T2M', 'ALT', 'P6HR', 'TCW']
+    #the ob type of the observations we are assimilating
+    obs_type = ['T2M']
+    #the variables in the netCDF we want to update
+    update_vars= ['T2M']
+    #are the observations only updating their corresponding variable, or
+    #are they updating all variables? -ie t2m only updates t2m, alt only updates alt
     self_update=True #true if you want the above updates, otherwise false
-elif self_update =='false':
-    self_update=False
-#localization type
-loc_type = sys.argv[6]
-#loc_type = 'GC'
-#localization radius (for Gaspari-Cohn)
-localize_radius = int(sys.argv[7])
-#localize_radius = 1000
-datestr = sys.argv[8]
-firstdate = datetime.strptime(datestr,'%Y%m%d_%H%M')
-#firstdate = datetime(2013,4,1,0)
-#get index of job number (make index start at 0)
-dateind = int(sys.argv[9]) - 1
-#use the index to access files corresponding with 12*ind hours after first 
-#forecast datetime
-date = firstdate+timedelta(hours=dateind*12)
+    #localization type
+    loc_type = 'GC'
+    #localization radius (for Gaspari-Cohn)
+    localize_radius = 100
+    #date to run efa
+    date = datetime(2013,4,10,0)
+    #inflation?
+    inflation = None
 
+elif shell_script == True:
+    ensemble_type = sys.argv[1]
+    variables = sys.argv[2].split(',')
+    obs_type = sys.argv[3].split(',')
+    update_vars = sys.argv[4].split(',')
+    #update_vars= ['T2M','ALT']
+    #are the observations only updating their corresponding variable, or
+    #are they updating all variables? -ie t2m only updates t2m, alt only updates alt
+    self_update = sys.argv[5]
+    if self_update == 'true':
+        self_update=True #true if you want the above updates, otherwise false
+    elif self_update =='false':
+        self_update=False
+    #localization type
+    loc_type = sys.argv[6] #loc_type = 'GC' 
+    #localization radius (for Gaspari-Cohn)
+    localize_radius = int(sys.argv[7])
+    datestr = sys.argv[8]
+    #first date that EFA is run in this batch
+    firstdate = datetime.strptime(datestr,'%Y%m%d_%H%M')
+    #get index of job number (make index start at 0)
+    dateind = int(sys.argv[9]) - 1
+    #use the index to access files corresponding with 12*ind hours after first 
+    #forecast datetime
+    date = firstdate+timedelta(hours=dateind*12)
+    
+    #if a number is passed, convert to a float, otherwise, inflation = None
+    inflation = sys.argv[10]
+    try:
+        inflation = float(inflation)    
+    except:
+        if inflation == 'none':
+            inflation = None
+        #add here for what to pass in to inflation for if loading inflation file
 
-
-
-#if update_var == ob_type and len(ob_type)==1:
-#    self_update = True #obs only update their corresponding vars
-#    #if it's the last observation type to update, make this true to add a .nc
-#    #to end of file name.
-#    last_ob = False
-#else:
-#    self_update = False #each ob updates all ensemble vars
+#create a string for naming convention of inflation factor
+if inflation == None:
+    inflation_str = 'none'
+#would have to change this if I am loading an inflation file, or change thing later.
+else:
+    inflation_str = str(inflation)
+    inflation_str = inflation_str.replace('.','-') 
 
 def run_efa(ob_type,update_var):
     
@@ -130,7 +147,7 @@ def run_efa(ob_type,update_var):
 #    observations.append(ob1)
     #    
     # Put the state class object and observation objects into EnSRF object
-    assimilator = EnSRF(statecls, observations, loc=loc_type)
+    assimilator = EnSRF(statecls, observations, inflation=inflation, loc=loc_type)
     
     # Update the prior with EFA- post_state is an EnsembleState object
     post_state, post_obs = assimilator.update()
@@ -145,6 +162,8 @@ def run_efa(ob_type,update_var):
         outdir += 'ob_update_self/' 
     elif self_update == False:
         outdir += 'ob_update_all/' 
+    #directory for inflation used
+    outdir += 'inf_'+inflation_str+'/'
     #directory for the type of localization used       
     outdir += 'loc_'+loc_str+'/'
     #if dealing with time-lagged ensembles, add another directory
@@ -194,8 +213,7 @@ def run_efa(ob_type,update_var):
     
                 os.system('mv {} {}'.format(existing_file,newfile))
                 # ALL DONE!!
-            else:
-                
+            else:                
                 # If the checkfile does not exist, make a new file
                 outfile = outdir_date_ens+'_'+ef.var_string(ob_type)
                 #if we are assimilating only one type of observation

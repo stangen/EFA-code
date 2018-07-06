@@ -15,19 +15,19 @@ import efa_functions as ef
 start_time = datetime.now()
 print('start time: ',start_time)
 #to run this in spyder, change this to False, to run in shell script, change to True
-shell_script=False
+shell_script=True
 
 if shell_script==False:
     ensemble_type = 'eccc'
     #mainly used for loading files-order matters for loading the file
-    variables = ['T2M','ALT']  #['T2M','ALT']
+    variables = ['ALT']  #['T2M','ALT']
     #which ob type we're getting stats for, can be more than 1 ['T2M','ALT']
-    obs = ['ALT']
+    ob_types = ['ALT']
     #all obs we will have in the end- for saving the file
     allobs = ['ALT']
     #date range of ensembles used
-    start_date = datetime(2013,4,1,0)
-    end_date = datetime(2013,4,1,12)
+    start_date = datetime(2013,4,1,12)
+    end_date = datetime(2013,4,2,0)
     #hour increment between ensemble forecasts
     incr = 12
     
@@ -37,10 +37,10 @@ if shell_script==False:
     end_index = 2
     
     #if True, will load/do stats on posterior ensembles, if False, will load prior
-    post=False
+    post=True
      
     #localization radius
-    loc_rad = '500'
+    loc_rad = '1000'
     
     #create strings for saving file at the end
     sy = start_date.strftime('%Y')
@@ -58,7 +58,7 @@ if shell_script==False:
 elif shell_script==True:
     ensemble_type = sys.argv[1]
     variables = sys.argv[2].split(',')
-    obs = sys.argv[3].split(',')
+    ob_types = sys.argv[3].split(',')
     allobs = sys.argv[4].split(',')
     startstr = sys.argv[5]
     start_date = datetime.strptime(startstr,'%Y%m%d%H')
@@ -92,14 +92,22 @@ end_hour = 6*end_index
 ob_dict = {}
 #dict for the means from the data
 data_dict = {}
-#create dict for variable type
-for ob_type in obs:
-    ob_dict[ob_type] = ob_dict.get(ob_type,{})
-    data_dict[ob_type] = data_dict.get(ob_type,{})
-    #creates a datelist which increments in 12 or 24 hour chunks
-    dates = mt.make_datetimelist(start_date, end_date, incr)
-    for date in dates:
-        hour = date.strftime('%H')
+#dicts to store SE and variance from all obs for the time period, not just stationary ones.
+SE_dict = {}
+variance_dict = {}
+
+#creates a datelist which increments in 12 or 24 hour chunks
+dates = mt.make_datetimelist(start_date, end_date, incr)
+for date in dates:
+    hour = date.strftime('%H')
+
+    #create dict for variable type
+    for ob_type in ob_types:
+        ob_dict[ob_type] = ob_dict.get(ob_type,{})
+        data_dict[ob_type] = data_dict.get(ob_type,{})
+        SE_dict[ob_type] = SE_dict.get(ob_type,{})
+        variance_dict[ob_type] = variance_dict.get(ob_type,{})
+
         
         
         #Load in the ensemble data for a given initilization
@@ -116,13 +124,12 @@ for ob_type in obs:
         while fh <= end_hour:
             #print(fh)
             obs = efa.load_obs(fh)
-    
-    
-    
-            
+                
             #create dictionary for forecast hour
             ob_dict[ob_type][sfh] = ob_dict[ob_type].get(sfh,{})
             data_dict[ob_type][sfh] = data_dict[ob_type].get(sfh,{})
+            SE_dict[ob_type][sfh] = SE_dict[ob_type].get(sfh,[])            
+            variance_dict[ob_type][sfh] = variance_dict[ob_type].get(sfh,[])
             
             #create dictionary for 00Z or 12Z
             ob_dict[ob_type][sfh][hour] = ob_dict[ob_type][sfh].get(hour,{})
@@ -139,6 +146,7 @@ for ob_type in obs:
             
             #can probably delete this
             obs_pass = []
+            #ob_schlome = []
             #i = 0
             #ob_counter = 0
             #while i < 10:
@@ -161,42 +169,56 @@ for ob_type in obs:
                 ob_id = ob_info['name']
                 ob_value = ob_info['ob']
                 
-                #if isinstance(interp,bool) == True and ob_id != 'SHIP':
-                if len(interp) > 0 and ob_id != 'SHIP':
+                #for stations which pass the terrain check (and were assimilated):
+                if len(interp) > 0:
+                    #calculate MSE
+                    se = (np.mean(interp)-ob_value)**2
+                    #calculate variance
+                    hx_variance_unbiased = np.var(interp, ddof=1)
 
+                    #only fill the dictionaries with stationary stations, so bias removal can work.
+                    if ob_info['stationary'] == 0:
                     
-                    #-----Added just to save obs used, to plot later-----------
-                    obs_pass.append(ob)
+                        #-----Added just to save obs used, to plot later-----------
+                        obs_pass.append(ob)
+                        
+                        #create dictionary for station ID if it doesn't exist
+                        ob_dict[ob_type][sfh][hour][ob_id] = ob_dict[ob_type][sfh][hour].get(ob_id,{})
+                        #create empty lists for the station ID if they don't exist yet
+                        #ob_dict[ob_type][sfh][hour][ob_id]['hx'] = ob_dict[ob_type][sfh][hour][ob_id].get('hx',[])
+                        #ob_dict[ob_type][sfh][hour][ob_id]['ob_all'] = ob_dict[ob_type][sfh][hour][ob_id].get('ob_all',[])
+                        #ob_dict[ob_type][sfh][hour][ob_id]['obs'] = ob_dict[ob_type][sfh][hour][ob_id].get('obs',[])
+                        #ob_dict[ob_type][sfh][hour][ob_id]['hx_error'] = ob_dict[ob_type][sfh][hour][ob_id].get('hx_error',[])
+                        #ob_dict[ob_type][sfh][hour][ob_id]['variance'] = ob_dict[ob_type][sfh][hour][ob_id].get('variance',[])
+                        ob_dict[ob_type][sfh][hour][ob_id]['variance_unbiased'] = ob_dict[ob_type][sfh][hour][ob_id].get('variance_unbiased',[])
+                        #ob_dict[ob_type][sfh][hour][ob_id]['hx_mean'] = ob_dict[ob_type][sfh][hour][ob_id].get('hx_mean',[])
+                        ob_dict[ob_type][sfh][hour][ob_id]['se'] = ob_dict[ob_type][sfh][hour][ob_id].get('se',[])
+                        ob_dict[ob_type][sfh][hour][ob_id]['error'] = ob_dict[ob_type][sfh][hour][ob_id].get('error',[])
+                        
+                        #add the data to the dictionaries
+                        #ob_dict[ob_type][sfh][hour][ob_id]['ob_all'].append(ob)
+                        #ob_dict[ob_type][sfh][hour][ob_id]['obs'].append(ob_value)
+                        #hx_oneob = interp
+                        #ob_dict[ob_type][sfh][hour][ob_id]['hx'].append(hx_oneob)
+                        #ob_dict[ob_type][sfh][hour][ob_id]['hx_error'].append(hx_oneob-ob_value)
+                        
+                        #hx_variance = np.var(hx_oneob)
+                        #ob_dict[ob_type][sfh][hour][ob_id]['variance'].append(hx_variance)
+                        ob_dict[ob_type][sfh][hour][ob_id]['variance_unbiased'].append(hx_variance_unbiased)                
+                        #ob_dict[ob_type][sfh][hour][ob_id]['hx_mean'].append(np.mean(interp))
+                        ob_dict[ob_type][sfh][hour][ob_id]['error'].append(np.mean(interp)-ob_value)
+                        ob_dict[ob_type][sfh][hour][ob_id]['se'].append(se)
+                        
+                        #ob_counter +=1
+                        #print("on observation "+str(ob_counter)+" out of "+str(len(obs)))  
                     
-                    #create dictionary for station ID if it doesn't exist
-                    ob_dict[ob_type][sfh][hour][ob_id] = ob_dict[ob_type][sfh][hour].get(ob_id,{})
-                    #create empty lists for the station ID if they don't exist yet
-                    #ob_dict[ob_type][sfh][hour][ob_id]['hx'] = ob_dict[ob_type][sfh][hour][ob_id].get('hx',[])
-                    #ob_dict[ob_type][sfh][hour][ob_id]['ob_all'] = ob_dict[ob_type][sfh][hour][ob_id].get('ob_all',[])
-                    #ob_dict[ob_type][sfh][hour][ob_id]['obs'] = ob_dict[ob_type][sfh][hour][ob_id].get('obs',[])
-                    #ob_dict[ob_type][sfh][hour][ob_id]['hx_error'] = ob_dict[ob_type][sfh][hour][ob_id].get('hx_error',[])
-                    #ob_dict[ob_type][sfh][hour][ob_id]['variance'] = ob_dict[ob_type][sfh][hour][ob_id].get('variance',[])
-                    ob_dict[ob_type][sfh][hour][ob_id]['variance_unbiased'] = ob_dict[ob_type][sfh][hour][ob_id].get('variance_unbiased',[])
-                    #ob_dict[ob_type][sfh][hour][ob_id]['hx_mean'] = ob_dict[ob_type][sfh][hour][ob_id].get('hx_mean',[])
-                    ob_dict[ob_type][sfh][hour][ob_id]['se'] = ob_dict[ob_type][sfh][hour][ob_id].get('se',[])
-                    ob_dict[ob_type][sfh][hour][ob_id]['error'] = ob_dict[ob_type][sfh][hour][ob_id].get('error',[])
+                    #add squared error and ensemble variance from all observations which pass terrain check
+                    SE_dict[ob_type][sfh].append(se)
+                    variance_dict[ob_type][sfh].append(hx_variance_unbiased)
+                    #ob_schlome.append(ob)
                     
-                    #add the data to the dictionaries
-                    #ob_dict[ob_type][sfh][hour][ob_id]['ob_all'].append(ob)
-                    #ob_dict[ob_type][sfh][hour][ob_id]['obs'].append(ob_value)
-                    hx_oneob = interp
-                    #ob_dict[ob_type][sfh][hour][ob_id]['hx'].append(hx_oneob)
-                    #ob_dict[ob_type][sfh][hour][ob_id]['hx_error'].append(hx_oneob-ob_value)
-                    hx_variance_unbiased = np.var(hx_oneob, ddof=1)
-                    #hx_variance = np.var(hx_oneob)
-                    #ob_dict[ob_type][sfh][hour][ob_id]['variance'].append(hx_variance)
-                    ob_dict[ob_type][sfh][hour][ob_id]['variance_unbiased'].append(hx_variance_unbiased)                
-                    #ob_dict[ob_type][sfh][hour][ob_id]['hx_mean'].append(np.mean(hx_oneob))
-                    ob_dict[ob_type][sfh][hour][ob_id]['error'].append(np.mean(hx_oneob)-ob_value)
-                    ob_dict[ob_type][sfh][hour][ob_id]['se'].append((np.mean(hx_oneob)-ob_value)**2)
                     
-                    #ob_counter +=1
-                    #print("on observation "+str(ob_counter)+" out of "+str(len(obs)))                
+                    
                     
             print('Added stats from '+str(len(obs_pass))+' obs')        
                 #print(len(variance))
@@ -276,7 +298,7 @@ for var in ob_dict:
                 data_dict[var][f_h]['station_all_error_variance'] = np.append(data_dict[var][f_h]['station_all_error_variance'],ob_dict[var][f_h][h][sID]['error_variance'])
                 data_dict[var][f_h]['weight'] = np.append(data_dict[var][f_h]['weight'],len(ob_dict[var][f_h][h][sID]['se']))
                 #data_dict[var][f_h]['total_weight'] = data_dict[var][f_h]['total_weight'] + len(ob_dict[var][f_h][h][sID]['se']) 
-                del ob_dict[var][f_h][h][sID]
+                #del ob_dict[var][f_h][h][sID]
 #        #data_dict[var][f_h]['station_all_mse_no_bias'] = np.sort(data_dict[var][f_h]['station_all_mse_no_bias'])
 #        #data_dict[var][f_h]['station_all_mse_unbiased'] = np.sort(data_dict[var][f_h]['station_all_mse_unbiased'])
 #        data_dict[var][f_h]['station_all_mse'] = np.sort(data_dict[var][f_h]['station_all_mse'])
@@ -289,8 +311,19 @@ for var in ob_dict:
         data_dict[var][f_h]['average_error_variance'] = np.average(data_dict[var][f_h]['station_all_error_variance'],weights=data_dict[var][f_h]['weight'])
         #data_dict[var][f_h]['average_variance_hx_each_bias_removed'] = np.mean(data_dict[var][f_h]['station_all_mean_variance_unbiased'])
  
+        #find MSE and variance of all observations, not just stationary obs, of time period.
+        SE_list = np.array(SE_dict[var][f_h])
+        #SE_list_sorted = np.sort(SE_list)
+        MSE = np.mean(SE_list)
+        variance_list = np.array(variance_dict[var][f_h])
+        #variance_list_sorted = np.sort(variance_list)
+        variance = np.mean(variance_list)
         #append to the stats list each statistic and info for one ens type, variable, and forecast hour
-        stats_list.append(prior_or_post+','+ensemble_type+','+var+','+f_h+','+str(data_dict[var][f_h]['average_mse'])+','+str(data_dict[var][f_h]['average_variance'])+','+str(data_dict[var][f_h]['average_error_variance'])+'\n')#','+str(data_dict[var][f_h]['average_variance_hx_each_bias_removed'])+'\n')
+        stats_list.append(prior_or_post+','+ensemble_type+','+var+','+f_h+','+str(data_dict[var][f_h]['average_mse'])+','+str(data_dict[var][f_h]['average_variance'])+','+str(data_dict[var][f_h]['average_error_variance'])+','+str(MSE)+','+str(variance)+'\n')#','+str(data_dict[var][f_h]['average_variance_hx_each_bias_removed'])+'\n')
+
+#        SE_list_stationary = data_dict[var][f_h]['station_all_mse']
+#        SE_list_stationary_sorted = np.sort(SE_list_stationary)
+
         
 #save the stats list after all forecast hours have been appended for one variable
 print('Writing statistics to .txt file')
@@ -307,7 +340,7 @@ print('Done!')
 #want to save ens type, ob, forecast hour in string identifier, followed by mse, variance, and error variance
 
 ##this was to save all the stations that pass the elevation check so I could plot them. 
-#f = open('/home/disk/hot/stangen/Documents/atms544/obsdoog.txt','w')
+#f = open('/home/disk/hot/stangen/Documents/EFA/duplicate_madaus/plots/2013040100obs_allmaritime.txt','w')
 #for obser in obs_pass:
 #    f.write(obser)
 #f.close()
