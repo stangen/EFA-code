@@ -15,7 +15,7 @@ import efa_functions as ef
 start_time = datetime.now()
 print('start time: ',start_time)
 #to run this in spyder, change this to False, to run in shell script, change to True
-shell_script=True
+shell_script=False
 
 if shell_script==False:
     ensemble_type = 'eccc'
@@ -26,21 +26,24 @@ if shell_script==False:
     #all obs we will have in the end- for saving the file
     allobs = ['ALT']
     #date range of ensembles used
-    start_date = datetime(2013,4,1,12)
-    end_date = datetime(2013,4,2,0)
+    start_date = datetime(2013,4,1,0)
+    end_date = datetime(2013,4,1,0)
     #hour increment between ensemble forecasts
     incr = 12
     
     #change for how far into the forecast to get observations, 1 is 6 hours in,
     #end_index is the last forecast hour to get obs for
     start_index = 1
-    end_index = 2
+    end_index = 1
     
     #if True, will load/do stats on posterior ensembles, if False, will load prior
     post=True
      
     #localization radius
     loc_rad = '1000'
+    
+    #inflation factor (string for loading files)
+    inflation = '1.1'
     
     #create strings for saving file at the end
     sy = start_date.strftime('%Y')
@@ -73,7 +76,8 @@ elif shell_script==True:
         post=True
     elif boolstr =='false':
         post=False     
-    loc_rad = sys.argv[11]    
+    loc_rad = sys.argv[11]  
+    inflation = sys.argv[12]
     
     datestr = startstr+'-'+endstr
 
@@ -112,7 +116,7 @@ for date in dates:
         
         #Load in the ensemble data for a given initilization
         efa = Load_Data(date,ensemble_type,variables,ob_type,[ob_type])
-        statecls, lats, lons, elevs = efa.load_netcdfs(post,lr=loc_rad)
+        statecls, lats, lons, elevs = efa.load_netcdfs(post,lr=loc_rad,inf=inflation)
         
         #Want to interpolate ALL observations valid during a given ensemble forecast.
         #Or not, to minimize runtime of script. 1 ens, var, and forecast hour takes
@@ -146,7 +150,7 @@ for date in dates:
             
             #can probably delete this
             obs_pass = []
-            #ob_schlome = []
+            obs_allmaritime = []
             #i = 0
             #ob_counter = 0
             #while i < 10:
@@ -215,12 +219,13 @@ for date in dates:
                     #add squared error and ensemble variance from all observations which pass terrain check
                     SE_dict[ob_type][sfh].append(se)
                     variance_dict[ob_type][sfh].append(hx_variance_unbiased)
-                    #ob_schlome.append(ob)
+                    obs_allmaritime.append(ob)
                     
                     
                     
                     
-            print('Added stats from '+str(len(obs_pass))+' obs')        
+            print('Added stats from '+str(len(obs_pass))+' obs to stats dict')
+            print('Added stats from '+str(len(obs_allmaritime))+'- including all maritime observations')
                 #print(len(variance))
                 #i = i +1
             
@@ -298,7 +303,7 @@ for var in ob_dict:
                 data_dict[var][f_h]['station_all_error_variance'] = np.append(data_dict[var][f_h]['station_all_error_variance'],ob_dict[var][f_h][h][sID]['error_variance'])
                 data_dict[var][f_h]['weight'] = np.append(data_dict[var][f_h]['weight'],len(ob_dict[var][f_h][h][sID]['se']))
                 #data_dict[var][f_h]['total_weight'] = data_dict[var][f_h]['total_weight'] + len(ob_dict[var][f_h][h][sID]['se']) 
-                #del ob_dict[var][f_h][h][sID]
+                del ob_dict[var][f_h][h][sID]
 #        #data_dict[var][f_h]['station_all_mse_no_bias'] = np.sort(data_dict[var][f_h]['station_all_mse_no_bias'])
 #        #data_dict[var][f_h]['station_all_mse_unbiased'] = np.sort(data_dict[var][f_h]['station_all_mse_unbiased'])
 #        data_dict[var][f_h]['station_all_mse'] = np.sort(data_dict[var][f_h]['station_all_mse'])
@@ -319,7 +324,7 @@ for var in ob_dict:
         #variance_list_sorted = np.sort(variance_list)
         variance = np.mean(variance_list)
         #append to the stats list each statistic and info for one ens type, variable, and forecast hour
-        stats_list.append(prior_or_post+','+ensemble_type+','+var+','+f_h+','+str(data_dict[var][f_h]['average_mse'])+','+str(data_dict[var][f_h]['average_variance'])+','+str(data_dict[var][f_h]['average_error_variance'])+','+str(MSE)+','+str(variance)+'\n')#','+str(data_dict[var][f_h]['average_variance_hx_each_bias_removed'])+'\n')
+        stats_list.append(inflation+','+prior_or_post+','+ensemble_type+','+var+','+f_h+','+str(data_dict[var][f_h]['average_mse'])+','+str(data_dict[var][f_h]['average_variance'])+','+str(data_dict[var][f_h]['average_error_variance'])+','+str(MSE)+','+str(variance)+'\n')#','+str(data_dict[var][f_h]['average_variance_hx_each_bias_removed'])+'\n')
 
 #        SE_list_stationary = data_dict[var][f_h]['station_all_mse']
 #        SE_list_stationary_sorted = np.sort(SE_list_stationary)
@@ -340,8 +345,9 @@ print('Done!')
 #want to save ens type, ob, forecast hour in string identifier, followed by mse, variance, and error variance
 
 ##this was to save all the stations that pass the elevation check so I could plot them. 
-#f = open('/home/disk/hot/stangen/Documents/EFA/duplicate_madaus/plots/2013040100obs_allmaritime.txt','w')
-#for obser in obs_pass:
+#f = open('/home/disk/hot/stangen/Documents/EFA/duplicate_madaus/plots/2013040106obs_allmaritime.txt','w')
+#for obser in obs_allmaritime:
+##for obser in obs_pass:
 #    f.write(obser)
 #f.close()
 

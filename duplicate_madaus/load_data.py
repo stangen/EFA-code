@@ -35,7 +35,7 @@ class Load_Data():
     
     
     
-    def load_netcdfs(self,post=False,ob_upd='ob_update_self',lr='1000'):
+    def load_netcdfs(self,post=False,ob_upd='ob_update_self',lr='1000',inf='none'):
         """
         Loads the ensemble netCDF and the elevation netCDF. 
         Allows an option to package the ensemble data into an EnsembleState 
@@ -52,7 +52,7 @@ class Load_Data():
             infile = '/home/disk/hot/stangen/Documents/prior_ensembles/'+self.ens_type+'/'+self.y+self.m+'/'+self.y+'-'+self.m+'-'+self.d+'_'+self.h+'_'+self.ens_type+'_'+var_string+'.nc' 
             prior_or_post='prior'
         elif post==True:
-            infile = '/home/disk/hot/stangen/Documents/posterior_ensembles/'+ob_upd+'/loc_'+str(lr)+'/'+self.ens_type+'/'+self.y+self.m+'/'+self.y+'-'+self.m+'-'+self.d+'_'+self.h+'_'+self.ens_type+'_'+var_string+'.nc' 
+            infile = '/home/disk/hot/stangen/Documents/posterior_ensembles/'+ob_upd+('/inf_'+inf).replace('.','-')+'/loc_'+str(lr)+'/'+self.ens_type+'/'+self.y+self.m+'/'+self.y+'-'+self.m+'-'+self.d+'_'+self.h+'_'+self.ens_type+'_'+var_string+'.nc' 
             prior_or_post='posterior'
         print('loading netcdf file: '+prior_or_post+': '+self.ens_type+' '+self.y+self.m+self.d+'_'+self.h+'00')
         # loading/accessing the netcdf data            
