@@ -48,8 +48,8 @@ class EnSRF(Assimilation):
         # Now loop over all observations
         if self.verbose: print("Beginning observation loop")
         for obnum,ob in enumerate(self.obs):
-            #if (obnum % 100==0) and self.verbose: print("    On ob:", obnum)
-            #print('on ob '+str(obnum))
+#            if (obnum % 100==0) and self.verbose: print("    On ob:", obnum)
+#            print('on ob '+str(obnum))
             # Reset the mean and perturbations
             
             #ST
@@ -142,6 +142,12 @@ class EnSRF(Assimilation):
             # This is the "Square Root" 
             # step in the Kalman filter equations
             beta = 1./(1. + np.sqrt(obs_err/(varye+obs_err)))
+            
+            #ST artificially inflating the posterior pertubations by reducing beta.
+            #this will reduce the subtraction from the prior pertubations
+            #beta_const = 1.1
+            #beta = beta/(beta_const)
+            
             kmat = np.multiply(beta,kmat)
 
             ye = np.array(ye)[np.newaxis]
@@ -162,8 +168,9 @@ class EnSRF(Assimilation):
             # Record that this ob was assimilated
             ob.assimilated = True
             numobs_assim = numobs_assim+1
-            #print('total number of obs assimilated so far: ',numobs_assim)
+#            print('total number of obs assimilated so far: ',numobs_assim)
         print('total number of obs assimilated: ',numobs_assim)
+        #print('beta constant: ',beta_const)
         # After having assimilated everything, rebuild the state
         return self.format_posterior_state(xam, Xap)
         
