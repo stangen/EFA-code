@@ -16,9 +16,34 @@ def get_ob_points(left,right,top,bottom,spacing):
     gridpoints at higher latitudes.
     """
     
-    left = np.radians(left)
-    right = np.radians(right)
-    top = np.radians(top)
-    bottom = np.radians(bottom)
+#    left = np.radians(left)
+#    right = np.radians(right)
+#    top = np.radians(top)
+#    bottom = np.radians(bottom)
+    
+    left = -180
+    right = 180
+    bottom = 0
+    top = 90
+    spacing = 2
+    
+    #create list of latitudes from given box
+    lats = range(bottom,top+spacing,spacing)
+    #find number of longitudes, based on latitude and size of box
+    nlons = (right-left)/spacing*np.cos(np.radians(lats))
+    lons = []
+    #find longitudes equally spaced within the box
+    for n in nlons:
+        lons.append(np.linspace(left,right,num=int(round(n)),endpoint=False))
+        
+    #generate lat/lon pairs
+    latlon = []
+    for i,lat in enumerate(lats):
+        for lon in lons[i]:
+            latlon.append([lat,lon])
+            
+    return latlon
+        
+    
     
     
