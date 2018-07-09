@@ -54,7 +54,7 @@ datestr=sy+sm+sd+sh+'-'+ey+em+ed+eh
 
 varstr = ef.var_string(variables)
 
-filepath = filedir+datestr+'_'+varstr+'loc500.txt'
+filepath = filedir+datestr+'_'+varstr+'.txt'#'loc500.txt'
 
 f1 = open(filepath, 'r')
 stats = f1.readlines()
@@ -63,13 +63,15 @@ stats_dict = {}
 
 for line in stats:
     line_split = line.split(',')
-    efa = line_split[0] #posterior or prior
-    ens = line_split[1] #ensemble type
-    var = line_split[2] #observation variable type
-    fh = line_split[3] #forecast hour
-    mse = line_split[4] #mean squared error
-    variance = line_split[5] #variance
-    errvar = line_split[6] #error variance
+    inf = line_split[0]
+    efa = line_split[1] #posterior or prior
+    ens = line_split[2] #ensemble type
+    var = line_split[3] #observation variable type
+    fh = line_split[4] #forecast hour
+    mse = line_split[8] #mean squared error of all obs
+    variance = line_split[9] #variance of all obs
+    errvar = line_split[7] #error variance
+    
     #this block is to set up the dictionary structure
     stats_dict[var] = stats_dict.get(var,{})
     stats_dict[var][ens] = stats_dict[var].get(ens, {})
@@ -127,15 +129,15 @@ for v in variables:
 #        plt.plot(stats_dict[v]['eccc']['posterior']['Forecast_Hour'],stats_dict[v]['eccc']['posterior'][s],
 #                 marker='o',color='k',label='Updated CMC')   
         
-        plt.xticks(np.arange(min(stats_dict[var]['ecmwf']['prior']['Forecast_Hour'])-6, 
-                             max(stats_dict[var]['ecmwf']['prior']['Forecast_Hour'])+6, 6))
+        plt.xticks(np.arange(min(stats_dict[var]['eccc']['prior']['Forecast_Hour'])-6, 
+                             max(stats_dict[var]['eccc']['prior']['Forecast_Hour'])+6, 6))
         plt.grid()
         plt.legend(loc = 'upper left')
         plt.title(v+' '+s,fontsize=20)
         plt.xlabel('Forecast Hour',fontsize=14)
         plt.ylabel(var_units[v],fontsize=14)
         
-        fig.savefig(savedir+v+'_'+s+'_'+datestr+'.png',frameon=False,bbox_inches='tight')
+        fig.savefig(savedir+v+'_allobs_'+s+'_'+datestr+'.png',frameon=False,bbox_inches='tight')
         
 ##separate plot for each variable type
 #for v in variables:

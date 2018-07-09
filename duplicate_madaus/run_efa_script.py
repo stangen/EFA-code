@@ -21,6 +21,7 @@ from EFA.efa_xray.assimilation.ensrf import EnSRF
 from EFA.duplicate_madaus.load_data import Load_Data
 import EFA.duplicate_madaus.efa_functions as ef
 
+inf_post = False
 
 start_time = datetime.now()
 print('start time: ',start_time)
@@ -74,20 +75,22 @@ elif shell_script == True:
     
     #if a number is passed, convert to a float, otherwise, inflation = None
     inflation = sys.argv[10]
-    try:
-        inflation = float(inflation)    
-    except:
-        if inflation == 'none':
-            inflation = None
-        #add here for what to pass in to inflation for if loading inflation file
-
-#create a string for naming convention of inflation factor
-if inflation == None:
-    inflation_str = 'none'
-#would have to change this if I am loading an inflation file, or change thing later.
-else:
+    
+try:
+    inflation = float(inflation)
     inflation_str = str(inflation)
     inflation_str = inflation_str.replace('.','-') 
+except:
+    if inflation == 'none':
+        inflation = None
+        inflation_str = 'none'
+    #add here for what to pass in to inflation for if loading inflation file
+
+#code to change save inflation if just inflating the posterior    
+if inf_post == True:
+    if inflation is not None:
+        inflation = None
+        inflation_str = inflation_str+'post'
 
 def run_efa(ob_type,update_var):
     
