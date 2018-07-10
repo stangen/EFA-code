@@ -2,10 +2,9 @@
 
 #$ -V
 #$ -cwd
-#$ -o out_files/$TASK_ID
-#$ -e err_files/$TASK_ID
-#$ -t 10-11
+#$ -o out_files/practice
+#$ -e err_files/practice
 
-var=ecmwf
+var='{"T2M":1,"ALT":1}'
 
-python import_shell_var.py $var $SGE_TASK_ID
+python import_shell_var.py $var
