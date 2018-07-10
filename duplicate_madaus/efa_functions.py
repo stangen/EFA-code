@@ -172,6 +172,19 @@ def var_string(vrbls):
     var_string = var_string+vrbls[-1]
     return var_string
 
+def var_num_string(vrbls, nums):
+    """
+    Function which takes in a list of variables and a list of numbers 
+    (observation error variance) and returns a string, formatted like
+    var1_num1_var2_num2, for use in saving files. The lists must be the 
+    same length to work properly. Also replaces periods with dashes.
+    """
+    var_string = ''
+    for i, v in enumerate(vrbls[:-1]):
+        var_string = var_string+v+'_'+str(nums[i]).replace('.','-')+'_'
+    var_string = var_string+vrbls[-1]+'_'+str(nums[-1]).replace('.','-')
+    return var_string
+
 def make_netcdf(state,outfile):
     """
     Function which creates/saves a netCDF file
@@ -201,3 +214,51 @@ def make_netcdf(state,outfile):
                 dset.createVariable(var, np.float32, ('time','lat','lon','ens',))
                 dset.variables[var].units = ut.get_units(var)
                 dset.variables[var][:] = state[var].values
+                
+def get_ob_points(left=-180,right=180,top=90,bottom=0,spacing=3):
+    """
+    Function which selects gridpoints for observations, based on the lat/lon
+    boundaries and the spacing of the gridpoints (in deg lat/lon) at the lowest
+    longitude. Causes less observation gridpoints to be selected at higher 
+    latitudes than lower latitudes, since there is less distance between
+    gridpoints at higher latitudes.
+    
+    Inputs:
+        left: Western edge of box
+        right: Eastern edge of box
+        top: Northern edge of box
+        bottom: Southern edge of box
+        spacing: number of degrees apart lat/lon at equator to sample 
+        observations
+        
+    Returns : A list of lat/lon pairs to use as observations. With the defaults,
+    there are 2352 observations. Default is entire northern hemisphere.
+    
+    Caveats with this: linspace starts at the left edge of the box, so one
+    of the observation pairs will always lie on that line of longitude for
+    each row of latitudes.
+    """
+    
+    
+#    left = -180
+#    right = 180
+#    bottom = 0
+#    top = 90
+#    spacing = 3
+    
+    #create list of latitudes from given box
+    lats = range(bottom,top+spacing,spacing)
+    #find number of longitudes, based on latitude and size of box
+    nlons = (right-left)/spacing*np.cos(np.radians(lats))
+    lons = []
+    #find longitudes equally spaced within the box
+    for n in nlons:
+        lons.append(np.linspace(left,right,num=int(round(n)),endpoint=False))
+        
+    #generate lat/lon pairs
+    latlon = []
+    for i,lat in enumerate(lats):
+        for lon in lons[i]:
+            latlon.append([lat,lon])
+            
+    return latlon
