@@ -10,8 +10,8 @@ import numpy as np
 from netCDF4 import Dataset, num2date, date2num
 import EFA.efa_files.cfs_utilities_st as ut
 
-def closest_points(ob_lat, ob_lon, lats, lons, ob_elev, elevs, ob_time=None, 
-                   times=None, variable=None, k=4, need_interp=False):
+def closest_points(ob_lat, ob_lon, lats, lons, ob_elev=None, elevs=None, ob_time=None, 
+                   times=None, variable=None, k=4, need_interp=False, gen_obs=False):
     """
     Function which uses the Haversine formula to compute the distances from one 
     observation lat/lon to each gridpoint. It finds the indices of the n closest 
@@ -28,9 +28,12 @@ def closest_points(ob_lat, ob_lon, lats, lons, ob_elev, elevs, ob_time=None,
     times: required for interpolate function
     variable: required for interpolate function   
     k = number of points to find
-    need_interp: if False, call function to check the elevation of the 4 
-    nearest gridpoints. If True, call function to interpolate the ensemble 
-    to the ob location/time.
+    need_interp: If True, call function to interpolate the ensemble 
+    to the ob location/time. If False, call function to check 
+    the elevation of the 4 nearest gridpoints.
+    gen_obs: if need_interp == True: if False, call function to find ensemble
+    estimate at the observation location and time. if True, call function to 
+    generate "observations" from a grid at forecast hour 0.
     returns: output from check elevation or interpolate functions.
     """  
     #make a lat/lon array for comparison with station lat/lon
@@ -54,22 +57,43 @@ def closest_points(ob_lat, ob_lon, lats, lons, ob_elev, elevs, ob_time=None,
     #print(dist_flat[closest_4])
     #do we need to do interpolation?
     if need_interp==True:
-        #call function to check elevation
-        TorF = check_elev(closest_4,elevs,ob_elev)
-        #if it passes terrain check, we need to interpolate
-        if TorF==True:
-            #4 closest distances
-            distances = dist_flat[closest_4]
-            #return to lat/lon gridbox indices
-            closey, closex = np.unravel_index(closest_4, lonarr.shape)
-            interp = interpolate(closey,closex,distances,times,variable,ob_time)
-            return interp
-        #if it fails terrain check, no need to interpolate, so return empty array
-        elif TorF==False:
-            return np.array(())
+        #4 closest distances
+        distances = dist_flat[closest_4]
+        #return to lat/lon gridbox indices
+        closey, closex = np.unravel_index(closest_4, lonarr.shape)
+        #if we are obtaining ob estimates of the ensemble, at multiple times
+        #and for all ensemble members
+        if gen_obs==False:
+            #call function to check elevation
+            TorF = check_elev(closest_4,elevs,ob_elev)
+            #if it passes terrain check, we need to interpolate
+            if TorF==True:
+                interp = interpolate(closey,closex,distances,times,variable,ob_time)
+                return interp
+            #if it fails terrain check, no need to interpolate, so return empty array
+            elif TorF==False:
+                return np.array(())
+        #If we are obtaining observations for assimilating, use the simpler
+        #interpolation function
+        if gen_obs==True:
+            return generate_obs(closey,closex,distances,variable)
+            
+#        #call function to check elevation
+#        TorF = check_elev(closest_4,elevs,ob_elev)
+#        #if it passes terrain check, we need to interpolate
+#        if TorF==True:
+#            #4 closest distances
+#            distances = dist_flat[closest_4]
+#            #return to lat/lon gridbox indices
+#            closey, closex = np.unravel_index(closest_4, lonarr.shape)
+#            interp = interpolate(closey,closex,distances,times,variable,ob_time)
+#            return interp
+#        #if it fails terrain check, no need to interpolate, so return empty array
+#        elif TorF==False:
+#            return np.array(())
     #if no need to do interpolation, just call/return terrain check function
     elif need_interp==False:
-        return check_elev(closest_4,elevs,ob_elev)
+        return check_elev(closest_4,elevs,ob_elev)            
 
 
 def interpolate(closey, closex, distances, times, variable, ob_time):
@@ -138,6 +162,37 @@ def interpolate(closey, closex, distances, times, variable, ob_time):
         interp = (spaceweights[:,None] * interp).sum(axis=0)
     # Return estimate from all ensemble members
     return interp
+
+def generate_obs(closey,closex,distances,variable):
+    """
+    Function which returns "observations" from an ensemble. Hoping this 
+    runs faster, since it's just dealing with an ensemble mean at a single time,
+    a 2-d array instead of a 4-d array. 
+    
+    closey = 4 closest lat indices of the ensemble
+    closex = 4 closest lon indices of the ensemble
+    distances = distance from 4 closest gridpoints to the observation, for use in weights
+    variable = ensemble values of variable (ALT or T2M)
+    
+    returns: interpolated "observation"
+    """
+    
+    spaceweights = np.zeros(distances.shape)
+    if (distances < 1.0).sum() > 0:
+        spaceweights[distances.argmin()] = 1
+    else:
+        # Here, inverse distance weighting (for simplicity)
+        spaceweights = 1.0 / distances
+        spaceweights /= spaceweights.sum()
+    
+    # Now that we have the weights, do the interpolation
+    #a length 4 vector
+    interp = variable[closey,closex]
+    #multiply by the weights
+    interp = interp*spaceweights
+    return interp
+    
+    
 
 def check_elev(idx,elevs,ob_elev):
     """
