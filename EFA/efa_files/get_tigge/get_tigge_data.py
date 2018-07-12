@@ -13,13 +13,13 @@ server = ECMWFDataServer()
 
 ###---------Change these variables accordingly---------------------------------
 #start and end date to get ensembles. 
-start_date = datetime(2013,4,1,12) #YYYY,m,d,h
-end_date = datetime(2013,4,1,12)
+start_date = datetime(2013,4,1,0) #YYYY,m,d,h
+end_date = datetime(2013,4,1,0)
 start_fh = '0' #first forecast hour of each forecast
 end_fh = '54' #last forecast hour of each forecast
 fh_step = '6' #increment of forecast hour to retrieve
-ens = 'ecmwf' #ensemble
-param = ['T2M', 'SP'] #parameters to get
+ens = 'eccc' #ensemble
+param = ['MSLP'] #parameters to get
 surface = True #True if surface variables, false if aloft (500mb?)
 hourstep = 12 #how often you want a new forecast initialization, usually 12 hr
 #------------------------------------------------------------------------------
@@ -44,7 +44,8 @@ param_dict = {
             'SP' : '134', #surface pressure
             'TCW' : '136', #total column water
             'PCP' : '228228', #total precipitation
-            'Z500' : '156' #500 mb height
+            'Z500' : '156', #500 mb height
+            'MSLP' : '151' #mean sea level pressure
             }   
 
 #construct the parameter string to be fed into tigge
