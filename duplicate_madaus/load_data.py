@@ -56,7 +56,7 @@ class Load_Data():
             infile = '/home/disk/hot/stangen/Documents/prior_ensembles/'+self.ens_type+'/'+self.y+self.m+'/'+self.y+'-'+self.m+'-'+self.d+'_'+self.h+'_'+self.ens_type+'_'+self.var_string+'.nc' 
             prior_or_post='prior'
         elif post==True:
-            infile = '/home/disk/hot/stangen/Documents/posterior_ensembles/'+ob_cat+'/'+ob_upd+('/inf_'+inf).replace('.','-')+'/loc_'+str(lr)+'/'+self.ens_type+'/'+self.y+self.m+'/'+self.y+'-'+self.m+'-'+self.d+'_'+self.h+'_'+self.var_string+'.nc' 
+            infile = '/home/disk/hot/stangen/Documents/posterior_ensembles/'+ob_cat+'/'+ob_upd+('/inf_'+inf).replace('.','-')+'/loc_'+str(lr)+'/'+self.ens_type+'/'+self.y+self.m+'/'+self.y+'-'+self.m+'-'+self.d+'_'+self.h+'_'+self.ens_type+'_'+self.var_string+'.nc' 
             prior_or_post='posterior'
         print('loading netcdf file: '+prior_or_post+': '+self.ens_type+' '+self.y+self.m+self.d+'_'+self.h+'00')
         # loading/accessing the netcdf data            
@@ -94,7 +94,33 @@ class Load_Data():
                                        })
         
         return statecls, lats, lons, elevs
-             
+    
+    def load_ens_netcdf(self, forecast_hour=0):
+        """
+        Loads the ensemble from n forecast hours after the forecast was 
+        initialized and uses its 0-hour forecast as the "observation" grid. 
+        Returns the variable of interest and the lats/lons. 
+        var is  nlats x nlons. (at time t=0, ens mean)
+        lats, lons are 1-d float arrays (masked).
+        """  
+        dty, dtm, dtd, dth = ef.dt_str_timedelta(self.date,forecast_hour)
+        
+        infile = '/home/disk/hot/stangen/Documents/prior_ensembles/'+self.ens_type+'/'+dty+dtm+'/'+dty+'-'+dtm+'-'+dtd+'_'+dth+'_'+self.ens_type+'_'+self.var_string+'.nc'
+        
+        ncdata = Dataset(infile,'r')
+        #gridded ensemble 0-hour forecasts n forecast hours after the ensemble
+        #we are updating was initialized
+        var = ncdata.variables[self.ob_type][0,:,:,:]
+
+        lats = ncdata.variables['lat'][:]
+        lons = ncdata.variables['lon'][:]
+        
+        #obtain the mean of the ensemble
+        var = var.mean(axis=-1)
+        
+        return var, lats, lons
+    
+        
     def load_obs(self, forecast_hour=6, madis=True):
         """
         Loads the observations corresponding with n hours after ensemble was
@@ -102,16 +128,7 @@ class Load_Data():
         Loads MADIS observations if True, loads gridded observations if False.
         """
         
-        #get observations from n hours after the model was initialized
-        dt0 = self.date
-        dt = dt0.replace(minute = 0, second=0, microsecond=0)
-        dt = dt + timedelta(hours=forecast_hour)
-        
-        #convert back to strings
-        dty = dt.strftime('%Y')
-        dtm = dt.strftime('%m')
-        dtd = dt.strftime('%d')
-        dth = dt.strftime('%H')
+        dty, dtm, dtd, dth = ef.dt_str_timedelta(self.date,forecast_hour)
         
         ob_str = ef.var_string([self.ob_type])        
         # directory where the observations are
@@ -126,9 +143,9 @@ class Load_Data():
         
         return obs
     
-    def save_gridded_obs(self, forecast_hour=12):
+    def save_gridded_obs(self, forecast_hour=0):
         """
-        Loads the ensemble from 12 hours after the forecast was initialized
+        Loads the ensemble from n hours after the forecast was initialized
         and uses its 0-hour forecast as the "observation" grid. 
         Saves information about the generated gridded obs to a .txt file,
         with the same format as MADIS observations.
@@ -145,23 +162,11 @@ class Load_Data():
         #convert to epoch time for saving observation
         epoch = str(dt.replace(tzinfo=pytz.utc).timestamp())
         
-        #convert back to strings
-        dty = dt.strftime('%Y')
-        dtm = dt.strftime('%m')
-        dtd = dt.strftime('%d')
-        dth = dt.strftime('%H')
+        dty, dtm, dtd, dth = ef.dt_str_timedelta(self.date,forecast_hour)
         
-        infile = '/home/disk/hot/stangen/Documents/prior_ensembles/'+self.ens_type+'/'+dty+dtm+'/'+dty+'-'+dtm+'-'+dtd+'_'+dth+'_'+self.ens_type+'_'+self.var_string+'.nc'
         print('starting saving of '+self.ens_type+' gridded '+self.ob_type+ ' "obs" at: '+dty+dtm+dtd+'_'+dth+'00')
         
-        ncdata = Dataset(infile,'r')
-        #print(ncdata.variables.keys())
-        #gridded ensemble-mean 0-hour forecasts n (12) hours after the ensemble
-        #we are updating was initialized
-        var = ncdata.variables[self.ob_type][0,:,:,:].mean(axis=-1)
-
-        lats = ncdata.variables['lat'][:]
-        lons = ncdata.variables['lon'][:]
+        var, lats, lons = self.load_ens_netcdf(forecast_hour)
         
         #initialize the obs list to append to
         obs = []
@@ -172,7 +177,7 @@ class Load_Data():
             #get the ensemble value at the lat/lon pair
             ob_value = ef.closest_points(ob_lat,ob_lon,lats,lons,variable=var,
                                          need_interp=True,gen_obs=True)
-            obs.append(str(i)+','+str(ob_lat)+','+str(ob_lon)+','+str(0)+','+epoch+','+str(ob_value)+','+str(0)+'\n')
+            obs.append(str(i)+','+str(ob_lat)+','+str(ob_lon)+','+str(0)+','+epoch+','+str(ob_value)+',GRIDDED,'+str(0)+'\n')
             
         #save directory for the observations
         if (os.path.isdir(basedir+self.ens_type+'/'+dty+dtm+'/'+self.ob_type+'/')):
@@ -186,14 +191,10 @@ class Load_Data():
             f.write(s)
         f.close()
         
+        
     
             
-#sstr.append(str(stns[t])+","+str(lats[t])+","+str(lngs[t])+","+str(elevs[t])+","+str(epoch[t])+","+str(var[t])+","+ob_type.upper()+","+str(station_type[t])+"\n")            
-        
-        #change efa functions so that it takes an argument for need_elev, 
-        #then create a separate interpolate function for this scenario: no
-        #interpolation in time, no ensemble members (just ens mean), just use
-        #4 closest grid points.
+
         
         
     

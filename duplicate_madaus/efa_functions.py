@@ -9,6 +9,7 @@ Created on Tue Jun 19 16:23:50 2018
 import numpy as np
 from netCDF4 import Dataset, num2date, date2num
 import EFA.efa_files.cfs_utilities_st as ut
+from datetime import timedelta
 
 def closest_points(ob_lat, ob_lon, lats, lons, ob_elev=None, elevs=None, ob_time=None, 
                    times=None, variable=None, k=4, need_interp=False, gen_obs=False):
@@ -66,31 +67,14 @@ def closest_points(ob_lat, ob_lon, lats, lons, ob_elev=None, elevs=None, ob_time
         if gen_obs==False:
             #call function to check elevation
             TorF = check_elev(closest_4,elevs,ob_elev)
-            #if it passes terrain check, we need to interpolate
-            if TorF==True:
-                interp = interpolate(closey,closex,distances,times,variable,ob_time)
-                return interp
-            #if it fails terrain check, no need to interpolate, so return empty array
-            elif TorF==False:
-                return np.array(())
+            interp = interpolate(closey,closex,distances,times,variable,ob_time)
+            #return interpolated values and whether it passed or failed terrain check (True or False)
+            return interp, TorF
         #If we are obtaining observations for assimilating, use the simpler
         #interpolation function
         if gen_obs==True:
             return generate_obs(closey,closex,distances,variable)
             
-#        #call function to check elevation
-#        TorF = check_elev(closest_4,elevs,ob_elev)
-#        #if it passes terrain check, we need to interpolate
-#        if TorF==True:
-#            #4 closest distances
-#            distances = dist_flat[closest_4]
-#            #return to lat/lon gridbox indices
-#            closey, closex = np.unravel_index(closest_4, lonarr.shape)
-#            interp = interpolate(closey,closex,distances,times,variable,ob_time)
-#            return interp
-#        #if it fails terrain check, no need to interpolate, so return empty array
-#        elif TorF==False:
-#            return np.array(())
     #if no need to do interpolation, just call/return terrain check function
     elif need_interp==False:
         return check_elev(closest_4,elevs,ob_elev)            
@@ -189,7 +173,7 @@ def generate_obs(closey,closex,distances,variable):
     #a length 4 vector
     interp = variable[closey,closex]
     #multiply by the weights
-    interp = interp*spaceweights
+    interp = sum(interp*spaceweights)
     return interp
     
     
@@ -317,3 +301,21 @@ def get_ob_points(left=-180,right=180,top=90,bottom=0,spacing=3):
             latlon.append([lat,lon])
             
     return latlon
+
+def dt_str_timedelta(date,forecast_hour):
+    """
+    Converts a datetime object to year, month, day, and hour strings.
+    Also contains the option to add n hours to the datetime object
+    prior to the conversion to a string.
+    """
+    #get the 0-hour ensemble forecast, n hours after the model was initialized
+    dt0 = date
+    dt = dt0.replace(minute = 0, second=0, microsecond=0)
+    dt = dt + timedelta(hours=forecast_hour)
+    #convert back to strings
+    dty = dt.strftime('%Y')
+    dtm = dt.strftime('%m')
+    dtd = dt.strftime('%d')
+    dth = dt.strftime('%H')
+    
+    return dty, dtm, dtd, dth
