@@ -19,22 +19,26 @@ shell_script=False
 
 if shell_script==False:
     ensemble_type = 'eccc'
-    #mainly used for loading files-order matters for loading the file
-    variables = ['T2M','ALT']  #['T2M','ALT']
+    #used for loading the prior files-order matters for loading the file
+    prior_vrbls = ['T2M','ALT']  #['T2M','ALT']
+    #used for loading the posterior files-put in ob err var as part of the string, order matters
+    post_vrbls = ['ALT1','ALT0']
     #which ob type we're getting stats for, can be more than 1 ['T2M','ALT']
     ob_types = ['ALT']
+    #observation error variance associated with the observation type
+    ob_err_var = [1] #if didn't save ob_err_var in filename/variable name in netCDF, change to ['']
     #all obs we will have in the end- for saving the file
     allobs = ['ALT']
     #date range of ensembles used
-    start_date = datetime(2013,4,1,0)
-    end_date = datetime(2013,4,1,12)
+    start_date = datetime(2013,4,4,0)
+    end_date = datetime(2013,4,4,0)
     #hour increment between ensemble forecasts
     incr = 12
     
     #change for how far into the forecast to get observations, 1 is 6 hours in,
     #end_index is the last forecast hour to get obs for
-    start_index = 1
-    end_index = 2
+    start_index = 4
+    end_index = 5
     
     #if True, will load/do stats on posterior ensembles, if False, will load prior
     post=True
@@ -45,9 +49,9 @@ if shell_script==False:
     #inflation factor (string for loading files)
     inflation = 'none'
     
-    #what kind of observations are we using? MADIS or gridded future 0-hour
+    #what kind of observations did we assimilate? MADIS or gridded future 0-hour
     #forecast "obs", sampled at some interval?
-    ob_category = 'madis'
+    ob_category = 'gridded'
     
     #create strings for saving file at the end
     sy = start_date.strftime('%Y')
@@ -64,31 +68,37 @@ if shell_script==False:
     
 elif shell_script==True:
     ensemble_type = sys.argv[1]
-    variables = sys.argv[2].split(',')
-    ob_types = sys.argv[3].split(',')
-    allobs = sys.argv[4].split(',')
-    startstr = sys.argv[5]
+    prior_vrbls = sys.argv[2].split(',')
+    post_vrbls = sys.argv[3].split(',')
+    ob_types = sys.argv[4].split(',')
+    ob_err_var = sys.argv[5].split(',')
+    allobs = sys.argv[6].split(',')
+    startstr = sys.argv[7]
     start_date = datetime.strptime(startstr,'%Y%m%d%H')
-    endstr = sys.argv[6]
+    endstr = sys.argv[8]
     end_date = datetime.strptime(endstr,'%Y%m%d%H')
-    incr=int(sys.argv[7])
-    start_index = int(sys.argv[8])
-    end_index=int(sys.argv[9])
-    boolstr=sys.argv[10]
+    incr=int(sys.argv[9])
+    start_index = int(sys.argv[10])
+    end_index=int(sys.argv[11])
+    boolstr=sys.argv[12]
     #change string to boolean for loading prior or posterior ensembles
     if boolstr == 'true':
         post=True
     elif boolstr =='false':
         post=False     
-    loc_rad = sys.argv[11]  
-    inflation = sys.argv[12]
-    ob_category = sys.argv[13]
+    loc_rad = sys.argv[13]  
+    inflation = sys.argv[14]
+    ob_category = sys.argv[15]
     
     datestr = startstr+'-'+endstr
 
 save_dir = '/home/disk/hot/stangen/Documents/EFA/duplicate_madaus/mse_var_output/'    
 #variable string
 varstr = ef.var_string(allobs)
+#make a list of netCDF variable names/strings in part of file name from obs/obs error var
+obtype_errvar = []
+for i, ob in enumerate(ob_types):
+     obtype_errvar.append(ef.var_num_string([ob],[ob_err_var[i]]))
 #prior/post string
 if post==True:
     prior_or_post='loc'+loc_rad
@@ -114,7 +124,7 @@ for date in dates:
     hour = date.strftime('%H')
 
     #create dict for variable type
-    for ob_type in ob_types:
+    for i, ob_type in enumerate(obtype_errvar):
         ob_dict[ob_type] = ob_dict.get(ob_type,{})
         data_dict[ob_type] = data_dict.get(ob_type,{})
         SE_dict[ob_type] = SE_dict.get(ob_type,{})
@@ -123,8 +133,8 @@ for date in dates:
         gridob_SE_dict[ob_type] = gridob_SE_dict.get(ob_type,{})
         gridob_variance_dict[ob_type] = gridob_variance_dict.get(ob_type,{})
         
-        #Load in the ensemble data for a given initilization
-        efa = Load_Data(date,ensemble_type,variables,ob_type,[ob_type])
+        #Load in the ensemble data for a given initialization
+        efa = Load_Data(date,ensemble_type,prior_vrbls,ob_types[i],[ob_type],post_vrbls=post_vrbls)
         statecls, lats, lons, elevs = efa.load_netcdfs(post=post,ob_cat=ob_category,inf=inflation,lr=loc_rad,)
         
         #Want to interpolate ALL observations valid during a given ensemble forecast.
@@ -134,6 +144,7 @@ for date in dates:
         j = start_index
         #fh = hour_step*j
         #sfh = str(fh)
+        # j = the current forecast hour index. i.e. 1 = 6 hr, 2 = 12 hr, 3 = 18 hr, etc.
         while j <= end_index:
         #while fh <= end_hour:
             fh = j*hour_step
@@ -170,7 +181,7 @@ for date in dates:
                 #the terrain check is done within the closest_points function
                 interp, TorF = ef.closest_points(ob_info['lat'],ob_info['lon'],lats,lons,ob_info['elev'],
                                            elevs,utctime,statecls['validtime'].values,
-                                           statecls.variables[ob_type].values,need_interp=True)            
+                                           statecls.variables[ob_type].values,need_interp=True)
 
                 ob_id = ob_info['name']
                 ob_value = ob_info['ob']
@@ -212,7 +223,7 @@ for date in dates:
             print('Added stats from '+str(len(obs_allmaritime))+'- including all maritime observations')
             
             #gridded observations are only available every 12 hours
-            if j % 2 == 0:
+            if ob_category =='gridded' and j % 2 == 0:
                 #load in the gridded observations for comparison
                 grid_obs = efa.load_obs(fh,madis=False)
                 
@@ -226,7 +237,7 @@ for date in dates:
                 gridob_variance_dict[ob_type][sfh]['obs'] = gridob_variance_dict[ob_type][sfh].get('obs',[])
                 gridob_variance_dict[ob_type][sfh]['all_gridpoints'] = gridob_variance_dict[ob_type][sfh].get('all_gridpoints',[])
                 
-                for ob_counter, ob in enumerate(obs):
+                for ob_counter, ob in enumerate(grid_obs):
                     #this gets the observation information from the text file
                     ob_info = mt.get_ob_info(ob)
                     #get longitude positive-definite- ie -130 lon is 230 E
@@ -239,7 +250,9 @@ for date in dates:
                                                elevs,utctime,statecls['validtime'].values,
                                                statecls.variables[ob_type].values,need_interp=True)
                     
+                    ob_value = ob_info['ob']
                     #calculate MSE
+                    
                     se = (np.mean(interp)-ob_value)**2
                     #calculate variance
                     hx_variance_unbiased = np.var(interp, ddof=1)
@@ -247,18 +260,28 @@ for date in dates:
                     gridob_SE_dict[ob_type][sfh]['obs'].append(se)
                     gridob_variance_dict[ob_type][sfh]['obs'].append(hx_variance_unbiased)
                     
-                print('Added stats from '+str(len(obs))+' gridded obs')        
+                print('Added stats from '+str(len(grid_obs))+' gridded obs')        
                 
                 #comparison with all grid points
-                #access the 0 hour forecast initialized fh hours after EFA'd forecast
+                #access the 0 hour forecast initialized fh hours after EFA'd forecast (the analysis/observation grid)
                 anl_ens_mean, lats, lons = efa.load_ens_netcdf(fh)
-                #find the ensemble mean at each grid point
-                fcst_ens_mean = (statecls.variables[ob_type].values).mean(axis=-1)
+                #find the ensemble mean at each grid point for the specified forecast hour (the updated forecast grid)
+                fcst_ens_mean = (statecls.variables[ob_type].values[j]).mean(axis=-1)
                 #find the squared error of each grid point                
                 se = (fcst_ens_mean-anl_ens_mean)**2
-                #find variance of each forecast grid point
-                fcst_var = np.var(statecls.variables[ob_type].values, axis=-1, ddof=1)
+                #find variance of each forecast grid point for the specified forecast hour
+                fcst_var = np.var(statecls.variables[ob_type].values[j], axis=-1, ddof=1)
                 
+                #find average of northern hemisphere- make it so that high
+                #latitudes aren't weighted unfairly high
+                weights = np.cos(np.radians(lats))
+                #np.average is the weighted average of all latitudes for each longitude, 
+                #np.mean is the average of all the longitudes
+                avg_se = np.mean(np.average(se, axis=0, weights=weights))
+                avg_var = np.mean(np.average(fcst_var, axis=0, weights=weights))
+                #now append each date's ensemble-average values to the corresponding list
+                gridob_SE_dict[ob_type][sfh]['all_gridpoints'].append(avg_se)
+                gridob_variance_dict[ob_type][sfh]['all_gridpoints'].append(avg_var)
                         
             #update the forecast hour to load the next forecast, 6 hours later
             j = j + 1
@@ -295,7 +318,6 @@ for var in ob_dict:
                 data_dict[var][f_h]['weight'] = np.append(data_dict[var][f_h]['weight'],len(ob_dict[var][f_h][h][sID]['se']))
                 del ob_dict[var][f_h][h][sID]
                 
-        print('Calculating ensemble average statistics')
         data_dict[var][f_h]['average_mse'] = np.average(data_dict[var][f_h]['station_all_mse'],weights=data_dict[var][f_h]['weight'])
         data_dict[var][f_h]['average_variance'] = np.average(data_dict[var][f_h]['station_all_mean_variance'],weights=data_dict[var][f_h]['weight'])
         data_dict[var][f_h]['average_error_variance'] = np.average(data_dict[var][f_h]['station_all_error_variance'],weights=data_dict[var][f_h]['weight'])
@@ -307,16 +329,43 @@ for var in ob_dict:
         variance_list = np.array(variance_dict[var][f_h])
         #variance_list_sorted = np.sort(variance_list)
         variance = np.mean(variance_list)
-        #append to the stats list each statistic and info for one ens type, variable, and forecast hour
-        stats_list.append(inflation+','+prior_or_post+','+ensemble_type+','+var+','+f_h+','+str(data_dict[var][f_h]['average_mse'])+','+str(data_dict[var][f_h]['average_variance'])+','+str(data_dict[var][f_h]['average_error_variance'])+','+str(MSE)+','+str(variance)+'\n')#','+str(data_dict[var][f_h]['average_variance_hx_each_bias_removed'])+'\n')
-
+        
 #        SE_list_stationary = data_dict[var][f_h]['station_all_mse']
 #        SE_list_stationary_sorted = np.sort(SE_list_stationary)
+        
+        #gridded observations are only available every 12 hours
+        #all of the forecast hours will go into the ob_dict/data_dicts. However,
+        #only fh 12, 24, 36, etc will go into the grid dicts. This is why the try
+        #block works- for these forecast hours, the grid dicts will have info,
+        #but for fh 6, 18, 30, etc they will not, but it will loop through each 
+        #forecast hour that is in ob_dict and data_dict, which may contain these
+        #forecast hours.
+        try:
+            #MSE and variance using ensemble mean points as observations, and MSE and
+            #variance of the entire grid
+            MSE_gridob_obs_list = np.array(gridob_SE_dict[var][f_h]['obs'])
+            MSE_gridob_obs = np.mean(MSE_gridob_obs_list)
+            MSE_gridob_fullgrid_list = np.array(gridob_SE_dict[var][f_h]['all_gridpoints'])
+            MSE_gridob_fullgrid = np.mean(MSE_gridob_fullgrid_list)
+            
+            variance_gridob_obs_list = np.array(gridob_variance_dict[var][f_h]['obs'])
+            variance_gridob_obs = np.mean(variance_gridob_obs_list)
+            variance_gridob_fullgrid_list = np.array(gridob_variance_dict[var][f_h]['all_gridpoints'])
+            variance_gridob_fullgrid = np.mean(variance_gridob_fullgrid_list)
+            
+            #append to the stats list each statistic and info for one inflation, localization radius, ens type, variable+ob_error_var, and forecast hour.
+            #order of stats is comparison with: stationary MADIS obs MSE/variance, all MADIS obs MSE/variance,
+            #MSE/var at gridded observation locations, MSE/var for entire grid (averaged proportional to surface area of NH.)
+            stats_list.append(inflation+','+prior_or_post+','+ensemble_type+','+var+','+f_h+','+str(data_dict[var][f_h]['average_mse'])+','+str(data_dict[var][f_h]['average_variance'])+','+str(MSE)+','+str(variance)+','+str(MSE_gridob_obs)+','+str(variance_gridob_obs)+','+str(MSE_gridob_fullgrid)+','+str(variance_gridob_fullgrid)+'\n')
+        except:            
+            #append to the stats list each statistic and info for one inflation, localization radius, ens type, variable+ob_error_var, and forecast hour.
+            #Don't try to append the gridded obs stuff, since there are no observations to compare with at forecast hours 6, 18, 30, 42, etc.
+            stats_list.append(inflation+','+prior_or_post+','+ensemble_type+','+var+','+f_h+','+str(data_dict[var][f_h]['average_mse'])+','+str(data_dict[var][f_h]['average_variance'])+','+str(MSE)+','+str(variance)+'\n')
 
         
 #save the stats list after all forecast hours have been appended for one variable
 print('Writing statistics to .txt file')
-f = open(save_dir+datestr+'_'+varstr+'.txt', 'a')
+f = open(save_dir+datestr+'_'+varstr+'_gridobs.txt', 'a')
 for s in stats_list:
     f.write(s)
 f.close()
