@@ -215,21 +215,27 @@ def var_num_string(vrbls, nums):
     """
     Function which takes in a list of variables and a list of numbers 
     (observation error variance) and returns a string, formatted like
-    var1_num1_var2_num2, for use in saving files. The lists must be the 
+    var1num1_var2num2, for use in saving files. The lists must be the 
     same length to work properly. Also replaces periods with dashes.
     """
     var_string = ''
     for i, v in enumerate(vrbls[:-1]):
-        var_string = var_string+v+'_'+str(nums[i]).replace('.','-')+'_'
-    var_string = var_string+vrbls[-1]+'_'+str(nums[-1]).replace('.','-')
+        var_string = var_string+v+str(nums[i]).replace('.','-')+'_'
+    var_string = var_string+vrbls[-1]+str(nums[-1]).replace('.','-')
     return var_string
 
-def make_netcdf(state,outfile):
+def make_netcdf(state,outfile,ob_err_var=''):
     """
     Function which creates/saves a netCDF file
+    Takes in the full state array, the file path and file name, and an 
+    optional argument for naming the newly created variables using the
+    observation error variance used to run EFA. 
     """
     #tunit='seconds since 1970-01-01'
     tunit='hours since 1900-01-01'
+    
+
+    ob_err_var = str(ob_err_var).replace(',','-')
     # Write ensemble forecast to netcdf
     with Dataset(outfile,'w') as dset:
             dset.createDimension('time',None)
@@ -249,10 +255,11 @@ def make_netcdf(state,outfile):
             dset.variables['lon'][:] = state['lon'].values[0,:]
             dset.variables['ens'][:] = state['mem'].values
             for var in state.vars():
+                varstr = var+ob_err_var
                 print('Writing variable {}'.format(var))
-                dset.createVariable(var, np.float32, ('time','lat','lon','ens',))
-                dset.variables[var].units = ut.get_units(var)
-                dset.variables[var][:] = state[var].values
+                dset.createVariable(varstr, np.float32, ('time','lat','lon','ens',))
+                dset.variables[varstr].units = ut.get_units(var)
+                dset.variables[varstr][:] = state[var].values
                 
 def get_ob_points(left=-180,right=180,top=90,bottom=0,spacing=3):
     """
