@@ -22,19 +22,23 @@ class Load_Data():
     #ens_type, ob_type are str; vrbls, update_var are lists of str, date is datetime object.
     date = date of the model initialization
     ens_type = eccc, ecmwf
-    vrbls = all the variables in the netCDF
+    prior_vrbls = all the variables in the prior netCDF
     ob_type = the observation variable type we will be assimilating (only 1)
     update_var = the variable type(s) we will be updating
+    post_vrbls = all the variables in the posterior netCDF
+        for use in mse_variance, ob_type and update_var match, and are the ob type
+        to run statistics on (just 1, since it runs 1 at a time)
     """
     
-    def __init__(self,date,ens_type,vrbls,ob_type,update_var):
+    def __init__(self,date,ens_type,prior_vrbls,ob_type,update_var,post_vrbls=[]):
         self.date = date  
         self.y = self.date.strftime('%Y')
         self.m = self.date.strftime('%m')
         self.d = self.date.strftime('%d')
         self.h = self.date.strftime('%H')
         self.ens_type = ens_type
-        self.var_string = ef.var_string(vrbls) #convert list of vrbls to string
+        self.var_string = ef.var_string(prior_vrbls) #convert list of vrbls to string
+        self.post_vrbls = post_vrbls
         #self.vrbls = vrbls
         self.ob_type = ob_type
         self.update_var = update_var
@@ -56,7 +60,8 @@ class Load_Data():
             infile = '/home/disk/hot/stangen/Documents/prior_ensembles/'+self.ens_type+'/'+self.y+self.m+'/'+self.y+'-'+self.m+'-'+self.d+'_'+self.h+'_'+self.ens_type+'_'+self.var_string+'.nc' 
             prior_or_post='prior'
         elif post==True:
-            infile = '/home/disk/hot/stangen/Documents/posterior_ensembles/'+ob_cat+'/'+ob_upd+('/inf_'+inf).replace('.','-')+'/loc_'+str(lr)+'/'+self.ens_type+'/'+self.y+self.m+'/'+self.y+'-'+self.m+'-'+self.d+'_'+self.h+'_'+self.ens_type+'_'+self.var_string+'.nc' 
+            post_varstring = ef.var_string(self.post_vrbls)
+            infile = '/home/disk/hot/stangen/Documents/posterior_ensembles/'+ob_cat+'/'+ob_upd+('/inf_'+inf).replace('.','-')+'/loc_'+str(lr)+'/'+self.ens_type+'/'+self.y+self.m+'/'+self.y+'-'+self.m+'-'+self.d+'_'+self.h+'_'+post_varstring+'.nc' 
             prior_or_post='posterior'
         print('loading netcdf file: '+prior_or_post+': '+self.ens_type+' '+self.y+self.m+self.d+'_'+self.h+'00')
         # loading/accessing the netcdf data            
