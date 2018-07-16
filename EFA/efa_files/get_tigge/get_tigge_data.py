@@ -13,14 +13,15 @@ server = ECMWFDataServer()
 
 ###---------Change these variables accordingly---------------------------------
 #start and end date to get ensembles. 
-start_date = datetime(2013,4,1,0) #YYYY,m,d,h
-end_date = datetime(2013,4,1,0)
+start_date = datetime(2015,11,10,0) #YYYY,m,d,h
+end_date = datetime(2015,11,17,12)
 start_fh = '0' #first forecast hour of each forecast
 end_fh = '54' #last forecast hour of each forecast
 fh_step = '6' #increment of forecast hour to retrieve
-ens = 'eccc' #ensemble
-param = ['MSLP'] #parameters to get
-surface = True #True if surface variables, false if aloft (500mb?)
+ens = 'ncep' #ensemble
+param = ['Q','U','V'] #parameters to get
+surface = False #True if surface variables, false if aloft (500mb?)
+levels = '850'
 hourstep = 12 #how often you want a new forecast initialization, usually 12 hr
 #------------------------------------------------------------------------------
 
@@ -44,8 +45,11 @@ param_dict = {
             'SP' : '134', #surface pressure
             'TCW' : '136', #total column water
             'PCP' : '228228', #total precipitation
+            'MSLP' : '151', #mean sea level pressure
             'Z500' : '156', #500 mb height
-            'MSLP' : '151' #mean sea level pressure
+            'Q' : '133', #specific humidity
+            'U' : '131', #u-component of wind
+            'V' :' 132' #v-component of wind
             }   
 
 #construct the parameter string to be fed into tigge
@@ -115,7 +119,7 @@ def tigge_pf_pl_request(date, h, target):
         "expver": "prod",
         "grid": "0.5/0.5",
         "area": "90/-180/0/179.5",
-        "levelist": "500",
+        "levelist": levels,
         "levtype": "pl",
         "number": ens_num_dict[ens],
         "origin": ens_dict[ens],
