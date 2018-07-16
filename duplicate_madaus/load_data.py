@@ -26,8 +26,15 @@ class Load_Data():
     ob_type = the observation variable type we will be assimilating (only 1)
     update_var = the variable type(s) we will be updating
     post_vrbls = all the variables in the posterior netCDF
-        for use in mse_variance, ob_type and update_var match, and are the ob type
-        to run statistics on (just 1, since it runs 1 at a time)
+        for use in mse_variance, ob_type is the variable type of the observation,
+        without observation error variance attached with it. This is to load 
+        observations, which do not have ob err var as part of the name.
+        update_var is used purely to load the netCDF we are doing stats on, 
+        which may have ob error variance as part of the variable name. This can
+        include the posterior, or the prior, if we are interested in the prior stats.
+        These should match if ob error variance was not used in creating the posterior
+        variable names, otherwise update_var contains ob err variance.
+        (just 1, since it runs 1 at a time)
     """
     
     def __init__(self,date,ens_type,prior_vrbls,ob_type,update_var,post_vrbls=[]):
