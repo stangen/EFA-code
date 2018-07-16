@@ -27,9 +27,11 @@ print('start time: ',start_time)
 shell_script = True
 #indicate that we are inflating the posterior perturbations
 inf_post = False
+#if true, include observation error variance in the names of the posterior variables.
+use_oberrvar = True
 
 if shell_script == False:
-    ensemble_type = 'eccc'
+    ensemble_type = 'ecmwf'
     #All variables in the prior netCDF
     variables = ['T2M','ALT']#['T2M', 'ALT', 'P6HR', 'TCW']
     #the ob type of the observations we are assimilating, and its associated
@@ -45,7 +47,7 @@ if shell_script == False:
     #localization type
     loc_type = 'GC'
     #localization radius (for Gaspari-Cohn)
-    localize_radius = 1000
+    localize_radius = 100
     #date to run efa
     date = datetime(2013,4,1,0)
     #inflation?
@@ -90,8 +92,6 @@ elif shell_script == True:
     inflation = sys.argv[11]
     ob_category = sys.argv[12]
 
-#create a list of observation types from the obs dictionary
-#obs_type = list(obs_dict.keys())    
 
 #deal with the inflation based on its type, and generate a string for saving    
 try:
@@ -114,6 +114,10 @@ def run_efa(ob_type,update_var,ob_err_var):
     """
     All of the inputs are lists.
     """
+    
+    #print values used 
+    print('localization radius: '+str(localize_radius))
+    print('observation error variance: '+str(ob_err_var))
        
     #assign the radius to the localization_radius variable in Observation
     #create a string for saving to specific directories
@@ -141,44 +145,44 @@ def run_efa(ob_type,update_var,ob_err_var):
             #initialize an instance of the Load_data class (load in data)
             statecls, lats, lons, elevs = efa.load_netcdfs()
         
-#        #if we are assimilating MADIS observations 
-#        if ob_category == 'madis':
-#            #load in the obs file
-#            obs = efa.load_obs()
-#        #if we are assimilating future 0-hour forecast gridded "observations"
-#        elif ob_category == 'gridded':
-#            #load in the obs file
-#            obs = efa.load_obs(forecast_hour=12,madis=False)
-#            
-#        #loop through each line in the text file (loop through each observation)
-#        for ob in obs:
-#            #this gets the observation information from the text file
-#            ob_dict = mt.get_ob_info(ob)
-#            #get longitude positive-definite- ie -130 lon is 230 E
-#            if ob_dict['lon'] < 0:
-#                ob_dict['lon'] = ob_dict['lon'] + 360
-#            utctime = datetime.utcfromtimestamp(ob_dict['time'])
-#            if ob_category == 'madis':
-#                #check elevation of 4 nearest gridpoints to see whether or not to assimilate ob
-#                TorF = ef.closest_points(ob_dict['lat'],ob_dict['lon'],lats,
-#                                              lons,ob_dict['elev'],elevs)
-#            elif ob_category == 'gridded':
-#                #no need to check elevation, since using gridded obs
-#                TorF = True
-#            #fill the observation class object with information for assimilation
-#            obser = Observation(value=ob_dict['ob'], time=utctime,
-#                            lat=ob_dict['lat'],lon=ob_dict['lon'], obtype=o_type, localize_radius=loc_rad,
-#                            assimilate_this=TorF, error=ob_err_var[o])
-#            observations.append(obser)                
-#
-#    print('loaded '+str(len(observations))+' obs for assimilation')
+        #if we are assimilating MADIS observations 
+        if ob_category == 'madis':
+            #load in the obs file
+            obs = efa.load_obs()
+        #if we are assimilating future 0-hour forecast gridded "observations"
+        elif ob_category == 'gridded':
+            #load in the obs file
+            obs = efa.load_obs(forecast_hour=12,madis=False)
             
-    ob1 = Observation(value=10000.25, time=datetime(2013,4,2,6),lat=24.55,lon=278.21,
-                  obtype = ob_type[0], localize_radius=1000, assimilate_this=True,
-                  error=ob_err_var[o])
-    
-    
-    observations.append(ob1)
+        #loop through each line in the text file (loop through each observation)
+        for ob in obs:
+            #this gets the observation information from the text file
+            ob_dict = mt.get_ob_info(ob)
+            #get longitude positive-definite- ie -130 lon is 230 E
+            if ob_dict['lon'] < 0:
+                ob_dict['lon'] = ob_dict['lon'] + 360
+            utctime = datetime.utcfromtimestamp(ob_dict['time'])
+            if ob_category == 'madis':
+                #check elevation of 4 nearest gridpoints to see whether or not to assimilate ob
+                TorF = ef.closest_points(ob_dict['lat'],ob_dict['lon'],lats,
+                                              lons,ob_dict['elev'],elevs)
+            elif ob_category == 'gridded':
+                #no need to check elevation, since using gridded obs
+                TorF = True
+            #fill the observation class object with information for assimilation
+            obser = Observation(value=ob_dict['ob'], time=utctime,
+                            lat=ob_dict['lat'],lon=ob_dict['lon'], obtype=o_type, localize_radius=loc_rad,
+                            assimilate_this=TorF, error=ob_err_var[o])
+            observations.append(obser)                
+
+    print('loaded '+str(len(observations))+' obs for assimilation')
+            
+#    ob1 = Observation(value=10000.25, time=datetime(2013,4,2,6),lat=24.55,lon=278.21,
+#                  obtype = ob_type[0], localize_radius=1000, assimilate_this=True,
+#                  error=ob_err_var[o])
+#    
+#    
+#    observations.append(ob1)
     #    
     # Put the state class object and observation objects into EnSRF object
     assimilator = EnSRF(statecls, observations, inflation=inflation, loc=loc_type)
@@ -215,7 +219,7 @@ def run_efa(ob_type,update_var,ob_err_var):
     else:
         os.makedirs(outdir)
     
-    outdir_date_ens = outdir+y+'98789789-'+m+'-'+d+'_'+h
+    outdir_date_ens = outdir+y+'-'+m+'-'+d+'_'+h
             
     #if we are only updating the variable type that matches the observation type
     if self_update == True:
@@ -227,7 +231,9 @@ def run_efa(ob_type,update_var,ob_err_var):
             #convert 1-length ob err var list to a string with no decimals
             #this makes it so that multiple ob err vars that acted on one data type
             #can all be saved to one netCDF.
-            ob_err_var_str = str(ob_err_var[0]).replace('.','-')
+            ob_err_var_str = ''
+            if use_oberrvar == True:
+                ob_err_var_str = str(ob_err_var[0]).replace('.','-')
             #if the other variable already exists
             if existing_file != []:
                 print('Appending to existing file!')
@@ -255,9 +261,6 @@ def run_efa(ob_type,update_var,ob_err_var):
                 # If the checkfile does not exist, make a new file
                 #outfile = outdir_date_ens+'_'+ef.var_string(ob_type)
                 outfile = outdir_date_ens+'_'+ef.var_num_string(ob_type,ob_err_var)+'.nc'
-#                #if we are assimilating only one type of observation
-#                if len(obs_type) == 1:
-#                    outfile = outfile + '.nc'
                 ef.make_netcdf(state,outfile,ob_err_var_str)
     
     #if we are updating all variable types with the observation (regardless of its type)
