@@ -37,7 +37,8 @@ class Load_Data():
         (just 1, since it runs 1 at a time)
     """
     
-    def __init__(self,date,ens_type,prior_vrbls,ob_type,update_var,post_vrbls=[]):
+    def __init__(self,date,ens_type,prior_vrbls,ob_type,update_var,post_vrbls=[],
+                 l=-180, r=180, t=90, b=0, s=3):
         self.date = date  
         self.y = self.date.strftime('%Y')
         self.m = self.date.strftime('%m')
@@ -49,6 +50,11 @@ class Load_Data():
         #self.vrbls = vrbls
         self.ob_type = ob_type
         self.update_var = update_var
+        self.l = l
+        self.r = r
+        self.t = t
+        self.b = b
+        self.s = s
 
 
     
@@ -165,7 +171,7 @@ class Load_Data():
         basedir = '/home/disk/hot/stangen/Documents/gridded_obs/'
         
         #get the list of points
-        points = ef.get_ob_points()
+        points = ef.get_ob_points(self.l,self.r,self.t,self.b,self.s)
         #get the 0-hour ensemble forecast, n hours after the model was initialized
         dt0 = self.date
         dt = dt0.replace(minute = 0, second=0, microsecond=0)
@@ -198,7 +204,8 @@ class Load_Data():
             os.makedirs(basedir+self.ens_type+'/'+dty+dtm+'/'+self.ob_type+'/')
             
         #save the list of observations
-        f = open(basedir+self.ens_type+'/'+dty+dtm+'/'+self.ob_type+'/'+self.ob_type+'_'+dty+dtm+dtd+'_'+dth+'00.txt',"w")
+        #f = open(basedir+self.ens_type+'/'+dty+dtm+'/'+self.ob_type+'/'+self.ob_type+'_'+dty+dtm+dtd+'_'+dth+'00.txt',"w")
+        f = open(basedir+self.ens_type+'/'+dty+dtm+'/'+self.ob_type+'/'+dty+dtm+dtd+'_'+dth+'00_'+str(self.l)+'_'+str(self.r)+'_'+str(self.t)+'_'+str(self.b)+'_'+str(self.s)+'.txt',"w")
         for s in obs:
             f.write(s)
         f.close()
