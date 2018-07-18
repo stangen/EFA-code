@@ -73,8 +73,10 @@ def get_units(par):
     if par in ['Z500','Z700','Z850','Z925','Z1000']: return 'meters'
     elif par in ['T500','T700','T850','T925','T1000','T2M','t2m']: return 'Kelvin'
     elif par in ['RH500','RH700','RH850','RH925','RH1000','RH2M']: return 'percent'
-    elif par=='MSLP': return 'pascals',
-    elif par =='ALT': return 'hPa',
+    elif par=='MSLP': return 'pascals'
+    elif par =='ALT': return 'hPa'
+    elif par[0:2] == 'QF': return 'kg/kg*m/s'
+    elif par[0:2] == 'D-': return 'deg'
     elif par=='CHI200': return '10$^{6}$ m$^{2}$ s$^{-1}$'
     elif par=='PRATE': return 'mm/day'
     elif par in ['PWAT','P6HR','tcw', 'TCW']: return 'mm'
