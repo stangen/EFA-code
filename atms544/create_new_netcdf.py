@@ -13,18 +13,18 @@ import surface_obs.madis_example.madis_utilities as mt
 import os
 
 #start and end date to get ensembles. 
-start_date = datetime(2013,4,1,0) #YYYY,m,d,h
-end_date = datetime(2013,4,1,0)
+start_date = datetime(2015,11,10,0) #YYYY,m,d,h
+end_date = datetime(2015,11,10,0)
 hourstep = 12 #how often you want a new forecast initialization, usually 12 hr
 # ecmwf, eccc for euro/canadian ensembles, ncep
-ensemble_type = ['ecmwf','eccc']
+ensemble_type = ['ncep']
 #variables with names coming from the raw TIGGE- see get_tigge_data if unsure of names.
 #the order matters to make filename match exactly. 
-in_variables = ['T2M', 'SP']
+in_variables = ['Q', 'U', 'V']#['T2M','SP']#
 #sfc for surface, pl for elevated
-lev = 'sfc'
+lev = 'pl'
 #variables with names I want to have after it is processed
-variables = ['T2M', 'ALT']#, 'P6HR', 'TCW']
+variables = ['QF850','D-QF850']#['ALT','T2M']##, 'P6HR', 'TCW']
 
 #a list of dates to loop through to load each forecast initialized on these dates
 dates = mt.make_datetimelist(start_date,end_date,hourstep)   
@@ -102,6 +102,10 @@ def create_new_netcdf(date,ens_type,in_vrbls,vrbls):
     nlats = len(ncdata.dimensions[vardict['lat']])
     nlons = len(ncdata.dimensions[vardict['lon']])
     
+    #time range of ensemble
+    ftime_diff = ftimes[-1]-ftimes[0]
+    tr = int((ftime_diff.days)*24 + (ftime_diff.seconds)/3600)
+    
     # Allocate the state array
     print('Allocating the state vector array...')
     state = np.zeros((nvars,ntimes,nlats,nlons,nmems))
@@ -115,41 +119,55 @@ def create_new_netcdf(date,ens_type,in_vrbls,vrbls):
     #And an array of ensemble members
     memarr = np.arange(1,nmems+1)
     
-    #Read the orography netcdf file- for calculating altimeter setting
-    #has a time index, even when only one time is gotten from TIGGE- requires
-    #indexing like [0,:,:] to get this first(and only) time.
-    orogdata = Dataset(orography, 'r')
-    #print(orogdata.variables)
-    elev = orogdata.variables[vardict['elev']][0,:,:]    
+
+
     
     # Now to populate the state array
-    for v, var in enumerate(vrbls):
-        field = ncdata.variables[vardict[var]][:,:,:,:]#[tbeg:tend,:,:]
-        #print(field)
-        print('Adding variable {}'.format(var))
-        #convert surface pressure to altimeter setting
-        if var=='ALT': 
-            #Convert surface pressure to altimeter setting in mb
-            #pressure in netcdf file is in pascals
-            presinmb = field/100
-            field = presinmb/((288-0.0065*elev)/288)**5.2561
-        if var=='P6HR':
-            #create dummy field to facilitate subtracting of total precipitation
-            #t-1 from t without saving over t, so the next subtraction still works
-            field2 = np.zeros((ntimes,nmems,nlats,nlons))
-            for t in range(0,ntimes):
-                if t == 0:
-                    field2[t,:,:,:] = field[t,:,:,:]
-                #subtract previous time's precipitation to get 6 hour precipitation
-                elif t > 0:
-                    field2[t,:,:,:] = field[t,:,:,:] - field[t-1,:,:,:]
-            #reassign 6 hour precip to field
-            field = field2
-        # make the ensemble dimension at the end of state
-        field = np.swapaxes(field, 1, 3)
-        field = np.swapaxes(field, 1, 2)
-         # Populate its component of the state array
-        state[v,:,:,:,:] = field
+    for va, var in enumerate(vrbls):
+        if var[0:2] not in ['QF','D-']:
+            field = ncdata.variables[vardict[var]][:,:,:,:]#[tbeg:tend,:,:]
+            #print(field)
+            print('Adding variable {}'.format(var))
+            #convert surface pressure to altimeter setting
+            if var=='ALT': 
+                #Read the orography netcdf file- for calculating altimeter setting
+                #has a time index, even when only one time is gotten from TIGGE- requires
+                #indexing like [0,:,:] to get this first(and only) time.
+                orogdata = Dataset(orography, 'r')
+                #print(orogdata.variables)
+                elev = orogdata.variables[vardict['elev']][0,:,:]  
+                #Convert surface pressure to altimeter setting in mb
+                #pressure in netcdf file is in pascals
+                presinmb = field/100
+                field = presinmb/((288-0.0065*elev)/288)**5.2561
+            if var=='P6HR':
+                #create dummy field to facilitate subtracting of total precipitation
+                #t-1 from t without saving over t, so the next subtraction still works
+                field2 = np.zeros((ntimes,nmems,nlats,nlons))
+                for t in range(0,ntimes):
+                    if t == 0:
+                        field2[t,:,:,:] = field[t,:,:,:]
+                    #subtract previous time's precipitation to get 6 hour precipitation
+                    elif t > 0:
+                        field2[t,:,:,:] = field[t,:,:,:] - field[t-1,:,:,:]
+                #reassign 6 hour precip to field
+                field = field2
+            if var[0:2] =='QF':
+                q = ncdata.variables['q'][:,:,:,:]
+                u = ncdata.variables['u'][:,:,:,:]
+                v = ncdata.variables['v'][:,:,:,:]
+                field = q*np.sqrt(u**2+v**2)
+                
+            if var[0:2] =='D-':
+                u = ncdata.variables['u'][:,:,:,:]
+                v = ncdata.variables['v'][:,:,:,:]
+                field = np.arctan2(v,u)*180/np.pi
+                print(field.shape)
+            # make the ensemble dimension at the end of state
+            field = np.swapaxes(field, 1, 3)
+            field = np.swapaxes(field, 1, 2)
+             # Populate its component of the state array
+            state[va,:,:,:,:] = field
         
     print('Writing to netcdf...')
         # Convert times back to integers
