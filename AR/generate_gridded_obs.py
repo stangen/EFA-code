@@ -4,25 +4,37 @@
 Created on Wed Jul 11 14:31:58 2018
 
 @author: stangen
+
+Reading the .txt file this script generates:
+    First column: observation number
+    Second column: latitude
+    Third column: longitude
+    Fourth column: Elevation, set arbitrarily to 0, since we aren't doing a 
+        terrain check on the gridded obs, and elevation isn't important.
+    Fifth column: Time of observation in epoch time (seconds since Jan 1, 1970)
+    Sixth column: Observation value
+    Seventh column: Observation type (GRIDDED in this case)
+    Eighth column: Marker for stationary ob, 0 used arbitrarily since we 
+    aren't looking at whether or not an observation is stationary
+    
 """
 from datetime import datetime
 
 from EFA.duplicate_madaus.load_data import Load_Data
 import surface_obs.madis_example.madis_utilities as mt 
 #file to call the functions to generate/save gridded obs
-ens = 'eccc'
-vrbls = ['T2M','ALT']
-ob_type = 'ALT'
-update_vars = ['ALT']
-start_date = datetime(2013,4,1,00)
-end_date = datetime(2013,5,3,12)
+ens = ['ncep','eccc','ecmwf']
+vrbls = ['QF850','D-QF850']#['T2M','ALT']
+ob_type = 'QF850'#'ALT'
+start_date = datetime(2015,11,10,0)
+end_date = datetime(2015,11,17,12)
 
 dates = mt.make_datetimelist(start_date,end_date,12)
 
-for date in dates:
-    efa = Load_Data(date,ens,vrbls,ob_type,update_vars,l=-180, r=180, t=90, b=0, s=2)
-    
-    efa.save_gridded_obs()
+for e in ens:
+    for date in dates:
+        efa = Load_Data(date,e,vrbls,ob_type,grid=[-180,180,90,0,3],
+                        new_format=True,efh=54)
+        
+        efa.save_gridded_obs()
 
-
-#remember to add sum to the multiplication in the spaceweights to get 1 number
