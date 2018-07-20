@@ -58,6 +58,15 @@ if shell_script==False:
     #forecast "obs", sampled at some interval?
     ob_category = 'gridded'
     
+    new_format = True #old or new naming conventions?
+    efh = 54 #end forecast hour of each forecast
+    grid = [-180,180,90,0,3] #grid of observations (if gridded)
+    #if true, include observation error variance in the names of the posterior variables
+    #in the netCDF files, and in the names of the netCDF files.
+    use_oberrvar = True
+    
+    self_update = False
+    
     #create strings for saving file at the end
     sy = start_date.strftime('%Y')
     sm = start_date.strftime('%m')
@@ -94,21 +103,44 @@ elif shell_script==True:
     loc_rad = sys.argv[13]  
     inflation = sys.argv[14]
     ob_category = sys.argv[15]
+    new_format = sys.argv[16]
+    if new_format == 'true':
+        new_format=True
+    elif self_update == 'false':
+        new_format=False
+    efh = int(sys.argv[17])
+    grid = sys.argv[18].split(',')
+    use_oberrvar = sys.argv[19]
+    if use_oberrvar == 'true':
+        use_oberrvar=True
+    elif use_oberrvar == 'false':
+        use_oberrvar=False
+    #are the observations only updating their corresponding variable, or
+    #are they updating all variables? -ie t2m only updates t2m, alt only updates alt
+    self_update = sys.argv[20]
+    if self_update == 'true':
+        self_update=True #true if you want the above updates, otherwise false
+    elif self_update =='false':
+        self_update=False
     
     datestr = startstr+'-'+endstr
 
 #If we are loading prior to do stats on, we need to set ob error variance to 
-#[''] to make variable in netCDF load correctly.    
-if post == False:
-    ob_err_var = ['']
+#[''] to make variable in netCDF load correctly.
+#also, if we did not previously use the obs err var in creating the posterior
+#ens name/variable names, or did not only self-update each variable,
+#set ob_err_var to ['']     
+if post == False or use_oberrvar == False or self_update == False:
+    ob_err_var = ['']*len(ob_types)
 
 save_dir = '/home/disk/hot/stangen/Documents/EFA/duplicate_madaus/mse_var_output/'    
 #variable string (for saving the .txt file)
 varstr = ef.var_string(allobs)
 #make a list of netCDF variable names/strings in part of file name from obs+obs error var
-obtype_errvar = []
+netcdf_varnames = []
+
 for i, ob in enumerate(ob_types):
-     obtype_errvar.append(ef.var_num_string([ob],[ob_err_var[i]]))
+     netcdf_varnames.append(ef.var_num_string([ob],[ob_err_var[i]]))
 #prior/post string
 if post==True:
     prior_or_post='loc'+loc_rad
@@ -134,7 +166,7 @@ for date in dates:
     hour = date.strftime('%H')
 
     #create dict for variable type
-    for i, ob_type in enumerate(obtype_errvar):
+    for i, ob_type in enumerate(netcdf_varnames):
         ob_dict[ob_type] = ob_dict.get(ob_type,{})
         data_dict[ob_type] = data_dict.get(ob_type,{})
         SE_dict[ob_type] = SE_dict.get(ob_type,{})
@@ -378,7 +410,13 @@ for var in ob_dict:
         
 #save the stats list after all forecast hours have been appended for one variable
 print('Writing statistics to .txt file')
-f = open(save_dir+datestr+'_'+varstr+'_gridobs.txt', 'a')
+savedir_str = save_dir+datestr+'_'+varstr
+if new_format == True:
+    savedir_str += '_' + ef.var_string(grid)
+if ob_category == 'gridded':
+    savedir_str += '_gridobs'
+savedir_str += '.txt'
+f = open(savedir_str, 'a')
 for s in stats_list:
     f.write(s)
 f.close()

@@ -25,7 +25,8 @@ class Load_Data():
     prior_vrbls = all the variables in the prior netCDF
     ob_type = the observation variable type we will be assimilating (only 1)
     update_var = the variable type(s) we will be updating
-    post_vrbls = all the variables in the posterior netCDF
+    post_vrbls = all the variables in the posterior netCDF - only used when 
+    running statistics on the posterior ensemble
         for use in mse_variance, ob_type is the variable type of the observation,
         without observation error variance attached with it. This is to load 
         observations, which do not have ob err var as part of the name.
@@ -35,10 +36,21 @@ class Load_Data():
         These should match if ob error variance was not used in creating the posterior
         variable names, otherwise update_var contains ob err variance.
         (just 1, since it runs 1 at a time)
+        
+    new stuff:
+        grid: list of ints containing:
+        l = left side longitude of the grid region
+        r = right side longitude of the grid region
+        t = top side latitude of the grid region
+        b = bottom side latitude of the grid region
+        s = number of degrees longitude apart obs are at equator, and number
+        of degrees apart each row of obs is spaced latitudinally.
+        new_format = if True, file names will be called using the "new format"
+        efh = end forecast hour (i.e. what's the last forecast hour in the forecast?)
     """
     
-    def __init__(self,date,ens_type,prior_vrbls,ob_type,update_var,post_vrbls=[],
-                 l=-180, r=180, t=90, b=0, s=3):
+    def __init__(self,date,ens_type,prior_vrbls,ob_type,update_var=[],post_vrbls=[],
+                 grid=[], new_format=False, efh=54):
         self.date = date  
         self.y = self.date.strftime('%Y')
         self.m = self.date.strftime('%m')
@@ -50,11 +62,17 @@ class Load_Data():
         #self.vrbls = vrbls
         self.ob_type = ob_type
         self.update_var = update_var
-        self.l = l
-        self.r = r
-        self.t = t
-        self.b = b
-        self.s = s
+        #this allows an empty grid to be input
+        try:
+            self.l = grid[0]
+            self.r = grid[1]
+            self.t = grid[2]
+            self.b = grid[3]
+            self.s = grid[4]
+        except:
+            pass
+        self.new_format = new_format
+        self.efh = str(efh)+'hrs'
 
 
     
@@ -70,7 +88,10 @@ class Load_Data():
         
         # directory where the ensemble of all times is
         if post==False:
-            infile = '/home/disk/hot/stangen/Documents/prior_ensembles/'+self.ens_type+'/'+self.y+self.m+'/'+self.y+'-'+self.m+'-'+self.d+'_'+self.h+'_'+self.ens_type+'_'+self.var_string+'.nc' 
+            if self.new_format == False:
+                infile = '/home/disk/hot/stangen/Documents/prior_ensembles/'+self.ens_type+'/'+self.y+self.m+'/'+self.y+'-'+self.m+'-'+self.d+'_'+self.h+'_'+self.ens_type+'_'+self.var_string+'.nc' 
+            elif self.new_format == True:
+                infile = '/home/disk/hot/stangen/Documents/prior_ensembles/'+self.ens_type+'/'+self.y+self.m+'/'+self.y+'-'+self.m+'-'+self.d+'_'+self.h+'_'+self.efh+'_'+self.var_string+'.nc'
             prior_or_post='prior'
         elif post==True:
             post_varstring = ef.var_string(self.post_vrbls)
@@ -118,13 +139,16 @@ class Load_Data():
         Loads the ensemble from n forecast hours after the forecast was 
         initialized and uses its 0-hour forecast as the "observation" grid. 
         Returns the variable of interest and the lats/lons. 
+        The filepath loads non-EFA'd netCDF files (it loads the prior).
         var is  nlats x nlons. (at time t=0, ens mean)
         lats, lons are 1-d float arrays (masked).
         """  
         dty, dtm, dtd, dth = ef.dt_str_timedelta(self.date,forecast_hour)
         
-        infile = '/home/disk/hot/stangen/Documents/prior_ensembles/'+self.ens_type+'/'+dty+dtm+'/'+dty+'-'+dtm+'-'+dtd+'_'+dth+'_'+self.ens_type+'_'+self.var_string+'.nc'
-        
+        if self.new_format == False:
+            infile = '/home/disk/hot/stangen/Documents/prior_ensembles/'+self.ens_type+'/'+dty+dtm+'/'+dty+'-'+dtm+'-'+dtd+'_'+dth+'_'+self.ens_type+'_'+self.var_string+'.nc'
+        elif self.new_format == True:
+            infile = '/home/disk/hot/stangen/Documents/prior_ensembles/'+self.ens_type+'/'+dty+dtm+'/'+dty+'-'+dtm+'-'+dtd+'_'+dth+'_'+self.efh+'_'+self.var_string+'.nc'
         ncdata = Dataset(infile,'r')
         #gridded ensemble 0-hour forecasts n forecast hours after the ensemble
         #we are updating was initialized
@@ -153,7 +177,10 @@ class Load_Data():
         if madis==True:
             obs_file = '/home/disk/hot/stangen/Documents/surface_obs/MADIS/'+dty+dtm+'/combined_'+self.ob_type+'/'+self.ob_type+'_'+dty+dtm+dtd+'_'+dth+'00.txt'
         elif madis==False:
-            obs_file = '/home/disk/hot/stangen/Documents/gridded_obs/'+self.ens_type+'/'+dty+dtm+'/'+self.ob_type+'/'+self.ob_type+'_'+dty+dtm+dtd+'_'+dth+'00.txt'
+            if self.new_format == False:
+                obs_file = '/home/disk/hot/stangen/Documents/gridded_obs/'+self.ens_type+'/'+dty+dtm+'/'+self.ob_type+'/'+self.ob_type+'_'+dty+dtm+dtd+'_'+dth+'00.txt'
+            elif self.new_format == True:
+                obs_file = '/home/disk/hot/stangen/Documents/gridded_obs/'+self.ens_type+'/'+dty+dtm+'/'+self.ob_type+'/'+dty+dtm+dtd+'_'+dth+'00_'+str(self.l)+'_'+str(self.r)+'_'+str(self.t)+'_'+str(self.b)+'_'+str(self.s)+'.txt'
         print('loading '+ob_str+' obs from '+dty+dtm+dtd+'_'+dth+'00')
         #print(obs_file)
         f1 = open(obs_file, 'r')
@@ -204,8 +231,10 @@ class Load_Data():
             os.makedirs(basedir+self.ens_type+'/'+dty+dtm+'/'+self.ob_type+'/')
             
         #save the list of observations
-        #f = open(basedir+self.ens_type+'/'+dty+dtm+'/'+self.ob_type+'/'+self.ob_type+'_'+dty+dtm+dtd+'_'+dth+'00.txt',"w")
-        f = open(basedir+self.ens_type+'/'+dty+dtm+'/'+self.ob_type+'/'+dty+dtm+dtd+'_'+dth+'00_'+str(self.l)+'_'+str(self.r)+'_'+str(self.t)+'_'+str(self.b)+'_'+str(self.s)+'.txt',"w")
+        if self.new_format == False:
+            f = open(basedir+self.ens_type+'/'+dty+dtm+'/'+self.ob_type+'/'+self.ob_type+'_'+dty+dtm+dtd+'_'+dth+'00.txt',"w")
+        elif self.new_format == True:
+            f = open(basedir+self.ens_type+'/'+dty+dtm+'/'+self.ob_type+'/'+dty+dtm+dtd+'_'+dth+'00_'+str(self.l)+'_'+str(self.r)+'_'+str(self.t)+'_'+str(self.b)+'_'+str(self.s)+'.txt',"w")
         for s in obs:
             f.write(s)
         f.close()
