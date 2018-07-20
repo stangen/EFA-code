@@ -13,19 +13,28 @@ import surface_obs.madis_example.madis_utilities as mt
 import os
 
 #start and end date to get ensembles. 
-start_date = datetime(2015,11,10,0) #YYYY,m,d,h
-end_date = datetime(2015,11,10,0)
+start_date = datetime(2015,11,11,0) #YYYY,m,d,h
+end_date = datetime(2015,11,11,0)
 hourstep = 12 #how often you want a new forecast initialization, usually 12 hr
 # ecmwf, eccc for euro/canadian ensembles, ncep
-ensemble_type = ['ncep']
+ensemble_type = ['ecmwf']
+
 #variables with names coming from the raw TIGGE- see get_tigge_data if unsure of names.
 #the order matters to make filename match exactly. 
 in_variables = ['Q', 'U', 'V']#['T2M','SP']#
+
 #sfc for surface, pl for elevated
 lev = 'pl'
+
 #variables with names I want to have after it is processed
 variables = ['QF850','D-QF850']#['ALT','T2M']##, 'P6HR', 'TCW']
-
+#start_date = datetime(2013,4,1,0)
+#end_date = datetime(2013,4,1,0)
+#hourstep = 12
+#ensemble_type = ['eccc']
+#in_variables = ['T2M', 'SP']
+#lev = 'sfc'
+#variables = ['ALT','T2M']
 #a list of dates to loop through to load each forecast initialized on these dates
 dates = mt.make_datetimelist(start_date,end_date,hourstep)   
 
@@ -105,6 +114,7 @@ def create_new_netcdf(date,ens_type,in_vrbls,vrbls):
     #time range of ensemble
     ftime_diff = ftimes[-1]-ftimes[0]
     tr = int((ftime_diff.days)*24 + (ftime_diff.seconds)/3600)
+    tr_str = str(tr)+'hrs'
     
     # Allocate the state array
     print('Allocating the state vector array...')
@@ -124,6 +134,7 @@ def create_new_netcdf(date,ens_type,in_vrbls,vrbls):
     
     # Now to populate the state array
     for va, var in enumerate(vrbls):
+        print(var[0:2])
         if var[0:2] not in ['QF','D-']:
             field = ncdata.variables[vardict[var]][:,:,:,:]#[tbeg:tend,:,:]
             #print(field)
@@ -152,29 +163,33 @@ def create_new_netcdf(date,ens_type,in_vrbls,vrbls):
                         field2[t,:,:,:] = field[t,:,:,:] - field[t-1,:,:,:]
                 #reassign 6 hour precip to field
                 field = field2
-            if var[0:2] =='QF':
-                q = ncdata.variables['q'][:,:,:,:]
-                u = ncdata.variables['u'][:,:,:,:]
-                v = ncdata.variables['v'][:,:,:,:]
-                field = q*np.sqrt(u**2+v**2)
-                
-            if var[0:2] =='D-':
-                u = ncdata.variables['u'][:,:,:,:]
-                v = ncdata.variables['v'][:,:,:,:]
-                field = np.arctan2(v,u)*180/np.pi
-                print(field.shape)
-            # make the ensemble dimension at the end of state
-            field = np.swapaxes(field, 1, 3)
-            field = np.swapaxes(field, 1, 2)
-             # Populate its component of the state array
-            state[va,:,:,:,:] = field
+        #magnitude of moisture flux
+        if var[0:2] =='QF':
+            q = ncdata.variables['q'][:,:,:,:]
+            u = ncdata.variables['u'][:,:,:,:]
+            v = ncdata.variables['v'][:,:,:,:]
+            #moisture flux is qV, to find magnitude find distance from origin
+            #to point, multiply by q, multiply by 1000 to get in units of g/kg.
+            field = q*np.sqrt(u**2+v**2)*1000
+        #direction of moisture flux (-180 to 180, unit circle degrees)    
+        if var[0:2] =='D-':
+            u = ncdata.variables['u'][:,:,:,:]
+            v = ncdata.variables['v'][:,:,:,:]
+            field = np.arctan2(v,u)*180/np.pi
+                #print(field.shape)
+        # make the ensemble dimension at the end of state
+        field = np.swapaxes(field, 1, 3)
+        field = np.swapaxes(field, 1, 2)
+         # Populate its component of the state array
+        state[va,:,:,:,:] = field
         
     print('Writing to netcdf...')
         # Convert times back to integers
     valid_times = date2num(ftimes,tunit)
     
     # Write ensemble forecast to netcdf - change name here
-    dset = Dataset(outdir+y+'-'+m+'-'+d+'_'+h+'_'+ens_type+'_'+outvar_string+'.nc','w')
+    #dset = Dataset(outdir+y+'-'+m+'-'+d+'_'+h+'_'+ens_type+'_'+outvar_string+'.nc','w')
+    dset = Dataset(outdir+y+'-'+m+'-'+d+'_'+h+'_'+tr_str+'_22'+outvar_string+'.nc','w')
     dset.createDimension('time',None)
     dset.createDimension('lat',nlats)
     dset.createDimension('lon',nlons)
@@ -198,7 +213,7 @@ def create_new_netcdf(date,ens_type,in_vrbls,vrbls):
         dset.variables[var].units = ut.get_units(var)
         dset.variables[var][:] = state[v,:,:,:,:]
     # Free up memory held by the state array
-    del state
+    #del state
 
 
 #--------Code that calls the function to make a new netCDF--------------------
