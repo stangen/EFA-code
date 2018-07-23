@@ -27,6 +27,8 @@ var_units = {
 ls = {
       'prior' : 'solid',
       'posterior' : 'dashed',
+      'loc3000' : ' ',
+      'loc2000' : '-',
       'loc1000' : 'dashed',
       'loc500' : 'dotted',
       'loc100' : '-.'
