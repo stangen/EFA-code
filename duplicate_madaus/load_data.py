@@ -95,7 +95,10 @@ class Load_Data():
             prior_or_post='prior'
         elif post==True:
             post_varstring = ef.var_string(self.post_vrbls)
-            infile = '/home/disk/hot/stangen/Documents/posterior_ensembles/'+ob_cat+'/'+ob_upd+('/inf_'+inf).replace('.','-')+'/loc_'+str(lr)+'/'+self.ens_type+'/'+self.y+self.m+'/'+self.y+'-'+self.m+'-'+self.d+'_'+self.h+'_'+post_varstring+'.nc' 
+            if self.new_format == False:
+                infile = '/home/disk/hot/stangen/Documents/posterior_ensembles/'+ob_cat+'/'+ob_upd+('/inf_'+inf).replace('.','-')+'/loc_'+str(lr)+'/'+self.ens_type+'/'+self.y+self.m+'/'+self.y+'-'+self.m+'-'+self.d+'_'+self.h+'_'+post_varstring+'.nc' 
+            elif self.new_format == True:
+                infile = '/home/disk/hot/stangen/Documents/posterior_ensembles/'+ob_cat+'/'+ob_upd+('/inf_'+inf).replace('.','-')+'/loc_'+str(lr)+'/'+self.ens_type+'/'+self.y+self.m+'/'+self.y+'-'+self.m+'-'+self.d+'_'+self.h+'_'+self.efh+'_'+str(self.l)+'_'+str(self.r)+'_'+str(self.t)+'_'+str(self.b)+'_'+str(self.s)+'_'+post_varstring+'.nc'                 
             prior_or_post='posterior'
         print('loading netcdf file: '+prior_or_post+': '+self.ens_type+' '+self.y+self.m+self.d+'_'+self.h+'00')
         # loading/accessing the netcdf data            
