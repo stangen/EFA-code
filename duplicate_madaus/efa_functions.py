@@ -12,7 +12,7 @@ import EFA.efa_files.cfs_utilities_st as ut
 from datetime import timedelta
 
 def closest_points(ob_lat, ob_lon, lats, lons, ob_elev=None, elevs=None, ob_time=None, 
-                   times=None, variable=None, k=4, need_interp=False, gen_obs=False):
+                   times=None, variable=None, k=4, need_interp=False, gen_obs=False,variance=0):
     """
     Function which uses the Haversine formula to compute the distances from one 
     observation lat/lon to each gridpoint. It finds the indices of the n closest 
@@ -72,8 +72,8 @@ def closest_points(ob_lat, ob_lon, lats, lons, ob_elev=None, elevs=None, ob_time
             return interp, TorF
         #If we are obtaining observations for assimilating, use the simpler
         #interpolation function
-        if gen_obs==True:
-            return generate_obs(closey,closex,distances,variable)
+        if gen_obs==True:            
+            return generate_obs(closey,closex,distances,variable,variance)
             
     #if no need to do interpolation, just call/return terrain check function
     elif need_interp==False:
@@ -147,7 +147,7 @@ def interpolate(closey, closex, distances, times, variable, ob_time):
     # Return estimate from all ensemble members
     return interp
 
-def generate_obs(closey,closex,distances,variable):
+def generate_obs(closey,closex,distances,variable,variance):
     """
     Function which returns "observations" from an ensemble. Hoping this 
     runs faster, since it's just dealing with an ensemble mean at a single time,
@@ -157,6 +157,7 @@ def generate_obs(closey,closex,distances,variable):
     closex = 4 closest lon indices of the ensemble
     distances = distance from 4 closest gridpoints to the observation, for use in weights
     variable = ensemble values of variable (ALT or T2M)
+    variance = ensemble variance of ensemble at ob location
     
     returns: interpolated "observation"
     """
@@ -174,8 +175,10 @@ def generate_obs(closey,closex,distances,variable):
     interp = variable[closey,closex]
     #multiply by the weights
     interp = sum(interp*spaceweights)
-    return interp
     
+    interp_variance = variance[closey,closex]
+    interp_variance = sum(interp_variance*spaceweights)
+    return interp, interp_variance  
     
 
 def check_elev(idx,elevs,ob_elev):
@@ -207,8 +210,8 @@ def var_string(vrbls):
     """
     var_string = ''
     for v in vrbls[:-1]:  
-        var_string = var_string+v+'_'
-    var_string = var_string+vrbls[-1]
+        var_string = var_string+str(v).replace('.','-')+'_'
+    var_string = var_string+str(vrbls[-1]).replace('.','-')
     return var_string
 
 def var_num_string(vrbls, nums):
@@ -220,8 +223,8 @@ def var_num_string(vrbls, nums):
     """
     var_string = ''
     for i, v in enumerate(vrbls[:-1]):
-        var_string = var_string+v+str(nums[i]).replace('.','-')+'_'
-    var_string = var_string+vrbls[-1]+str(nums[-1]).replace('.','-')
+        var_string = var_string+str(v)+str(nums[i]).replace('.','-')+'_'
+    var_string = var_string+str(vrbls[-1])+str(nums[-1]).replace('.','-')
     return var_string
 
 def make_netcdf(state,outfile,ob_err_var=''):

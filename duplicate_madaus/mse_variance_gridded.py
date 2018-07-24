@@ -15,7 +15,7 @@ import EFA.duplicate_madaus.efa_functions as ef
 start_time = datetime.now()
 print('start time: ',start_time)
 #to run this in spyder, change this to False, to run in shell script, change to True
-shell_script=False
+shell_script=True
 
 if shell_script==False:
     ensemble_type = 'ecmwf'
@@ -36,17 +36,17 @@ if shell_script==False:
     allobs = ['QF850']#['ALT']
     #date range of ensembles used
     start_date = datetime(2015,11,12,0)#2013,4,4,0)
-    end_date = datetime(2015,11,12,0)#2013,4,4,0)
+    end_date = datetime(2015,11,12,12)#2013,4,4,0)
     #hour increment between ensemble forecasts
     incr = 12
     
     #change for how far into the forecast to get observations, 1 is 6 hours in,
     #end_index is the last forecast hour to get obs for
-    start_index = 2
-    end_index = 2
+    start_index = 3
+    end_index = 4
     
     #if True, will load/do stats on posterior ensembles, if False, will load prior
-    post=True
+    post=False
      
     #localization radius
     loc_rad = '1000'
@@ -62,9 +62,9 @@ if shell_script==False:
     efh = 54 #end forecast hour of each forecast
     grid = [-180,180,90,0,3] #grid of observations (if gridded)
     #if true, include observation error variance in the names of the posterior variables
-    #in the netCDF files, and in the names of the netCDF files.
+    #in the netCDF files, and in the names of the netCDF files, to load them.
     use_oberrvar = True
-    
+    #did we self-update each variable
     self_update = False
     
     #create strings for saving file at the end
@@ -130,7 +130,8 @@ elif shell_script==True:
 save_dir = '/home/disk/hot/stangen/Documents/EFA/duplicate_madaus/mse_var_output/'    
 #variable string (for saving the .txt file)
 varstr = ef.var_string(allobs)
-#make a list of netCDF variable names/strings in part of file name from obs+obs error var
+#make a list of netCDF variable names/strings from obs+obs error var
+#post_vrbls contains the variable names in the filename in the posterior
 netcdf_varnames = []
 #make a list of variable names we want to save to the .txt file (this may include ob err variance,
 #even when not doing self-update)
@@ -147,6 +148,7 @@ for i, ob in enumerate(ob_types):
         #ob_err_var = ['']*len(ob_types)
     else:
         netcdf_varnames.append(ef.var_num_string([ob],[ob_err_var[i]]))
+    #this defines the variable names in the dictionary/.txt file we are creating.
     if post == False or use_oberrvar == False:
         dict_varnames.append(ob)
     else:
@@ -183,6 +185,10 @@ for date in dates:
     hour = date.strftime('%H')
 
     #create dict for variable type
+    #ob_type is purely used in defining the variable name in the dictionary,
+    #which in turn is used in saving the .txt file. It is NOT used as a parameter
+    #in any of the functions or as a netCDF variable name. These roles are
+    #filled by ob_types[i], netcdf_varnames[i], and post_vrbls
     for i, ob_type in enumerate(dict_varnames):
         ob_dict[ob_type] = ob_dict.get(ob_type,{})
         data_dict[ob_type] = data_dict.get(ob_type,{})
@@ -300,9 +306,11 @@ for date in dates:
                 gridob_SE_dict[ob_type][sfh]['obs'] = gridob_SE_dict[ob_type][sfh].get('obs',[])
                 gridob_SE_dict[ob_type][sfh]['all_gridpoints'] = gridob_SE_dict[ob_type][sfh].get('all_gridpoints',[])
                 gridob_SE_dict[ob_type][sfh]['gridpoints_region'] = gridob_SE_dict[ob_type][sfh].get('gridpoints_region',[])
+                gridob_SE_dict[ob_type][sfh]['gridpoints_region2'] = gridob_SE_dict[ob_type][sfh].get('gridpoints_region2',[])
                 gridob_variance_dict[ob_type][sfh]['obs'] = gridob_variance_dict[ob_type][sfh].get('obs',[])
                 gridob_variance_dict[ob_type][sfh]['all_gridpoints'] = gridob_variance_dict[ob_type][sfh].get('all_gridpoints',[])
                 gridob_variance_dict[ob_type][sfh]['gridpoints_region'] = gridob_variance_dict[ob_type][sfh].get('gridpoints_region',[])
+                gridob_variance_dict[ob_type][sfh]['gridpoints_region2'] = gridob_variance_dict[ob_type][sfh].get('gridpoints_region2',[])
                
                 for ob_counter, ob in enumerate(grid_obs):
                     #this gets the observation information from the text file
@@ -350,13 +358,13 @@ for date in dates:
                 gridob_SE_dict[ob_type][sfh]['all_gridpoints'].append(avg_se)
                 gridob_variance_dict[ob_type][sfh]['all_gridpoints'].append(avg_var)
                 
-                #comparison within a defined region of gridpoints
+                #comparison within a defined region of gridpoints- along west coast
                 w = -135
                 e = -115
                 n = 55
                 s = 30
                 
-                #convert to grid indices, add 1 right endpoints so python includes the last index
+                #convert to grid indices, add 1 to the right endpoints so python includes the last index
                 l = int(abs(-180-w)*2)
                 r = int(abs(-180-e)*2)+1
                 t = int((90-n)*2)
@@ -365,12 +373,30 @@ for date in dates:
                 se_region = se[t:b,l:r]
                 var_region = fcst_var[t:b,l:r]
                 weights_region = np.cos(np.radians(lats[t:b]))
-                avg_se = np.mean(np.average(se_region, axis=0, weights=weights_region))
-                avg_var = np.mean(np.average(var_region, axis=0, weights=weights_region))
-                gridob_SE_dict[ob_type][sfh]['gridpoints_region'].append(avg_se)
-                gridob_variance_dict[ob_type][sfh]['gridpoints_region'].append(avg_var)
+                avg_se_region = np.mean(np.average(se_region, axis=0, weights=weights_region))
+                avg_var_region = np.mean(np.average(var_region, axis=0, weights=weights_region))
+                gridob_SE_dict[ob_type][sfh]['gridpoints_region'].append(avg_se_region)
+                gridob_variance_dict[ob_type][sfh]['gridpoints_region'].append(avg_var_region)
                 
+                #comparison within a defined region specific to this AR
+                w2 = -180
+                e2 = -115
+                n2 = 50
+                s2 = 35
                 
+                #convert to grid indices, add 1 to the right endpoints so python includes the last index
+                l2 = int(abs(-180-w2)*2)
+                r2 = int(abs(-180-e2)*2)+1
+                t2 = int((90-n2)*2)
+                b2 = int((90-s2)*2)+1
+                
+                se_region2 = se[t2:b2,l2:r2]
+                var_region2 = fcst_var[t2:b2,l2:r2]
+                weights_region2 = np.cos(np.radians(lats[t2:b2]))
+                avg_se_region2 = np.mean(np.average(se_region2, axis=0, weights=weights_region2))
+                avg_var_region2 = np.mean(np.average(var_region2, axis=0, weights=weights_region2))
+                gridob_SE_dict[ob_type][sfh]['gridpoints_region2'].append(avg_se_region2)
+                gridob_variance_dict[ob_type][sfh]['gridpoints_region2'].append(avg_var_region2)
                         
             #update the forecast hour to load the next forecast, 6 hours later
             j = j + 1
@@ -457,6 +483,9 @@ if ob_types[i] == 'T2M' or ob_types[i] == 'ALT':
                 #Don't try to append the gridded obs stuff, since there are no observations to compare with at forecast hours 6, 18, 30, 42, etc.
                 stats_list.append(inflation+','+prior_or_post+','+ensemble_type+','+var+','+f_h+','+str(data_dict[var][f_h]['average_mse'])+','+str(data_dict[var][f_h]['average_variance'])+','+str(MSE)+','+str(variance)+'\n')
 
+#even if the dictionaries are empty (don't contain forecast hours), this will
+#still work. This is because it just won't execute the block of code, since
+#there are no f_h in var
 else:
     for var in gridob_SE_dict:
         for f_h in gridob_SE_dict[var]:
@@ -466,6 +495,8 @@ else:
             MSE_gridob_fullgrid = np.mean(MSE_gridob_fullgrid_list)
             MSE_gridob_region_list = np.array(gridob_SE_dict[var][f_h]['gridpoints_region'])
             MSE_gridob_region = np.mean(MSE_gridob_region_list)
+            MSE_gridob_region2_list = np.array(gridob_SE_dict[var][f_h]['gridpoints_region2'])
+            MSE_gridob_region2 = np.mean(MSE_gridob_region2_list)
             
             variance_gridob_obs_list = np.array(gridob_variance_dict[var][f_h]['obs'])
             variance_gridob_obs = np.mean(variance_gridob_obs_list)
@@ -473,9 +504,10 @@ else:
             variance_gridob_fullgrid = np.mean(variance_gridob_fullgrid_list)
             variance_gridob_region_list = np.array(gridob_variance_dict[var][f_h]['gridpoints_region'])
             variance_gridob_region = np.mean(variance_gridob_region_list)
+            variance_gridob_region2_list = np.array(gridob_variance_dict[var][f_h]['gridpoints_region2'])
+            variance_gridob_region2 = np.mean(variance_gridob_region2_list)            
             
-            
-            stats_list.append(inflation+','+prior_or_post+','+ensemble_type+','+var+','+f_h+','+str(MSE_gridob_obs)+','+str(variance_gridob_obs)+','+str(MSE_gridob_fullgrid)+','+str(variance_gridob_fullgrid)+','+str(MSE_gridob_region)+','+str(variance_gridob_region)+'\n')
+            stats_list.append(inflation+','+prior_or_post+','+ensemble_type+','+var+','+f_h+','+str(MSE_gridob_obs)+','+str(variance_gridob_obs)+','+str(MSE_gridob_fullgrid)+','+str(variance_gridob_fullgrid)+','+str(MSE_gridob_region)+','+str(variance_gridob_region)+','+str(MSE_gridob_region2)+','+str(variance_gridob_region2)+'\n')
         
 #save the stats list after all forecast hours have been appended for one variable
 print('Writing statistics to .txt file')
@@ -484,7 +516,7 @@ if new_format == True:
     savedir_str += '_' + ef.var_string(grid)
 if ob_category == 'gridded':
     savedir_str += '_gridobs'
-savedir_str += '.98txt'
+savedir_str += '.txt'
 f = open(savedir_str, 'a')
 for s in stats_list:
     f.write(s)
