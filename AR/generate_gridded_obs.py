@@ -28,6 +28,7 @@ vrbls = ['QF850','D-QF850']#['T2M','ALT']
 ob_type = 'QF850'#'ALT'
 start_date = datetime(2015,11,10,0)
 end_date = datetime(2015,11,17,12)
+get_variance=True #if true, will save ensemble variance as well
 
 dates = mt.make_datetimelist(start_date,end_date,12)
 
@@ -36,5 +37,5 @@ for e in ens:
         efa = Load_Data(date,e,vrbls,ob_type,grid=[-180,180,90,0,3],
                         new_format=True,efh=54)
         
-        efa.save_gridded_obs()
+        efa.save_gridded_obs(get_variance=get_variance)
 
