@@ -27,6 +27,8 @@ print('start time: ',start_time)
 shell_script = False
 #indicate that we are inflating the posterior perturbations
 inf_post = False
+#do we want to use variance of the ensemble as ob err variance?
+use_ens_var = True
 
 if shell_script == False:
     ensemble_type = 'ncep'
@@ -35,7 +37,7 @@ if shell_script == False:
     #the ob type of the observations we are assimilating, and its associated
     #observation error variance
     obs_type =['QF850']#['ALT','ALT']    
-    ob_err_var = [100]#[1,0]
+    ob_err_var = ['ensvar']#[1,0]
     #obs_dict = {'ALT':1, 'ALT':0}    
     #the variables in the netCDF we want to update
     update_vars= ['QF850','D-QF850']#['ALT'] #['T2M','ALT']
@@ -177,12 +179,12 @@ def run_efa(ob_type,update_var,ob_err_var):
         #if we are assimilating future 0-hour forecast gridded "observations"
         elif ob_category == 'gridded':
             #load in the obs file
-            obs = efa.load_obs(forecast_hour=12,madis=False)
+            obs = efa.load_obs(forecast_hour=12,madis=False,variance=use_ens_var)
             
         #loop through each line in the text file (loop through each observation)
         for ob in obs:
             #this gets the observation information from the text file
-            ob_dict = mt.get_ob_info(ob)
+            ob_dict = mt.get_ob_info(ob,use_ens_var)
             #get longitude positive-definite- ie -130 lon is 230 E
             if ob_dict['lon'] < 0:
                 ob_dict['lon'] = ob_dict['lon'] + 360
@@ -194,10 +196,17 @@ def run_efa(ob_type,update_var,ob_err_var):
             elif ob_category == 'gridded':
                 #no need to check elevation, since using gridded obs
                 TorF = True
+                
+            #if we are using ens variance as ob error variance
+            if use_ens_var == True:
+                ob_var = ob_dict['variance']
+            elif use_ens_var == False:
+                ob_var = ob_err_var[o]
+                
             #fill the observation class object with information for assimilation
             obser = Observation(value=ob_dict['ob'], time=utctime,
                             lat=ob_dict['lat'],lon=ob_dict['lon'], obtype=o_type, localize_radius=loc_rad,
-                            assimilate_this=TorF, error=ob_err_var[o])
+                            assimilate_this=TorF, error=ob_var)
             observations.append(obser)                
 
     print('loaded '+str(len(observations))+' obs for assimilation')
@@ -304,7 +313,7 @@ def run_efa(ob_type,update_var,ob_err_var):
     
     #if we are updating all variable types with the observation (regardless of its type)
     elif self_update == False:
-        outfile = outdir_date_ens+'_'+ef.var_num_string(ob_type,ob_err_var)+'.nc'
+        outfile = outdir_date_ens+'_'+ef.var_num_string(ob_type,ob_err_var)+'practice.nc'
         ef.make_netcdf(state,outfile)
 
     

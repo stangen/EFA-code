@@ -160,13 +160,12 @@ class Load_Data():
         lats = ncdata.variables['lat'][:]
         lons = ncdata.variables['lon'][:]
         
-        #obtain the mean of the ensemble
-        var = var.mean(axis=-1)
-        
         return var, lats, lons
+
+        
     
         
-    def load_obs(self, forecast_hour=6, madis=True):
+    def load_obs(self, forecast_hour=6, madis=True, variance=False):
         """
         Loads the observations corresponding with n hours after ensemble was
         initialized (default 6 hours). Returns the observations from the text file.
@@ -181,9 +180,12 @@ class Load_Data():
             obs_file = '/home/disk/hot/stangen/Documents/surface_obs/MADIS/'+dty+dtm+'/combined_'+self.ob_type+'/'+self.ob_type+'_'+dty+dtm+dtd+'_'+dth+'00.txt'
         elif madis==False:
             if self.new_format == False:
-                obs_file = '/home/disk/hot/stangen/Documents/gridded_obs/'+self.ens_type+'/'+dty+dtm+'/'+self.ob_type+'/'+self.ob_type+'_'+dty+dtm+dtd+'_'+dth+'00.txt'
+                obs_file = '/home/disk/hot/stangen/Documents/gridded_obs/'+self.ens_type+'/'+dty+dtm+'/'+self.ob_type+'/'+self.ob_type+'_'+dty+dtm+dtd+'_'+dth+'00'
             elif self.new_format == True:
-                obs_file = '/home/disk/hot/stangen/Documents/gridded_obs/'+self.ens_type+'/'+dty+dtm+'/'+self.ob_type+'/'+dty+dtm+dtd+'_'+dth+'00_'+str(self.l)+'_'+str(self.r)+'_'+str(self.t)+'_'+str(self.b)+'_'+str(self.s)+'.txt'
+                obs_file = '/home/disk/hot/stangen/Documents/gridded_obs/'+self.ens_type+'/'+dty+dtm+'/'+self.ob_type+'/'+dty+dtm+dtd+'_'+dth+'00_'+str(self.l)+'_'+str(self.r)+'_'+str(self.t)+'_'+str(self.b)+'_'+str(self.s)
+            if variance==True:
+                obs_file += '_variance'
+            obs_file += '.txt'
         print('loading '+ob_str+' obs from '+dty+dtm+dtd+'_'+dth+'00')
         #print(obs_file)
         f1 = open(obs_file, 'r')
@@ -191,12 +193,15 @@ class Load_Data():
         
         return obs
     
-    def save_gridded_obs(self, forecast_hour=0):
+    def save_gridded_obs(self, forecast_hour=0, get_variance=False):
         """
         Loads the ensemble from n hours after the forecast was initialized
         and uses its 0-hour forecast as the "observation" grid. 
         Saves information about the generated gridded obs to a .txt file,
         with the same format as MADIS observations.
+        
+        If get_variance is true, will also save the variance of the ensemble
+        at the observation locations.
         """
         basedir = '/home/disk/hot/stangen/Documents/gridded_obs/'
         
@@ -215,6 +220,12 @@ class Load_Data():
         print('starting saving of '+self.ens_type+' gridded '+self.ob_type+ ' "obs" at: '+dty+dtm+dtd+'_'+dth+'00')
         
         var, lats, lons = self.load_ens_netcdf(forecast_hour)
+            
+        #obtain the mean of the ensemble
+        ens_mean = var.mean(axis=-1)
+        
+        #obtain variance of the ensemble
+        variance = np.var(var,axis=-1,ddof=1)
         
         #initialize the obs list to append to
         obs = []
@@ -223,9 +234,12 @@ class Load_Data():
             ob_lat = p[0]
             ob_lon = p[1]
             #get the ensemble value at the lat/lon pair
-            ob_value = ef.closest_points(ob_lat,ob_lon,lats,lons,variable=var,
-                                         need_interp=True,gen_obs=True)
-            obs.append(str(i)+','+str(ob_lat)+','+str(ob_lon)+','+str(0)+','+epoch+','+str(ob_value)+',GRIDDED,'+str(0)+'\n')
+            ob_value, ob_variance = ef.closest_points(ob_lat,ob_lon,lats,lons,variable=ens_mean,
+                                         need_interp=True,gen_obs=True,variance=variance)
+            obs.append(str(i)+','+str(ob_lat)+','+str(ob_lon)+','+str(0)+','+epoch+','+str(ob_value)+',GRIDDED,'+str(0))
+            if get_variance == True:
+                obs.append(','+str(ob_variance))
+            obs.append('\n')
             
         #save directory for the observations
         if (os.path.isdir(basedir+self.ens_type+'/'+dty+dtm+'/'+self.ob_type+'/')):
@@ -237,7 +251,11 @@ class Load_Data():
         if self.new_format == False:
             f = open(basedir+self.ens_type+'/'+dty+dtm+'/'+self.ob_type+'/'+self.ob_type+'_'+dty+dtm+dtd+'_'+dth+'00.txt',"w")
         elif self.new_format == True:
-            f = open(basedir+self.ens_type+'/'+dty+dtm+'/'+self.ob_type+'/'+dty+dtm+dtd+'_'+dth+'00_'+str(self.l)+'_'+str(self.r)+'_'+str(self.t)+'_'+str(self.b)+'_'+str(self.s)+'.txt',"w")
+            savestr = basedir+self.ens_type+'/'+dty+dtm+'/'+self.ob_type+'/'+dty+dtm+dtd+'_'+dth+'00_'+str(self.l)+'_'+str(self.r)+'_'+str(self.t)+'_'+str(self.b)+'_'+str(self.s)
+            if get_variance == True:
+                savestr += '_variance'
+            savestr += '.txt'
+            f = open(savestr,"w")
         for s in obs:
             f.write(s)
         f.close()
