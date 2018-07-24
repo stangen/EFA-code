@@ -70,7 +70,7 @@ def make_datetimelist(start_date = datetime(2013,4,1,0), end_date = datetime(201
     return dt_list
 
 
-def get_ob_info(sstr_str):
+def get_ob_info(sstr_str,get_variance=False):
     """    
     Split the station string and return a dictionary containing their names, 
     lats, lons, time, elevation, and ob value. 
@@ -85,9 +85,15 @@ def get_ob_info(sstr_str):
     sstr_time = float(sstr_split[4])
     sstr_ob = float(sstr_split[5])
     sstr_stationary = float(sstr_split[7])
+    if get_variance == True:
+        sstr_variance = float(sstr_split[8])
+    elif get_variance == False:
+        #assign dummy value
+        sstr_variance = 0
     
     info = {'name':sstr_name, 'lat':sstr_lat, 'lon':sstr_lon, 'time':sstr_time, 
-            'elev':sstr_elev, 'ob':sstr_ob, 'stationary':sstr_stationary}
+            'elev':sstr_elev, 'ob':sstr_ob, 'stationary':sstr_stationary, 
+            'variance':sstr_variance}
     return info
 
 def timestamp2utc(timestamp):
