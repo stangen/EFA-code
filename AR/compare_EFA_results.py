@@ -16,9 +16,9 @@ import EFA.duplicate_madaus.efa_functions as ef
 
 ens = 'ncep'
 loc_rad = '1000'
-forecast_time = datetime(2015,11,12,0) # when the forecast was initialized
-analysis_time = datetime(2015,11,13,0) # when to compare with analysis
-oberrvar = [1,10,100,1000, 'ensvarpractice']
+forecast_time = datetime(2015,11,13,0) # when the forecast was initialized
+analysis_time = datetime(2015,11,15,0) # when to compare with analysis
+oberrvar = [1,10,100,1000, 'ensvar']
 efh = '54hrs'
 grid = [-180,180,90,0,3]
 prior_var = ['QF850','D-QF850']
@@ -119,8 +119,10 @@ m1.drawparallels(np.arange(-90,90,1),labels=[1,0,0,1],fontsize=10,linewidth=0.5)
 lon, lat = np.meshgrid(lons, lats)
 x, y = m1(lon, lat)
 
-cs1 = m1.contourf(x,y,anl_mean,20)
+cs1 = m1.contourf(x,y,anl_mean,cont_int)
+cs3 = m1.contour(x,y,anl_mean,cont_int)
 cs2 = m1.contour(x,y,prior_mean,cont_int,colors='black',linewidths=1)
+plt.clabel(cs3, inline=0, fontsize=12, fmt='%.0f')
 plt.clabel(cs2, inline=0, fontsize=12,fmt='%.0f')
 cbar1 = m1.colorbar(cs1, location='right',pad="3%")
 cbar1.set_label('Moisture Flux (g/kg*m/s)',fontsize=12)
@@ -191,7 +193,7 @@ for oev in oberrvar:
     m1.drawparallels(np.arange(-90,90,1),labels=[1,0,0,1],fontsize=10,linewidth=0.5)
     
     #cs1 = m1.contourf(x,y,post_error)
-    cs1 = m1.contourf(x,y,anl_mean,20)
+    cs1 = m1.contourf(x,y,anl_mean,cont_int)
     cs2 = m1.contour(x,y,post_mean,cont_int,colors='black',linewidths=1)
     plt.clabel(cs2, inline=0, fontsize=12,fmt='%.0f')#,cmap=plt.cm.Reds)
     cs3 = m1.contour(x,y,prior_mean,cont_int,colors='grey',linewidths=1)
