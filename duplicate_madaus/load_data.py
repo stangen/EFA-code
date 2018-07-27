@@ -148,6 +148,8 @@ class Load_Data():
         """  
         dty, dtm, dtd, dth = ef.dt_str_timedelta(self.date,forecast_hour)
         
+        print('loading analysis grid: '+self.ens_type+' '+dty+dtm+dtd+'_'+dth+'00')
+        
         if self.new_format == False:
             infile = '/home/disk/hot/stangen/Documents/prior_ensembles/'+self.ens_type+'/'+dty+dtm+'/'+dty+'-'+dtm+'-'+dtd+'_'+dth+'_'+self.ens_type+'_'+self.var_string+'.nc'
         elif self.new_format == True:
