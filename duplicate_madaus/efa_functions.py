@@ -156,10 +156,12 @@ def generate_obs(closey,closex,distances,variable,variance):
     closey = 4 closest lat indices of the ensemble
     closex = 4 closest lon indices of the ensemble
     distances = distance from 4 closest gridpoints to the observation, for use in weights
-    variable = ensemble values of variable (ALT or T2M)
+    variable = ensemble mean values of variable (ALT or T2M)
     variance = ensemble variance of ensemble at ob location
     
-    returns: interpolated "observation"
+    returns: interpolated "observation" and the variance at the location.
+    The variance is only actually used if get_variance in save_gridded_obs 
+    is set to true, but the observation (ensemble mean) is always saved.
     """
     
     spaceweights = np.zeros(distances.shape)

@@ -15,7 +15,7 @@ import EFA.duplicate_madaus.efa_functions as ef
 start_time = datetime.now()
 print('start time: ',start_time)
 #to run this in spyder, change this to False, to run in shell script, change to True
-shell_script=False
+shell_script=True
 
 if shell_script==False:
     ensemble_type = 'ncep'
@@ -35,18 +35,18 @@ if shell_script==False:
     #all obs we will have in the end- for saving the file
     allobs = ['QF850']#['ALT']
     #date range of ensembles used
-    start_date = datetime(2015,11,10,0)#2013,4,4,0)
-    end_date = datetime(2015,11,15,12)#2013,4,4,0)
+    start_date = datetime(2015,11,14,0)#2013,4,4,0)
+    end_date = datetime(2015,11,14,12)#2013,4,4,0)
     #hour increment between ensemble forecasts
     incr = 12
     
     #change for how far into the forecast to get observations, 1 is 6 hours in,
     #end_index is the last forecast hour to get obs for
     start_index = 2
-    end_index = 8
+    end_index = 3
     
     #if True, will load/do stats on posterior ensembles, if False, will load prior
-    post=False
+    post=True
      
     #localization radius
     loc_rad = '1000'
@@ -319,30 +319,30 @@ for date in dates:
                 gridob_variance_dict[ob_type][sfh]['gridpoints_region2'] = gridob_variance_dict[ob_type][sfh].get('gridpoints_region2',[])
                 gridob_variance_dict[ob_type][sfh]['gridpoints_region2_AR'] = gridob_variance_dict[ob_type][sfh].get('gridpoints_region2_AR',[])
                
-#                for ob_counter, ob in enumerate(grid_obs):
-#                    #this gets the observation information from the text file
-#                    ob_info = mt.get_ob_info(ob)
-#                    #get longitude positive-definite- ie -130 lon is 230 E
-#                    if ob_info['lon'] < 0:
-#                        ob_info['lon'] = ob_info['lon'] + 360
-#                    utctime = datetime.utcfromtimestamp(ob_info['time'])
-#                    #find interpolated ob estimate, if it passes the terrain check.
-#                    #the terrain check is done within the closest_points function
-#                    interp, TorF = ef.closest_points(ob_info['lat'],ob_info['lon'],lats,lons,ob_info['elev'],
-#                                               elevs,utctime,statecls['validtime'].values,
-#                                               statecls.variables[netcdf_varnames[i]].values,need_interp=True)
-#                    
-#                    ob_value = ob_info['ob']
-#                    #calculate MSE
-#                    
-#                    se = (np.mean(interp)-ob_value)**2
-#                    #calculate variance
-#                    hx_variance_unbiased = np.var(interp, ddof=1)
-#                    #append SE/variance to list
-#                    gridob_SE_dict[ob_type][sfh]['obs'].append(se)
-#                    gridob_variance_dict[ob_type][sfh]['obs'].append(hx_variance_unbiased)
-#                    
-#                print('Added stats from '+str(len(grid_obs))+' gridded obs')        
+                for ob_counter, ob in enumerate(grid_obs):
+                    #this gets the observation information from the text file
+                    ob_info = mt.get_ob_info(ob)
+                    #get longitude positive-definite- ie -130 lon is 230 E
+                    if ob_info['lon'] < 0:
+                        ob_info['lon'] = ob_info['lon'] + 360
+                    utctime = datetime.utcfromtimestamp(ob_info['time'])
+                    #find interpolated ob estimate, if it passes the terrain check.
+                    #the terrain check is done within the closest_points function
+                    interp, TorF = ef.closest_points(ob_info['lat'],ob_info['lon'],lats,lons,ob_info['elev'],
+                                               elevs,utctime,statecls['validtime'].values,
+                                               statecls.variables[netcdf_varnames[i]].values,need_interp=True)
+                    
+                    ob_value = ob_info['ob']
+                    #calculate MSE
+                    
+                    se = (np.mean(interp)-ob_value)**2
+                    #calculate variance
+                    hx_variance_unbiased = np.var(interp, ddof=1)
+                    #append SE/variance to list
+                    gridob_SE_dict[ob_type][sfh]['obs'].append(se)
+                    gridob_variance_dict[ob_type][sfh]['obs'].append(hx_variance_unbiased)
+                    
+                print('Added stats from '+str(len(grid_obs))+' gridded obs')        
                 
 #--------------------------------------------------------------------------------------------------------
                 #comparison with all grid points
@@ -456,6 +456,8 @@ for date in dates:
 #create list to save for creating plots
 stats_list = []
 
+ARonly_stats_list = []
+
 #if we can compare with MADIS obs
 if ob_types[i] == 'T2M' or ob_types[i] == 'ALT': 
     for var in ob_dict:
@@ -558,8 +560,8 @@ else:
             variance_gridob_region2_AR_list = np.array(gridob_variance_dict[var][f_h]['gridpoints_region2_AR'])
             variance_gridob_region2_AR = np.average(variance_gridob_region2_AR_list,weights=MSE_gridob_region2_ARweights_list)
             
-            #stats_list.append(inflation+','+prior_or_post+','+ensemble_type+','+var+','+f_h+','+str(MSE_gridob_obs)+','+str(variance_gridob_obs)+','+str(MSE_gridob_fullgrid)+','+str(variance_gridob_fullgrid)+','+str(MSE_gridob_region)+','+str(variance_gridob_region)+','+str(MSE_gridob_region2)+','+str(variance_gridob_region2)+'\n')
-            stats_list.append(inflation+','+prior_or_post+','+ensemble_type+','+var+','+f_h+','+str(MSE_gridob_region2_AR)+','+str(variance_gridob_region2_AR)+'\n')
+            stats_list.append(inflation+','+prior_or_post+','+ensemble_type+','+var+','+f_h+','+str(MSE_gridob_obs)+','+str(variance_gridob_obs)+','+str(MSE_gridob_fullgrid)+','+str(variance_gridob_fullgrid)+','+str(MSE_gridob_region)+','+str(variance_gridob_region)+','+str(MSE_gridob_region2)+','+str(variance_gridob_region2)+'\n')
+            ARonly_stats_list.append(inflation+','+prior_or_post+','+ensemble_type+','+var+','+f_h+','+str(MSE_gridob_region2_AR)+','+str(variance_gridob_region2_AR)+'\n')
             
 #save the stats list after all forecast hours have been appended for one variable
 print('Writing statistics to .txt file')
@@ -568,9 +570,16 @@ if new_format == True:
     savedir_str += '_' + ef.var_string(grid)
 if ob_category == 'gridded':
     savedir_str += '_gridobs'
-savedir_str += '_ARonly.txt'
+AR_savedir_str = savedir_str+'_ARonly.txt'
+savedir_str += '.txt'
+
 f = open(savedir_str, 'a')
 for s in stats_list:
+    f.write(s)
+f.close()
+
+f = open(AR_savedir_str, 'a')
+for s in ARonly_stats_list:
     f.write(s)
 f.close()
 

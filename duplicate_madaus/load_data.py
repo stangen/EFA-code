@@ -143,7 +143,7 @@ class Load_Data():
         initialized and uses its 0-hour forecast as the "observation" grid. 
         Returns the variable of interest and the lats/lons. 
         The filepath loads non-EFA'd netCDF files (it loads the prior).
-        var is  nlats x nlons. (at time t=0, ens mean)
+        var is  nlats x nlons x nmems. (at time t=0)
         lats, lons are 1-d float arrays (masked).
         """  
         dty, dtm, dtd, dth = ef.dt_str_timedelta(self.date,forecast_hour)
@@ -172,6 +172,9 @@ class Load_Data():
         Loads the observations corresponding with n hours after ensemble was
         initialized (default 6 hours). Returns the observations from the text file.
         Loads MADIS observations if True, loads gridded observations if False.
+        -If variance == True, loads gridded observations which also contain 
+        ensemble variance at the ob location.
+        -Gridded and MADIS observations must be generated before calling this function.
         """
         
         dty, dtm, dtd, dth = ef.dt_str_timedelta(self.date,forecast_hour)
@@ -223,10 +226,10 @@ class Load_Data():
         
         var, lats, lons = self.load_ens_netcdf(forecast_hour)
             
-        #obtain the mean of the ensemble
+        #obtain the mean of the ensemble (nlats x nlons)
         ens_mean = var.mean(axis=-1)
         
-        #obtain variance of the ensemble
+        #obtain variance of the ensemble (nlats x nlons)
         variance = np.var(var,axis=-1,ddof=1)
         
         #initialize the obs list to append to
