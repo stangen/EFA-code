@@ -75,6 +75,9 @@ def get_ob_info(sstr_str,get_variance=False):
     Split the station string and return a dictionary containing their names, 
     lats, lons, time, elevation, and ob value. 
     **********Changed these to floats 6/19, not 100% sure how this will affect other code*****
+    If get_variance == True, will assume variance is at the end of the string and will
+    store it in the dictionary. The correct gridded obs .txt file containing 
+    variance must be loaded if get_variance is to be set True.
     """
     
     sstr_split = sstr_str.split(',')
