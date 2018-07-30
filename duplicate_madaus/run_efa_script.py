@@ -24,11 +24,9 @@ import EFA.duplicate_madaus.efa_functions as ef
 
 start_time = datetime.now()
 print('start time: ',start_time)
-shell_script = False
+shell_script = True
 #indicate that we are inflating the posterior perturbations
 inf_post = False
-#do we want to use variance of the ensemble as ob err variance?
-use_ens_var = True
 
 if shell_script == False:
     ensemble_type = 'ncep'
@@ -37,7 +35,7 @@ if shell_script == False:
     #the ob type of the observations we are assimilating, and its associated
     #observation error variance
     obs_type =['QF850']#['ALT','ALT']    
-    ob_err_var = ['ensvar']#[1,0]
+    ob_err_var = ['200']#[1,0] #or ['ensvar'] for use ensemble variance
     #obs_dict = {'ALT':1, 'ALT':0}    
     #the variables in the netCDF we want to update
     update_vars= ['QF850','D-QF850']#['ALT'] #['T2M','ALT']
@@ -73,11 +71,13 @@ elif shell_script == True:
     #obs_dict = json.loads(data)
     obs_type = sys.argv[3].split(',')
     ob_err_var = sys.argv[4].split(',')
-    for i, err in enumerate(ob_err_var):
-        try:
-            ob_err_var[i] = int(err)
-        except:
-            ob_err_var[i] = float(err)
+#    for i, err in enumerate(ob_err_var):
+#        try:
+#            ob_err_var[i] = int(err)
+#        except:
+#            ob_err_var[i] = float(err)
+#        finally:
+#            ob_err_var[i] = str(err)
     update_vars = sys.argv[5].split(',')
     #update_vars= ['T2M','ALT']
     #are the observations only updating their corresponding variable, or
@@ -165,6 +165,13 @@ def run_efa(ob_type,update_var,ob_err_var):
     
     observations = []
     for o, o_type in enumerate(ob_type):
+        
+        #if we are wanting to use ensemble variance as ob error variance
+        if ob_err_var[o] == 'ensvar':
+            use_ens_var = True
+        else:
+            use_ens_var = False
+        
         efa = Load_Data(date,ensemble_type,variables,o_type,update_var,
                         grid=grid,new_format=new_format,efh=efh)
         #only need to load the netCDF once (first time through the obtype loop)
@@ -201,7 +208,7 @@ def run_efa(ob_type,update_var,ob_err_var):
             if use_ens_var == True:
                 ob_var = ob_dict['variance']
             elif use_ens_var == False:
-                ob_var = ob_err_var[o]
+                ob_var = float(ob_err_var[o])
                 
             #fill the observation class object with information for assimilation
             obser = Observation(value=ob_dict['ob'], time=utctime,
@@ -269,9 +276,14 @@ def run_efa(ob_type,update_var,ob_err_var):
     #convert 1-length ob err var list to a string with no decimals
     #this makes it so that multiple ob err vars that acted on one data type
     #can all be saved to one netCDF.
+    #more specifically, this adds ob err var to the variable name in the netCDF.
+    #ob_err_var_str is only called if self_update == True, so the ob err var
+    #is never in the variable name if self_update == False.
     ob_err_var_str = ''
     if use_oberrvar == True:
         ob_err_var_str = str(ob_err_var[0]).replace('.','-')
+    #if we don't want the observation error variance used in the name of the file
+    #and/or the names of the variables in the file
     elif use_oberrvar == False:
         ob_err_var = ''
             
@@ -312,8 +324,10 @@ def run_efa(ob_type,update_var,ob_err_var):
                 ef.make_netcdf(state,outfile,ob_err_var_str)
     
     #if we are updating all variable types with the observation (regardless of its type)
+    #observation error variance is not saved in the variable name in the netCDF,
+    #only in the filename here.
     elif self_update == False:
-        outfile = outdir_date_ens+'_'+ef.var_num_string(ob_type,ob_err_var)+'practice.nc'
+        outfile = outdir_date_ens+'_'+ef.var_num_string(ob_type,ob_err_var)+'.nc'
         ef.make_netcdf(state,outfile)
 
     
