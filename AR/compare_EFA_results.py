@@ -17,12 +17,18 @@ import EFA.duplicate_madaus.efa_functions as ef
 
 ens = 'eccc' #ncep, eccc, ecmwf
 loc_rad = '1000'
-forecast_time = datetime(2015,11,12,0) # when the forecast was initialized
-analysis_time = datetime(2015,11,14,0) # when to compare with analysis
-oberrvar = [1,10,100,1000, 'ensvar']
+forecast_time = datetime(2015,11,14,12) # when the forecast was initialized
+analysis_time = datetime(2015,11,15,12) # when to compare with analysis
+oberrvar = ['0-1','1','10','100']
+#oberrvar = [1,10,100,1000, 'ensvar', 250, 500, 750]
+varlist = ['TCW','TCW','TCW','TCW'] #used when loading ob update self
 efh = '54hrs'
 grid = [-180,180,90,0,3]
-prior_var = ['QF850','D-QF850']
+prior_var = ['TCW']#['QF850','D-QF850']#
+
+obd = 'self' #ob update 'all' or 'self'? 
+vrbl= 'TCW'#'QF850'#
+
 #plotting variables
 s = 35
 n = 50
@@ -32,13 +38,16 @@ lat_ts = 40
 figsize1 = 18
 figsize2 = 12
 
-cont_int = range(0,300,20)
+if vrbl == 'QF850':
+    cont_int = range(0,300,20)
+    varstring = 'moisture flux'
+    varunit = '(g/kg*m/s)'
+elif vrbl == 'TCW':
+    cont_int = range(0,60,3)
+    varstring = 'total column water'
+    varunit = '(mm)'
 
-post_var = ['QF850']
-vrbl= 'QF850'
 
-point_lon = -99#163
-point_lat = 32#116
 
 #get the times for the analysis
 ay = analysis_time.strftime('%Y')
@@ -145,7 +154,7 @@ cs2 = m1.contour(x,y,prior_mean_region,cont_int,colors='black',linewidths=1)
 plt.clabel(cs3, inline=0, fontsize=10, colors='white',fmt='%.0f')
 plt.clabel(cs2, inline=0, fontsize=12,fmt='%.0f')
 cbar1 = m1.colorbar(cs1, location='right',pad="3%")
-cbar1.set_label('Moisture Flux (g/kg*m/s)',fontsize=12)
+cbar1.set_label(varstring+' '+varunit,fontsize=12)
 plt.title(ens_dict[ens]+' analysis (colorfill) and prior forecast (black contours) '+am+'/'+ad+'/'+ay+' '+ah+'Z, forecast initialized '+fm+'/'+fd+'/'+fy+' '+fh+'Z')
 
 
@@ -171,22 +180,27 @@ cs2 = m1.contour(x,y,prior_mean_region,cont_int,colors='black',linewidths=1)
 cs3 = m1.contour(x,y,prior_error_region,[0],colors='white',linewidths=1)
 plt.clabel(cs2, inline=0, fontsize=12,fmt='%.0f')#,cmap=plt.cm.Reds)
 cbar1 = m1.colorbar(cs1, location='right',pad="3%")
-cbar1.set_label('Moisture Flux Error (g/kg*m/s)',fontsize=12)
+cbar1.set_label(varstring+' error '+varunit,fontsize=12)
 plt.title(ens_dict[ens]+' prior (black) and error (colorfill) of '+am+'/'+ad+'/'+ay+' '+ah+'Z forecast, initialized '+fm+'/'+fd+'/'+fy+' '+fh+'Z')
 
 #-----------------------------------------------------------------------------#
 
 
 #loop through each observation error variance
-for oev in oberrvar:
-    post_varstr = vrbl+str(oev)
+for oev in oberrvar:    
+    vrbl2 = vrbl
+    if obd == 'all':
+        post_varstr = vrbl+str(oev)
+    elif obd == 'self':
+        post_varstr = ef.var_num_string(varlist, oberrvar) 
+        vrbl2 = vrbl+str(oev)
     # Filepath of the posterior forecast
-    post_path = '/home/disk/hot/stangen/Documents/posterior_ensembles/gridded/ob_update_all/inf_none/loc_'+loc_rad+'/'+ens+'/'+fy+fm+'/'+fy+'-'+fm+'-'+fd+'_'+fh+'_'+efh+'_'+grid_str+'_'+post_varstr+'.nc'
+    post_path = '/home/disk/hot/stangen/Documents/posterior_ensembles/gridded/ob_update_'+obd+'/inf_none/loc_'+loc_rad+'/'+ens+'/'+fy+fm+'/'+fy+'-'+fm+'-'+fd+'_'+fh+'_'+efh+'_'+grid_str+'_'+post_varstr+'.nc'
     
     print('loading posterior netCDF: '+fy+fm+fd+fh+' '+str(oev)+' ob err var')
     # Load the posterior data
     with Dataset(post_path, 'r') as ncdata:
-        post = ncdata.variables[vrbl][:]
+        post = ncdata.variables[vrbl2][:]
         times2 = ncdata.variables['time']
     
     post_mean = np.mean(post[timeind,:,:],axis=-1)  
@@ -239,7 +253,7 @@ for oev in oberrvar:
     cs3 = m1.contour(x,y,prior_mean_region,cont_int,colors='black',linestyles='dashed',linewidths=1)
     plt.clabel(cs3, inline=0, fontsize=12,fmt='%.0f')
     cbar1 = m1.colorbar(cs1, location='right',pad="3%")
-    cbar1.set_label('Analysis Moisture Flux (g/kg*m/s)',fontsize=12)
+    cbar1.set_label('analysis '+varstring+' '+varunit,fontsize=12)
     plt.title(ens_dict[ens]+' analysis (colorfill), prior (dashed), posterior (solid) of '+am+'/'+ad+'/'+ay+' '+ah+'Z ob err var '+str(oev)+' forecast, initialized on '+fm+'/'+fd+'/'+fy+' '+fh+'Z')
 
 #-----------------------------------------------------------------------------#
@@ -265,9 +279,9 @@ for oev in oberrvar:
     cs3 = m1.contour(x,y,prior_post_diff_region,10,colors='black',linewidths=1)
 
     #plt.clabel(cs2, inline=0, fontsize=12, fmt='%.0f')
-    plt.clabel(cs3, inline=0, fontsize=12,fmt='%.0f')
+    plt.clabel(cs3, inline=0, fontsize=12)#,fmt='%.0f')
     #cs1 = m1.contourf(x,y,prior_post_diff)     
     cbar1 = m1.colorbar(cs1, location='right',pad="3%")
-    cbar1.set_label('Moisture Flux Error Change (g/kg*m/s)',fontsize=12)
-    plt.title(ens_dict[ens]+' change in moisture flux (black) and change in absolute error (colorfill) of '+am+'/'+ad+'/'+ay+' '+ah+'Z forecast, '+str(oev)+' ob err var , initialized on '+fm+'/'+fd+'/'+fy+' '+fh+'Z')
+    cbar1.set_label(varstring+' error change '+varunit,fontsize=12)
+    plt.title(ens_dict[ens]+' change in '+varstring+' (black) and change in absolute error (colorfill) of '+am+'/'+ad+'/'+ay+' '+ah+'Z forecast, '+str(oev)+' ob err var , initialized on '+fm+'/'+fd+'/'+fy+' '+fh+'Z')
     

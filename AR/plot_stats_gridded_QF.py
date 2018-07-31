@@ -24,6 +24,8 @@ control_vars = True
 
 plot_vars = ['QF850','QF850100','QF850750','QF8501000']#,'QF850250','QF850500']
 
+AR_specific = True
+
 #prior_var_key = 'ALT'
 
 var_units = {
@@ -79,7 +81,10 @@ clr_sp = {
         'QF8501000' : 'r', #dotted
         'QF850100' : 'g', #dashdotted
         'QF85010' : 'c',
-        'QF8501' : 'y' 
+        'QF8501' : 'y', 
+        'QF850250' : 'm',
+        'QF850500' : 'y',
+        'QF850750' : 'c'
         
         }
 
@@ -130,12 +135,14 @@ for line in stats:
     fh = line_split[4] #forecast hour
     mse_gridobs = line_split[5] #mean squared error of gridded obs
     variance_gridobs = line_split[6] #variance of gridded obs
-    mse_gridall = line_split[7] #mean squared error of entire grid
-    variance_gridall = line_split[8] #variance of entire grid
-    mse_grid_reg1 = line_split[9] #region 1 = -135:-115W, 55:30 N
-    variance_grid_reg1 = line_split[10] 
-    mse_grid_reg2 = line_split[11] #region2 = -180:-115W, 50:35 N
-    variance_grid_reg2 = line_split[12] 
+    #if we are plotting the AR-specific region
+    if AR_specific == False:
+        mse_gridall = line_split[7] #mean squared error of entire grid
+        variance_gridall = line_split[8] #variance of entire grid
+        mse_grid_reg1 = line_split[9] #region 1 = -135:-115W, 55:30 N
+        variance_grid_reg1 = line_split[10] 
+        mse_grid_reg2 = line_split[11] #region2 = -180:-115W, 50:35 N
+        variance_grid_reg2 = line_split[12] 
 
 #----To put loc radius back in, add [efa] after [ens]
     #this block is to set up the dictionary structure
@@ -144,35 +151,36 @@ for line in stats:
     srt = stats_dict[var][ens]
     
     srt['Forecast_Hour_Gridded'] = srt.get('Forecast_Hour_Gridded',[])
-    
-#    srt['MSE_AR_Gridpoints'] = srt.get('MSE_AR_Gridpoints',[])
-#    srt['Variance_AR_Gridpoints'] = srt.get('Variance_AR_Gridpoints',[])
-    
-    srt['MSE_Grid_Obs'] = srt.get('MSE_Grid_Obs',[])
-    srt['Variance_Grid_Obs'] = srt.get('Variance_Grid_Obs',[])
-    srt['MSE_Grid_All'] = srt.get('MSE_Grid_All',[])
-    srt['Variance_Grid_All'] = srt.get('Variance_Grid_All',[])
-    srt['MSE_Region_1'] = srt.get('MSE_Region_1',[])
-    srt['Variance_Region_1'] = srt.get('Variance_Region_1',[])
-    srt['MSE_Region_2'] = srt.get('MSE_Region_2',[])
-    srt['Variance_Region_2'] = srt.get('Variance_Region_2',[])
-
-    #stats_dict[var][ens][efa][']
-    
     #add the data to the dictionary
     srt['Forecast_Hour_Gridded'].append(int(fh)) #forecast hours of just these ones
     
-#    srt['MSE_AR_Gridpoints'].append(float(mse_gridobs))
-#    srt['Variance_AR_Gridpoints'].append(float(variance_gridobs))
+    if AR_specific == False:
+        srt['MSE_Grid_Obs'] = srt.get('MSE_Grid_Obs',[])
+        srt['Variance_Grid_Obs'] = srt.get('Variance_Grid_Obs',[])
+        srt['MSE_Grid_All'] = srt.get('MSE_Grid_All',[])
+        srt['Variance_Grid_All'] = srt.get('Variance_Grid_All',[])
+        srt['MSE_Region_1'] = srt.get('MSE_Region_1',[])
+        srt['Variance_Region_1'] = srt.get('Variance_Region_1',[])
+        srt['MSE_Region_2'] = srt.get('MSE_Region_2',[])
+        srt['Variance_Region_2'] = srt.get('Variance_Region_2',[])
+        srt['MSE_Grid_Obs'].append(float(mse_gridobs))
+        srt['Variance_Grid_Obs'].append(float(variance_gridobs))
+        srt['MSE_Grid_All'].append(float(mse_gridall))
+        srt['Variance_Grid_All'].append(float(variance_gridall))
+        srt['MSE_Region_1'].append(float(mse_grid_reg1))
+        srt['Variance_Region_1'].append(float(variance_grid_reg1))
+        srt['MSE_Region_2'].append(float(mse_grid_reg2))
+        srt['Variance_Region_2'].append(float(variance_grid_reg2)) 
+
+    #stats_dict[var][ens][efa][']
+    
+    elif AR_specific == True:
+        srt['MSE_AR_Gridpoints'] = srt.get('MSE_AR_Gridpoints',[])
+        srt['Variance_AR_Gridpoints'] = srt.get('Variance_AR_Gridpoints',[])    
+        srt['MSE_AR_Gridpoints'].append(float(mse_gridobs))
+        srt['Variance_AR_Gridpoints'].append(float(variance_gridobs))
         
-    srt['MSE_Grid_Obs'].append(float(mse_gridobs))
-    srt['Variance_Grid_Obs'].append(float(variance_gridobs))
-    srt['MSE_Grid_All'].append(float(mse_gridall))
-    srt['Variance_Grid_All'].append(float(variance_gridall))
-    srt['MSE_Region_1'].append(float(mse_grid_reg1))
-    srt['Variance_Region_1'].append(float(variance_grid_reg1))
-    srt['MSE_Region_2'].append(float(mse_grid_reg2))
-    srt['Variance_Region_2'].append(float(variance_grid_reg2))    
+   
 
 #each variable type
 for v in stats_dict:
@@ -201,57 +209,59 @@ for i in remove_list:
 #separate plot for each variable type- remove the prior variable type
 stats_dict_vars = list(stats_dict.keys())
 #for v in stats_dict_vars:
-#separate plot for MSE and variance
-for s in stats_list:
-    fig = plt.figure(figsize=(14,8))  
-    #each ensemble type      
-    for m in stats_dict_vars:
-        if control_vars == True:
-            variables = plot_vars
-        else:
-            variables = stats_dict[m]
-        #each variable
-        for v in variables:
-            #if we are plotting gridded obs stats
-            plt.plot(stats_dict[m][v]['Forecast_Hour_Gridded'],stats_dict[m][v][s],
-                     linestyle=ls2[v],marker=md[v],color=clr[m],label=v+' '+ens_dict[m])
-            
-            plt.xticks(np.arange(min(stats_dict[m][v]['Forecast_Hour_Gridded']), 
-            max(stats_dict[m][v]['Forecast_Hour_Gridded'])+12, 12))
-#            ax.set_xticks(numpy.arange(0, 1, 0.1))
-#            ax.set_yticks(numpy.arange(0, 1., 0.1))
-            plt.grid(True)
-            plt.legend(loc = 'upper left')
-            plt.title('850mb Moisture Flux '+s,fontsize=20)
-            plt.xlabel('Forecast Hour',fontsize=14)
-            plt.ylabel(var_units['QF850'],fontsize=14)
-    #plt.show()
-    #fig.savefig(savedir+'850mb_Moisture_Flux_'+s+'_'+datestr+'.png',frameon=False,bbox_inches='tight')
 
+if AR_specific == False:
+    #separate plot for MSE and variance
+    for s in stats_list:
+        fig = plt.figure(figsize=(14,8))  
+        #each ensemble type      
+        for m in stats_dict_vars:
+            if control_vars == True:
+                variables = plot_vars
+            else:
+                variables = stats_dict[m]
+            #each variable
+            for v in variables:
+                #if we are plotting gridded obs stats
+                plt.plot(stats_dict[m][v]['Forecast_Hour_Gridded'],stats_dict[m][v][s],
+                         linestyle=ls2[v],marker=md[v],color=clr[m],label=v+' '+ens_dict[m])
+                
+                plt.xticks(np.arange(min(stats_dict[m][v]['Forecast_Hour_Gridded']), 
+                max(stats_dict[m][v]['Forecast_Hour_Gridded'])+12, 12))
+    #            ax.set_xticks(numpy.arange(0, 1, 0.1))
+    #            ax.set_yticks(numpy.arange(0, 1., 0.1))
+                plt.grid(True)
+                plt.legend(loc = 'upper left')
+                plt.title('850mb Moisture Flux '+s,fontsize=20)
+                plt.xlabel('Forecast Hour',fontsize=14)
+                plt.ylabel(var_units['QF850'],fontsize=14)
+        #plt.show()
+        #fig.savefig(savedir+'850mb_Moisture_Flux_'+s+'_'+datestr+'.png',frameon=False,bbox_inches='tight')
 
-##separate plot for MSE and variance
-#for s in stats_list:
-#    #each ensemble type      
-#    for m in stats_dict_vars:
-#        fig = plt.figure(figsize=(14,8))  
-#        #each variable
-#        for v in stats_dict[m]:
-#            #if we are plotting gridded obs stats
-#            plt.plot(stats_dict[m][v]['Forecast_Hour_Gridded'],stats_dict[m][v][s],
-#                     linestyle='-',color=clr_sp[v],marker='o',label=v)
-#            
-#            plt.xticks(np.arange(min(stats_dict[m][v]['Forecast_Hour_Gridded']), 
-#            max(stats_dict[m][v]['Forecast_Hour_Gridded'])+12, 12))
-##            ax.set_xticks(numpy.arange(0, 1, 0.1))
-##            ax.set_yticks(numpy.arange(0, 1., 0.1))
-#            plt.grid(True)
-#            plt.legend(loc = 'upper left')
-#            plt.title(ens_dict[m]+' 850mb Moisture Flux '+s,fontsize=20)
-#            plt.xlabel('Forecast Hour',fontsize=14)
-#            plt.ylabel(var_units['QF850'],fontsize=14)
-#
-#        fig.savefig(savedir+ens_dict[m]+'_850mb_Moisture_Flux_'+s+'_'+datestr+'.png',frameon=False,bbox_inches='tight')
-#        
+elif AR_specific == True:
+    #separate plot for MSE and variance
+    for s in stats_list:
+        #each ensemble type      
+        for m in stats_dict_vars:
+            fig = plt.figure(figsize=(14,8))  
+            #each variable
+            for v in stats_dict[m]:
+                #if we are plotting gridded obs stats
+                plt.plot(stats_dict[m][v]['Forecast_Hour_Gridded'],stats_dict[m][v][s],
+                         linestyle='-',color=clr_sp[v],marker='o',label=v)
+                
+                plt.xticks(np.arange(min(stats_dict[m][v]['Forecast_Hour_Gridded']), 
+                max(stats_dict[m][v]['Forecast_Hour_Gridded'])+12, 12))
+    #            ax.set_xticks(numpy.arange(0, 1, 0.1))
+    #            ax.set_yticks(numpy.arange(0, 1., 0.1))
+                plt.grid(True)
+                plt.legend(loc = 'upper left')
+                plt.title(ens_dict[m]+' 850mb Moisture Flux '+s,fontsize=20)
+                plt.xlabel('Forecast Hour',fontsize=14)
+                plt.ylabel(var_units['QF850'],fontsize=14)
+    
+    #        fig.savefig(savedir+ens_dict[m]+'_850mb_Moisture_Flux_'+s+'_'+datestr+'.png',frameon=False,bbox_inches='tight')
+    #        
         
 ##separate plot for each variable type
 #for v in variables:
