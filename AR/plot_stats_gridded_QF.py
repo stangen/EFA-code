@@ -15,23 +15,26 @@ import EFA.duplicate_madaus.efa_functions as ef
 start_date = datetime(2015,11,10,0)
 end_date = datetime(2015,11,15,12)
 
-variables = ['QF850']
+variables = ['TCW']#['TCW']#
 
 grid = [-180,180,90,0,3]
 
 #want to plot each variable or control which are plotted?
-control_vars = True
+control_vars = False
 
 plot_vars = ['QF850','QF850100','QF850750','QF8501000']#,'QF850250','QF850500']
 
-AR_specific = True
+AR_specific = False
+
+separate_plots = True
 
 #prior_var_key = 'ALT'
 
 var_units = {
             'ALT' : 'hPa$^{2}$',
             'T2M' : 'K$^{2}$',
-            'QF850' : '(g/kg*m/s)$^{2}$'
+            'QF850' : '(g/kg*m/s)$^{2}$',
+            'TCW' : 'mm'
             }
 
 ls = {
@@ -41,7 +44,8 @@ ls = {
       'loc2000' : '-',
       'loc1000' : 'dashed',
       'loc500' : 'dotted',
-      'loc100' : '-.'      
+      'loc100' : '-.'
+      
       }
 
 ls2 = {
@@ -53,7 +57,13 @@ ls2 = {
        'QF8501' : '' ,
        'QF850250' : '--',
        'QF850500' : '--',
-       'QF850750' : '--'
+       'QF850750' : '--',
+       
+       'TCW' : '-',
+       'TCW0-1' : ' ',
+       'TCW1' : '--',
+       'TCW10' : '-.',
+       'TCW100' : ':'
        
        }
 
@@ -66,7 +76,13 @@ md = {
        'QF850500' : '*',
        'QF850750' : 's',
        'QF85010' : 'x',
-       'QF8501' : '*' 
+       'QF8501' : '*' ,
+       
+       'TCW' : 'o',
+       'TCW0-1' : 'o',
+       'TCW1' : 'o',
+       'TCW10' : 'o',
+       'TCW100' : 'o'       
       }
 
 clr = {
@@ -84,7 +100,13 @@ clr_sp = {
         'QF8501' : 'y', 
         'QF850250' : 'm',
         'QF850500' : 'y',
-        'QF850750' : 'c'
+        'QF850750' : 'c',
+        
+        'TCW' : 'k',
+        'TCW0-1' : 'y',
+        'TCW1' : 'g',
+        'TCW10' : 'b',
+        'TCW100' : 'r'   
         
         }
 
@@ -93,6 +115,11 @@ ens_dict = {
         'ecmwf' : 'ECMWF',
         'ncep' : 'GEFS'
         
+        }
+
+title_dict = { 
+        'QF850' : '850mb Moisture Flux ',
+        'TCW' : 'Total Column Water '
         }
 
 filedir = '/home/disk/hot/stangen/Documents/EFA/duplicate_madaus/mse_var_output/'
@@ -116,8 +143,10 @@ varstr = ef.var_string(variables)
 
 gridstr = ef.var_string(grid)
 
-#filepath = filedir+datestr+'_'+varstr+'_'+gridstr+'_gridobs_ARonly.txt'
-filepath = filedir+datestr+'_'+varstr+'_'+gridstr+'_gridobs.txt'
+if AR_specific == True:
+    filepath = filedir+datestr+'_'+varstr+'_'+gridstr+'_gridobs_ARonly.txt'
+else:
+    filepath = filedir+datestr+'_'+varstr+'_'+gridstr+'_gridobs.txt'
 
 f1 = open(filepath, 'r')
 stats = f1.readlines()
@@ -210,34 +239,50 @@ for i in remove_list:
 stats_dict_vars = list(stats_dict.keys())
 #for v in stats_dict_vars:
 
+def plot_stats():
+    if control_vars == True:
+        variables = plot_vars
+    else:
+        variables = stats_dict[m]
+    #each variable
+    for v in variables:
+        #if we are plotting gridded obs stats
+        plt.plot(stats_dict[m][v]['Forecast_Hour_Gridded'],stats_dict[m][v][s],
+                 linestyle=ls2[v],marker=md[v],color=clr[m],label=v+' '+ens_dict[m])
+        
+        plt.xticks(np.arange(min(stats_dict[m][v]['Forecast_Hour_Gridded']), 
+        max(stats_dict[m][v]['Forecast_Hour_Gridded'])+12, 12))
+#            ax.set_xticks(numpy.arange(0, 1, 0.1))
+#            ax.set_yticks(numpy.arange(0, 1., 0.1))
+        plt.grid(True)
+        plt.legend(loc = 'upper left')
+        if v.startswith('QF850'):
+            vstr = v[0:5]
+        else:
+            vstr = v[0:3]
+        plt.title(title_dict[vstr]+s,fontsize=20)
+        plt.xlabel('Forecast Hour',fontsize=14)
+        plt.ylabel(var_units[vstr],fontsize=14)
+
 if AR_specific == False:
     #separate plot for MSE and variance
     for s in stats_list:
-        fig = plt.figure(figsize=(14,8))  
-        #each ensemble type      
-        for m in stats_dict_vars:
-            if control_vars == True:
-                variables = plot_vars
-            else:
-                variables = stats_dict[m]
-            #each variable
-            for v in variables:
-                #if we are plotting gridded obs stats
-                plt.plot(stats_dict[m][v]['Forecast_Hour_Gridded'],stats_dict[m][v][s],
-                         linestyle=ls2[v],marker=md[v],color=clr[m],label=v+' '+ens_dict[m])
+        if separate_plots == False:
+            fig = plt.figure(figsize=(14,8))  
+            #each ensemble type      
+            for m in stats_dict_vars:
+                plot_stats()
+            #plt.show()
+            #fig.savefig(savedir+'850mb_Moisture_Flux_'+s+'_'+datestr+'.png',frameon=False,bbox_inches='tight')
+           
+        elif separate_plots == True:
+            for m in stats_dict_vars:
+                fig = plt.figure(figsize=(14,8))  
+                plot_stats()
+                #plt.show()
+                #fig.savefig(savedir+'850mb_Moisture_Flux_'+s+'_'+datestr+'.png',frameon=False,bbox_inches='tight')
+ 
                 
-                plt.xticks(np.arange(min(stats_dict[m][v]['Forecast_Hour_Gridded']), 
-                max(stats_dict[m][v]['Forecast_Hour_Gridded'])+12, 12))
-    #            ax.set_xticks(numpy.arange(0, 1, 0.1))
-    #            ax.set_yticks(numpy.arange(0, 1., 0.1))
-                plt.grid(True)
-                plt.legend(loc = 'upper left')
-                plt.title('850mb Moisture Flux '+s,fontsize=20)
-                plt.xlabel('Forecast Hour',fontsize=14)
-                plt.ylabel(var_units['QF850'],fontsize=14)
-        #plt.show()
-        #fig.savefig(savedir+'850mb_Moisture_Flux_'+s+'_'+datestr+'.png',frameon=False,bbox_inches='tight')
-
 elif AR_specific == True:
     #separate plot for MSE and variance
     for s in stats_list:
@@ -283,4 +328,5 @@ elif AR_specific == True:
 #            plt.ylabel(var_units[v],fontsize=14)
 #            
 #            fig.savefig(savedir+v+'_'+s+'_'+m+'_'+datestr+'.png')
+    
 #    
