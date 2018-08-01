@@ -17,6 +17,8 @@ print('start time: ',start_time)
 #to run this in spyder, change this to False, to run in shell script, change to True
 shell_script=True
 
+AR_specific = False #using a predefined value to find gridspaces where an AR is present.
+
 if shell_script==False:
     ensemble_type = 'ncep'
     #used for loading the prior files-order matters for loading the file
@@ -545,9 +547,6 @@ else:
             MSE_gridob_region = np.mean(MSE_gridob_region_list)
             MSE_gridob_region2_list = np.array(gridob_SE_dict[var][f_h]['gridpoints_region2'])
             MSE_gridob_region2 = np.mean(MSE_gridob_region2_list)
-            MSE_gridob_region2_ARweights_list = np.array(gridob_SE_dict[var][f_h]['gridpoints_region2_AR_weights'])
-            MSE_gridob_region2_AR_list = np.array(gridob_SE_dict[var][f_h]['gridpoints_region2_AR'])
-            MSE_gridob_region2_AR = np.average(MSE_gridob_region2_AR_list,weights=MSE_gridob_region2_ARweights_list)
             
             variance_gridob_obs_list = np.array(gridob_variance_dict[var][f_h]['obs'])
             variance_gridob_obs = np.mean(variance_gridob_obs_list)
@@ -557,12 +556,17 @@ else:
             variance_gridob_region = np.mean(variance_gridob_region_list)
             variance_gridob_region2_list = np.array(gridob_variance_dict[var][f_h]['gridpoints_region2'])
             variance_gridob_region2 = np.mean(variance_gridob_region2_list)
-            variance_gridob_region2_AR_list = np.array(gridob_variance_dict[var][f_h]['gridpoints_region2_AR'])
-            variance_gridob_region2_AR = np.average(variance_gridob_region2_AR_list,weights=MSE_gridob_region2_ARweights_list)
             
             stats_list.append(inflation+','+prior_or_post+','+ensemble_type+','+var+','+f_h+','+str(MSE_gridob_obs)+','+str(variance_gridob_obs)+','+str(MSE_gridob_fullgrid)+','+str(variance_gridob_fullgrid)+','+str(MSE_gridob_region)+','+str(variance_gridob_region)+','+str(MSE_gridob_region2)+','+str(variance_gridob_region2)+'\n')
-            ARonly_stats_list.append(inflation+','+prior_or_post+','+ensemble_type+','+var+','+f_h+','+str(MSE_gridob_region2_AR)+','+str(variance_gridob_region2_AR)+'\n')
             
+            if AR_specific == True:
+                MSE_gridob_region2_ARweights_list = np.array(gridob_SE_dict[var][f_h]['gridpoints_region2_AR_weights'])
+                MSE_gridob_region2_AR_list = np.array(gridob_SE_dict[var][f_h]['gridpoints_region2_AR'])
+                MSE_gridob_region2_AR = np.average(MSE_gridob_region2_AR_list,weights=MSE_gridob_region2_ARweights_list)
+                variance_gridob_region2_AR_list = np.array(gridob_variance_dict[var][f_h]['gridpoints_region2_AR'])
+                variance_gridob_region2_AR = np.average(variance_gridob_region2_AR_list,weights=MSE_gridob_region2_ARweights_list)
+                ARonly_stats_list.append(inflation+','+prior_or_post+','+ensemble_type+','+var+','+f_h+','+str(MSE_gridob_region2_AR)+','+str(variance_gridob_region2_AR)+'\n')
+
 #save the stats list after all forecast hours have been appended for one variable
 print('Writing statistics to .txt file')
 savedir_str = save_dir+datestr+'_'+varstr
@@ -578,10 +582,11 @@ for s in stats_list:
     f.write(s)
 f.close()
 
-f = open(AR_savedir_str, 'a')
-for s in ARonly_stats_list:
-    f.write(s)
-f.close()
+if AR_specific == True:
+    f = open(AR_savedir_str, 'a')
+    for s in ARonly_stats_list:
+        f.write(s)
+    f.close()
 
 end_time = datetime.now()
 print('end time: ',end_time)
