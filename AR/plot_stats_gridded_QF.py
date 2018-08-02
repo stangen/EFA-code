@@ -15,7 +15,9 @@ import EFA.duplicate_madaus.efa_functions as ef
 start_date = datetime(2015,11,10,0)
 end_date = datetime(2015,11,15,12)
 
-variables = ['TCW']#['TCW']#
+#which ob type(s) were assimilated (8/2)? used to load the .txt file
+#prior to 8/2, naming convention was all types of obs the .txt file contained.
+assim_obs = ['TCW']#['TCW']#
 
 grid = [-180,180,90,0,3]
 
@@ -63,7 +65,19 @@ ls2 = {
        'TCW0-1' : ' ',
        'TCW1' : '--',
        'TCW10' : '-.',
-       'TCW100' : ':'
+       'TCW100' : ':',
+       
+       'IWV' : '-',
+       'IWV1' : ' ',
+       'IWV10' : '--',
+       'IWV100' : '-.',
+       'IWV1000' : ':',
+       
+       'IVT' : '-',
+       'IVT1' : ' ',
+       'IVT10' : '--',
+       'IVT100' : '-.',
+       'IVT1000' : ':'
        
        }
 
@@ -82,7 +96,20 @@ md = {
        'TCW0-1' : 'o',
        'TCW1' : 'o',
        'TCW10' : 'o',
-       'TCW100' : 'o'       
+       'TCW100' : 'o',
+              
+       'IWV' : 'o',
+       'IWV1' : 'o',
+       'IWV10' : 'o',
+       'IWV100' : 'o',
+       'IWV1000' : 'o',
+       
+       'IVT' : 'o',
+       'IVT1' : 'o',
+       'IVT10' : 'o',
+       'IVT100' : 'o',
+       'IVT1000' : 'o'
+       
       }
 
 clr = {
@@ -106,7 +133,19 @@ clr_sp = {
         'TCW0-1' : 'y',
         'TCW1' : 'g',
         'TCW10' : 'b',
-        'TCW100' : 'r'   
+        'TCW100' : 'r',
+        
+        'IWV' : 'k',
+        'IWV1' : 'y',
+        'IWV10' : 'g',
+        'IWV100' : 'b',
+        'IWV1000' : 'r',
+       
+        'IVT' : 'k',
+        'IVT1' : 'y',
+        'IVT10' : 'g',
+        'IVT100' : 'b',
+        'IVT1000' : 'r'
         
         }
 
@@ -119,7 +158,9 @@ ens_dict = {
 
 title_dict = { 
         'QF850' : '850mb Moisture Flux ',
-        'TCW' : 'Total Column Water '
+        'TCW' : 'Total Column Water ',
+        'IWV' : 'Integrated Water Vapor',
+        'IVT' : 'Integrated Vapor Flux'
         }
 
 filedir = '/home/disk/hot/stangen/Documents/EFA/duplicate_madaus/mse_var_output/'
@@ -139,7 +180,7 @@ eh = end_date.strftime('%H')
 
 datestr=sy+sm+sd+sh+'-'+ey+em+ed+eh
 
-varstr = ef.var_string(variables)
+varstr = ef.var_string(assim_obs)
 
 gridstr = ef.var_string(grid)
 

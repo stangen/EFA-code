@@ -15,19 +15,23 @@ import matplotlib.pyplot as plt
 import time
 import EFA.duplicate_madaus.efa_functions as ef
 
-ens = 'eccc' #ncep, eccc, ecmwf
+ens = 'ecmwf' #ncep, eccc, ecmwf
 loc_rad = '1000'
-forecast_time = datetime(2015,11,14,12) # when the forecast was initialized
-analysis_time = datetime(2015,11,15,12) # when to compare with analysis
+forecast_time = datetime(2015,11,10,12) # when the forecast was initialized
+analysis_time = datetime(2015,11,11,12) # when to compare with analysis
 oberrvar = ['0-1','1','10','100']
 #oberrvar = [1,10,100,1000, 'ensvar', 250, 500, 750]
-varlist = ['TCW','TCW','TCW','TCW'] #used when loading ob update self
+varlist = ['TCW','TCW','TCW','TCW'] #used only when loading ob update self
 efh = '54hrs'
 grid = [-180,180,90,0,3]
 prior_var = ['TCW']#['QF850','D-QF850']#
 
 obd = 'self' #ob update 'all' or 'self'? 
+
+#variable we want to look at
 vrbl= 'TCW'#'QF850'#
+#what observation we used to update the ensemble
+ob_type = 'TCW' #used if ob update is 'all'
 
 #plotting variables
 s = 35
@@ -45,6 +49,14 @@ if vrbl == 'QF850':
 elif vrbl == 'TCW':
     cont_int = range(0,60,3)
     varstring = 'total column water'
+    varunit = '(mm)'
+elif vrbl == 'IVT':
+    cont_int = range(0,1000,50)
+    varstring = 'integrated vapor flux'
+    varunit = '(kg/m/s)'
+elif vrbl == 'IWV':
+    cont_int = range(0,50,2)
+    varstring = 'integrated water vapor'
     varunit = '(mm)'
 
 
@@ -190,9 +202,11 @@ plt.title(ens_dict[ens]+' prior (black) and error (colorfill) of '+am+'/'+ad+'/'
 for oev in oberrvar:    
     vrbl2 = vrbl
     if obd == 'all':
-        post_varstr = vrbl+str(oev)
+        #one observation error variance per file
+        post_varstr = ob_type+str(oev)
     elif obd == 'self':
-        post_varstr = ef.var_num_string(varlist, oberrvar) 
+        post_varstr = ef.var_num_string(varlist, oberrvar)
+        #if self-updating, add ob error variance to variable name for access in netCDF
         vrbl2 = vrbl+str(oev)
     # Filepath of the posterior forecast
     post_path = '/home/disk/hot/stangen/Documents/posterior_ensembles/gridded/ob_update_'+obd+'/inf_none/loc_'+loc_rad+'/'+ens+'/'+fy+fm+'/'+fy+'-'+fm+'-'+fd+'_'+fh+'_'+efh+'_'+grid_str+'_'+post_varstr+'.nc'
