@@ -35,6 +35,10 @@ if shell_script==False:
     #If prior, don't worry about value, will be set to [''] later
     ob_err_var = ['1']#[0] 
     #all obs we will have in the end- for saving the file
+    #8/2: or, what observation type(s) were assimilated to get the stats of the
+    #variables in the .txt file- i.e. can have IVT assimilated, but in the end
+    #there could be IVT and IWV stats in file, associated with the IVT
+    #update if self_update is False. still for saving .txt file 
     allobs = ['QF850']#['ALT']
     #date range of ensembles used
     start_date = datetime(2015,11,14,0)#2013,4,4,0)
