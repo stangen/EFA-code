@@ -314,7 +314,7 @@ def get_ob_points(left=-180,right=180,top=90,bottom=0,spacing=3):
             
     return latlon
 
-def dt_str_timedelta(date,forecast_hour):
+def dt_str_timedelta(date,forecast_hour=0):
     """
     Converts a datetime object to year, month, day, and hour strings.
     Also contains the option to add n hours to the datetime object
@@ -331,3 +331,23 @@ def dt_str_timedelta(date,forecast_hour):
     dth = dt.strftime('%H')
     
     return dty, dtm, dtd, dth
+
+def get_units(par):
+    """
+    Returns the units of the given geophysical parameter
+    """
+    if par in ['Z500','Z700','Z850','Z925','Z1000']: return 'meters'
+    elif par in ['T500','T700','T850','T925','T1000','T2M','t2m']: return 'Kelvin'
+    elif par in ['RH500','RH700','RH850','RH925','RH1000','RH2M']: return 'percent'
+    elif par=='MSLP': return 'pascals'
+    elif par =='ALT': return 'hPa'
+    elif par[0:2] == 'QF': return 'g/kg*m/s'
+    elif par[0:2] == 'D-': return 'deg'
+    elif par=='CHI200': return '10$^{6}$ m$^{2}$ s$^{-1}$'
+    elif par=='PRATE': return 'mm/day'
+    elif par in ['PWAT','P6HR','tcw', 'TCW','IWV']: return 'mm'
+    elif par == 'IVT': return 'kg/m/s'
+    elif par in ['U500','V500','U700','V700','U850','V850','U925','V925', \
+                 'U1000','V1000','U10M','V10M']: return 'm/s'
+    elif par=='OLR': return 'W m$^{-2}$'
+    else: raise IOError('Invalid field: {}'.format(par))
