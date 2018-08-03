@@ -24,21 +24,21 @@ import EFA.duplicate_madaus.efa_functions as ef
 
 start_time = datetime.now()
 print('start time: ',start_time)
-shell_script = True
+shell_script = False
 #indicate that we are inflating the posterior perturbations
 inf_post = False
 
 if shell_script == False:
-    ensemble_type = 'ncep'
+    ensemble_type = 'eccc'
     #All variables in the prior netCDF
-    variables = ['QF850','D-QF850']#['T2M','ALT']#['T2M', 'ALT', 'P6HR', 'TCW']
+    variables = ['IWV','IVT','D-IVT']#['TCW']#['QF850','D-QF850']#['T2M','ALT']#['T2M', 'ALT', 'P6HR', 'TCW']
     #the ob type of the observations we are assimilating, and its associated
     #observation error variance
-    obs_type =['QF850']#['ALT','ALT']    
-    ob_err_var = ['200']#[1,0] #or ['ensvar'] for use ensemble variance
+    obs_type = ['IVT']#['TCW']#['QF850']#['ALT','ALT']    
+    ob_err_var = ['100']#[1,0] #or ['ensvar'] for use ensemble variance
     #obs_dict = {'ALT':1, 'ALT':0}    
     #the variables in the netCDF we want to update
-    update_vars= ['QF850','D-QF850']#['ALT'] #['T2M','ALT']
+    update_vars= ['IWV','IVT','D-IVT']#['TCW']#['QF850','D-QF850']#['ALT'] #['T2M','ALT']
     #are the observations only updating their corresponding variable, or
     #are they updating all variables? -ie t2m only updates t2m, alt only updates alt
     self_update=False #true if you want the above updates, otherwise false
@@ -47,7 +47,7 @@ if shell_script == False:
     #localization radius (for Gaspari-Cohn)
     localize_radius = 1000
     #date to run efa
-    date = datetime(2015,11,12,0)#2013,4,1,0)
+    date = datetime(2015,11,13,12)#2013,4,1,0)
     #inflation?
     inflation = 'none'
     #what kind of observations are we using? MADIS or gridded future 0-hour
@@ -305,7 +305,7 @@ def run_efa(ob_type,update_var,ob_err_var):
                 with Dataset(existing_file,'a') as dset:
                     print('Writing variable {}'.format(var))
                     dset.createVariable(var+ob_err_var_str, np.float32, ('time','lat','lon','ens',))
-                    dset.variables[var+ob_err_var_str].units = ut.get_units(var)
+                    dset.variables[var+ob_err_var_str].units = ef.get_units(var)
                     dset.variables[var+ob_err_var_str][:] = state[var].values
                 #if the filename already contains a .nc because we created the
                 #file we are appending to separately from this run, delete

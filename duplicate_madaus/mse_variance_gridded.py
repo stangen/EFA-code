@@ -15,9 +15,9 @@ import EFA.duplicate_madaus.efa_functions as ef
 start_time = datetime.now()
 print('start time: ',start_time)
 #to run this in spyder, change this to False, to run in shell script, change to True
-shell_script=True
+shell_script=False
 
-AR_specific = False #using a predefined value to find gridspaces where an AR is present.
+AR_specific = True #using a predefined value to find gridspaces where an AR is present.
 
 if shell_script==False:
     ensemble_type = 'ncep'
@@ -324,31 +324,32 @@ for date in dates:
                 gridob_variance_dict[ob_type][sfh]['gridpoints_region'] = gridob_variance_dict[ob_type][sfh].get('gridpoints_region',[])
                 gridob_variance_dict[ob_type][sfh]['gridpoints_region2'] = gridob_variance_dict[ob_type][sfh].get('gridpoints_region2',[])
                 gridob_variance_dict[ob_type][sfh]['gridpoints_region2_AR'] = gridob_variance_dict[ob_type][sfh].get('gridpoints_region2_AR',[])
-               
-                for ob_counter, ob in enumerate(grid_obs):
-                    #this gets the observation information from the text file
-                    ob_info = mt.get_ob_info(ob)
-                    #get longitude positive-definite- ie -130 lon is 230 E
-                    if ob_info['lon'] < 0:
-                        ob_info['lon'] = ob_info['lon'] + 360
-                    utctime = datetime.utcfromtimestamp(ob_info['time'])
-                    #find interpolated ob estimate, if it passes the terrain check.
-                    #the terrain check is done within the closest_points function
-                    interp, TorF = ef.closest_points(ob_info['lat'],ob_info['lon'],lats,lons,ob_info['elev'],
-                                               elevs,utctime,statecls['validtime'].values,
-                                               statecls.variables[netcdf_varnames[i]].values,need_interp=True)
-                    
-                    ob_value = ob_info['ob']
-                    #calculate MSE
-                    
-                    se = (np.mean(interp)-ob_value)**2
-                    #calculate variance
-                    hx_variance_unbiased = np.var(interp, ddof=1)
-                    #append SE/variance to list
-                    gridob_SE_dict[ob_type][sfh]['obs'].append(se)
-                    gridob_variance_dict[ob_type][sfh]['obs'].append(hx_variance_unbiased)
-                    
-                print('Added stats from '+str(len(grid_obs))+' gridded obs')        
+                
+                if AR_specific == False:
+                    for ob_counter, ob in enumerate(grid_obs):
+                        #this gets the observation information from the text file
+                        ob_info = mt.get_ob_info(ob)
+                        #get longitude positive-definite- ie -130 lon is 230 E
+                        if ob_info['lon'] < 0:
+                            ob_info['lon'] = ob_info['lon'] + 360
+                        utctime = datetime.utcfromtimestamp(ob_info['time'])
+                        #find interpolated ob estimate, if it passes the terrain check.
+                        #the terrain check is done within the closest_points function
+                        interp, TorF = ef.closest_points(ob_info['lat'],ob_info['lon'],lats,lons,ob_info['elev'],
+                                                   elevs,utctime,statecls['validtime'].values,
+                                                   statecls.variables[netcdf_varnames[i]].values,need_interp=True)
+                        
+                        ob_value = ob_info['ob']
+                        #calculate MSE
+                        
+                        se = (np.mean(interp)-ob_value)**2
+                        #calculate variance
+                        hx_variance_unbiased = np.var(interp, ddof=1)
+                        #append SE/variance to list
+                        gridob_SE_dict[ob_type][sfh]['obs'].append(se)
+                        gridob_variance_dict[ob_type][sfh]['obs'].append(hx_variance_unbiased)
+                        
+                    print('Added stats from '+str(len(grid_obs))+' gridded obs')        
                 
 #--------------------------------------------------------------------------------------------------------
                 #comparison with all grid points
@@ -434,10 +435,25 @@ for date in dates:
                         var_region2 = fcst_var[t2:b2,l2:r2]
                         print('changing western edge')
                 
-                    #get the region and make it a masked array
-                    fcst_AR = fcst_ens_mean[t2:b2,l2:r2]
-                    #mask elements which are less than 60
-                    boolarray = fcst_AR < 60
+                    #get the region and make it a masked array- region where the AR
+                    #is for the forecast hour, according to the analysis grid
+                    anl_AR = anl_ens_mean[t2:b2,l2:r2]
+                    #mask elements which are less than a threshold
+                    if ob_type.startswith('QF850'):
+                        boolarray = anl_AR >= 60
+                    elif ob_type.startswith('IVT'):
+                        boolarray = anl_AR >= 250
+                    elif ob_type.startswith('IWV'):
+                        #need to access analysis IVT to determine presence of AR
+                        efaIVT = Load_Data(date,ensemble_type,prior_vrbls,'IVT',[netcdf_varnames[i]],post_vrbls=post_vrbls,
+                        grid=grid,new_format=new_format,efh=efh)
+                        
+                        anl_IVT, lats, lons = efa.load_ens_netcdf(fh)
+                        anl_IVT_mean = np.mean(anl_IVT,axis=-1)
+                        
+                        anl_IVT_AR = anl_IVT_mean[t2:b2,l2:r2]
+                        boolarray = anl_IVT_AR >= 250
+                        
                     #mask se and variance elements which are not associated with an AR
 #                    se_region2.mask = boolarray
 #                    var_region2.mask = boolarray
@@ -445,11 +461,11 @@ for date in dates:
                     lonAR, latAR = np.radians(np.meshgrid(lons[l2:r2], lats[t2:b2]))
                     weights_AR = np.cos(latAR)
                     
-                    gridob_SE_dict[ob_type][sfh]['gridpoints_region2_AR'].extend(se_region2[~boolarray])
-                    gridob_variance_dict[ob_type][sfh]['gridpoints_region2_AR'].extend(var_region2[~boolarray])
-                    gridob_SE_dict[ob_type][sfh]['gridpoints_region2_AR_weights'].extend(weights_AR[~boolarray])
+                    gridob_SE_dict[ob_type][sfh]['gridpoints_region2_AR'].extend(se_region2[boolarray])
+                    gridob_variance_dict[ob_type][sfh]['gridpoints_region2_AR'].extend(var_region2[boolarray])
+                    gridob_SE_dict[ob_type][sfh]['gridpoints_region2_AR_weights'].extend(weights_AR[boolarray])
                     
-                    AR_list.extend(fcst_AR[~boolarray])                        
+                    AR_list.extend(anl_AR[boolarray])                        
             #update the forecast hour to load the next forecast, 6 hours later
             j = j + 1
             fh = hour_step*j
@@ -551,6 +567,10 @@ else:
             MSE_gridob_region = np.mean(MSE_gridob_region_list)
             MSE_gridob_region2_list = np.array(gridob_SE_dict[var][f_h]['gridpoints_region2'])
             MSE_gridob_region2 = np.mean(MSE_gridob_region2_list)
+            MSE_gridob_region2_ARweights_list = np.array(gridob_SE_dict[var][f_h]['gridpoints_region2_AR_weights'])
+            MSE_gridob_region2_AR_list = np.array(gridob_SE_dict[var][f_h]['gridpoints_region2_AR'])
+            MSE_gridob_region2_AR = np.average(MSE_gridob_region2_AR_list,weights=MSE_gridob_region2_ARweights_list)
+
             
             variance_gridob_obs_list = np.array(gridob_variance_dict[var][f_h]['obs'])
             variance_gridob_obs = np.mean(variance_gridob_obs_list)
@@ -560,16 +580,15 @@ else:
             variance_gridob_region = np.mean(variance_gridob_region_list)
             variance_gridob_region2_list = np.array(gridob_variance_dict[var][f_h]['gridpoints_region2'])
             variance_gridob_region2 = np.mean(variance_gridob_region2_list)
+            variance_gridob_region2_AR_list = np.array(gridob_variance_dict[var][f_h]['gridpoints_region2_AR'])
+            variance_gridob_region2_AR = np.average(variance_gridob_region2_AR_list,weights=MSE_gridob_region2_ARweights_list)
+
+            if AR_specific == False:
+                stats_list.append(inflation+','+prior_or_post+','+ensemble_type+','+var+','+f_h+','+str(MSE_gridob_obs)+','+str(variance_gridob_obs)+','+str(MSE_gridob_fullgrid)+','+str(variance_gridob_fullgrid)+','+str(MSE_gridob_region)+','+str(variance_gridob_region)+','+str(MSE_gridob_region2)+','+str(variance_gridob_region2)+'\n')
             
-            stats_list.append(inflation+','+prior_or_post+','+ensemble_type+','+var+','+f_h+','+str(MSE_gridob_obs)+','+str(variance_gridob_obs)+','+str(MSE_gridob_fullgrid)+','+str(variance_gridob_fullgrid)+','+str(MSE_gridob_region)+','+str(variance_gridob_region)+','+str(MSE_gridob_region2)+','+str(variance_gridob_region2)+'\n')
-            
-            if AR_specific == True:
-                MSE_gridob_region2_ARweights_list = np.array(gridob_SE_dict[var][f_h]['gridpoints_region2_AR_weights'])
-                MSE_gridob_region2_AR_list = np.array(gridob_SE_dict[var][f_h]['gridpoints_region2_AR'])
-                MSE_gridob_region2_AR = np.average(MSE_gridob_region2_AR_list,weights=MSE_gridob_region2_ARweights_list)
-                variance_gridob_region2_AR_list = np.array(gridob_variance_dict[var][f_h]['gridpoints_region2_AR'])
-                variance_gridob_region2_AR = np.average(variance_gridob_region2_AR_list,weights=MSE_gridob_region2_ARweights_list)
-                ARonly_stats_list.append(inflation+','+prior_or_post+','+ensemble_type+','+var+','+f_h+','+str(MSE_gridob_region2_AR)+','+str(variance_gridob_region2_AR)+'\n')
+            elif AR_specific == True:
+                #ARonly_stats_list.append(inflation+','+prior_or_post+','+ensemble_type+','+var+','+f_h+','+str(MSE_gridob_region2_AR)+','+str(variance_gridob_region2_AR)+'\n')
+                stats_list.append(inflation+','+prior_or_post+','+ensemble_type+','+var+','+f_h+','+str(MSE_gridob_region2_AR)+','+str(variance_gridob_region2_AR)+','+str(MSE_gridob_fullgrid)+','+str(variance_gridob_fullgrid)+','+str(MSE_gridob_region)+','+str(variance_gridob_region)+','+str(MSE_gridob_region2)+','+str(variance_gridob_region2)+'\n')
 
 #save the stats list after all forecast hours have been appended for one variable
 print('Writing statistics to .txt file')
@@ -586,11 +605,11 @@ for s in stats_list:
     f.write(s)
 f.close()
 
-if AR_specific == True:
-    f = open(AR_savedir_str, 'a')
-    for s in ARonly_stats_list:
-        f.write(s)
-    f.close()
+#if AR_specific == True:
+#    f = open(AR_savedir_str, 'a')
+#    for s in ARonly_stats_list:
+#        f.write(s)
+#    f.close()
 
 end_time = datetime.now()
 print('end time: ',end_time)
