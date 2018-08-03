@@ -8,7 +8,6 @@ Created on Tue Jun 19 16:23:50 2018
 
 import numpy as np
 from netCDF4 import Dataset, num2date, date2num
-import EFA.efa_files.cfs_utilities_st as ut
 from datetime import timedelta
 
 def closest_points(ob_lat, ob_lon, lats, lons, ob_elev=None, elevs=None, ob_time=None, 
@@ -263,7 +262,7 @@ def make_netcdf(state,outfile,ob_err_var=''):
                 varstr = var+ob_err_var
                 print('Writing variable {}'.format(var))
                 dset.createVariable(varstr, np.float32, ('time','lat','lon','ens',))
-                dset.variables[varstr].units = ut.get_units(var)
+                dset.variables[varstr].units = get_units(var)
                 dset.variables[varstr][:] = state[var].values
                 
 def get_ob_points(left=-180,right=180,top=90,bottom=0,spacing=3):

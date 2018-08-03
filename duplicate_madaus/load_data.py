@@ -26,7 +26,7 @@ class Load_Data():
     ob_type = the observation variable type we will be assimilating (only 1)
     update_var = the variable type(s) we will be updating
     post_vrbls = all the variables in the posterior netCDF - only used when 
-    running statistics on the posterior ensemble
+    running statistics on the posterior ensemble in mse_variance_gridded
         for use in mse_variance, ob_type is the variable type of the observation,
         without observation error variance attached with it. This is to load 
         observations, which do not have ob err var as part of the name.
@@ -36,6 +36,10 @@ class Load_Data():
         These should match if ob error variance was not used in creating the posterior
         variable names, otherwise update_var contains ob err variance.
         (just 1, since it runs 1 at a time)
+        
+        for use in generate_gridded_obs, update_var and post_vrbls are not needed.
+        
+        for use in run_efa_script, post_vrbls is not needed.
         
     new stuff:
         grid: list of ints containing:
