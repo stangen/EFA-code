@@ -26,7 +26,7 @@ control_vars = False
 
 plot_vars = ['QF850','QF850100','QF850750','QF8501000']#,'QF850250','QF850500']
 
-AR_specific = False
+AR_specific = True
 
 separate_plots = True
 
@@ -72,12 +72,14 @@ ls2 = {
        'IWV10' : '--',
        'IWV100' : '-.',
        'IWV1000' : ':',
+       'IWV10000' : '--',
        
        'IVT' : '-',
        'IVT1' : ' ',
        'IVT10' : '--',
        'IVT100' : '-.',
-       'IVT1000' : ':'
+       'IVT1000' : ':',
+       'IVT10000' : '--'
        
        }
 
@@ -103,12 +105,14 @@ md = {
        'IWV10' : 'o',
        'IWV100' : 'o',
        'IWV1000' : 'o',
+       'IWV10000' : 'o',
        
        'IVT' : 'o',
        'IVT1' : 'o',
        'IVT10' : 'o',
        'IVT100' : 'o',
-       'IVT1000' : 'o'
+       'IVT1000' : 'o',
+       'IVT10000' : 'o'
        
       }
 
@@ -140,12 +144,14 @@ clr_sp = {
         'IWV10' : 'g',
         'IWV100' : 'b',
         'IWV1000' : 'r',
+        'IWV10000' : 'g',
        
         'IVT' : 'k',
         'IVT1' : 'y',
         'IVT10' : 'g',
         'IVT100' : 'b',
-        'IVT1000' : 'r'
+        'IVT1000' : 'r',
+        'IVT10000' : 'g'
         
         }
 
@@ -160,7 +166,7 @@ title_dict = {
         'QF850' : '850mb Moisture Flux ',
         'TCW' : 'Total Column Water ',
         'IWV' : 'Integrated Water Vapor',
-        'IVT' : 'Integrated Vapor Flux'
+        'IVT' : 'Integrated Vapor Transport'
         }
 
 filedir = '/home/disk/hot/stangen/Documents/EFA/duplicate_madaus/mse_var_output/'
@@ -184,10 +190,12 @@ varstr = ef.var_string(assim_obs)
 
 gridstr = ef.var_string(grid)
 
-if AR_specific == True:
-    filepath = filedir+datestr+'_'+varstr+'_'+gridstr+'_gridobs_ARonly.txt'
-else:
-    filepath = filedir+datestr+'_'+varstr+'_'+gridstr+'_gridobs.txt'
+#if AR_specific == True:
+#    filepath = filedir+datestr+'_'+varstr+'_'+gridstr+'_gridobs_ARonly.txt'
+#else:
+#    filepath = filedir+datestr+'_'+varstr+'_'+gridstr+'_gridobs.txt'
+
+filepath = filedir+datestr+'_'+varstr+'_'+gridstr+'_gridobs.txt'
 
 f1 = open(filepath, 'r')
 stats = f1.readlines()
@@ -206,13 +214,13 @@ for line in stats:
     mse_gridobs = line_split[5] #mean squared error of gridded obs
     variance_gridobs = line_split[6] #variance of gridded obs
     #if we are plotting the AR-specific region
-    if AR_specific == False:
-        mse_gridall = line_split[7] #mean squared error of entire grid
-        variance_gridall = line_split[8] #variance of entire grid
-        mse_grid_reg1 = line_split[9] #region 1 = -135:-115W, 55:30 N
-        variance_grid_reg1 = line_split[10] 
-        mse_grid_reg2 = line_split[11] #region2 = -180:-115W, 50:35 N
-        variance_grid_reg2 = line_split[12] 
+    #if AR_specific == False:
+    mse_gridall = line_split[7] #mean squared error of entire grid
+    variance_gridall = line_split[8] #variance of entire grid
+    mse_grid_reg1 = line_split[9] #region 1 = -135:-115W, 55:30 N
+    variance_grid_reg1 = line_split[10] 
+    mse_grid_reg2 = line_split[11] #region2 = -180:-115W, 50:35 N
+    variance_grid_reg2 = line_split[12] 
 
 #----To put loc radius back in, add [efa] after [ens]
     #this block is to set up the dictionary structure
@@ -227,28 +235,31 @@ for line in stats:
     if AR_specific == False:
         srt['MSE_Grid_Obs'] = srt.get('MSE_Grid_Obs',[])
         srt['Variance_Grid_Obs'] = srt.get('Variance_Grid_Obs',[])
-        srt['MSE_Grid_All'] = srt.get('MSE_Grid_All',[])
-        srt['Variance_Grid_All'] = srt.get('Variance_Grid_All',[])
-        srt['MSE_Region_1'] = srt.get('MSE_Region_1',[])
-        srt['Variance_Region_1'] = srt.get('Variance_Region_1',[])
-        srt['MSE_Region_2'] = srt.get('MSE_Region_2',[])
-        srt['Variance_Region_2'] = srt.get('Variance_Region_2',[])
         srt['MSE_Grid_Obs'].append(float(mse_gridobs))
         srt['Variance_Grid_Obs'].append(float(variance_gridobs))
-        srt['MSE_Grid_All'].append(float(mse_gridall))
-        srt['Variance_Grid_All'].append(float(variance_gridall))
-        srt['MSE_Region_1'].append(float(mse_grid_reg1))
-        srt['Variance_Region_1'].append(float(variance_grid_reg1))
-        srt['MSE_Region_2'].append(float(mse_grid_reg2))
-        srt['Variance_Region_2'].append(float(variance_grid_reg2)) 
-
-    #stats_dict[var][ens][efa][']
     
     elif AR_specific == True:
         srt['MSE_AR_Gridpoints'] = srt.get('MSE_AR_Gridpoints',[])
         srt['Variance_AR_Gridpoints'] = srt.get('Variance_AR_Gridpoints',[])    
         srt['MSE_AR_Gridpoints'].append(float(mse_gridobs))
         srt['Variance_AR_Gridpoints'].append(float(variance_gridobs))
+    
+    srt['MSE_Grid_All'] = srt.get('MSE_Grid_All',[])
+    srt['Variance_Grid_All'] = srt.get('Variance_Grid_All',[])
+    srt['MSE_Region_1'] = srt.get('MSE_Region_1',[])
+    srt['Variance_Region_1'] = srt.get('Variance_Region_1',[])
+    srt['MSE_Region_2'] = srt.get('MSE_Region_2',[])
+    srt['Variance_Region_2'] = srt.get('Variance_Region_2',[])
+
+    srt['MSE_Grid_All'].append(float(mse_gridall))
+    srt['Variance_Grid_All'].append(float(variance_gridall))
+    srt['MSE_Region_1'].append(float(mse_grid_reg1))
+    srt['Variance_Region_1'].append(float(variance_grid_reg1))
+    srt['MSE_Region_2'].append(float(mse_grid_reg2))
+    srt['Variance_Region_2'].append(float(variance_grid_reg2)) 
+    
+    
+
         
    
 
@@ -305,46 +316,46 @@ def plot_stats():
         plt.xlabel('Forecast Hour',fontsize=14)
         plt.ylabel(var_units[vstr],fontsize=14)
 
-if AR_specific == False:
+#if AR_specific == False:
     #separate plot for MSE and variance
-    for s in stats_list:
-        if separate_plots == False:
-            fig = plt.figure(figsize=(14,8))  
-            #each ensemble type      
-            for m in stats_dict_vars:
-                plot_stats()
-            #plt.show()
-            #fig.savefig(savedir+'850mb_Moisture_Flux_'+s+'_'+datestr+'.png',frameon=False,bbox_inches='tight')
-           
-        elif separate_plots == True:
-            for m in stats_dict_vars:
-                fig = plt.figure(figsize=(14,8))  
-                plot_stats()
-                #plt.show()
-                #fig.savefig(savedir+'850mb_Moisture_Flux_'+s+'_'+datestr+'.png',frameon=False,bbox_inches='tight')
- 
-                
-elif AR_specific == True:
-    #separate plot for MSE and variance
-    for s in stats_list:
+for s in stats_list:
+    if separate_plots == False:
+        fig = plt.figure(figsize=(14,8))  
         #each ensemble type      
         for m in stats_dict_vars:
+            plot_stats()
+        #plt.show()
+        #fig.savefig(savedir+'850mb_Moisture_Flux_'+s+'_'+datestr+'.png',frameon=False,bbox_inches='tight')
+       
+    elif separate_plots == True:
+        for m in stats_dict_vars:
             fig = plt.figure(figsize=(14,8))  
-            #each variable
-            for v in stats_dict[m]:
-                #if we are plotting gridded obs stats
-                plt.plot(stats_dict[m][v]['Forecast_Hour_Gridded'],stats_dict[m][v][s],
-                         linestyle='-',color=clr_sp[v],marker='o',label=v)
+            plot_stats()
+            #plt.show()
+            #fig.savefig(savedir+'850mb_Moisture_Flux_'+s+'_'+datestr+'.png',frameon=False,bbox_inches='tight')
+ 
                 
-                plt.xticks(np.arange(min(stats_dict[m][v]['Forecast_Hour_Gridded']), 
-                max(stats_dict[m][v]['Forecast_Hour_Gridded'])+12, 12))
-    #            ax.set_xticks(numpy.arange(0, 1, 0.1))
-    #            ax.set_yticks(numpy.arange(0, 1., 0.1))
-                plt.grid(True)
-                plt.legend(loc = 'upper left')
-                plt.title(ens_dict[m]+' 850mb Moisture Flux '+s,fontsize=20)
-                plt.xlabel('Forecast Hour',fontsize=14)
-                plt.ylabel(var_units['QF850'],fontsize=14)
+#elif AR_specific == True:
+#    #separate plot for MSE and variance
+#    for s in stats_list:
+#        #each ensemble type      
+#        for m in stats_dict_vars:
+#            fig = plt.figure(figsize=(14,8))  
+#            #each variable
+#            for v in stats_dict[m]:
+#                #if we are plotting gridded obs stats
+#                plt.plot(stats_dict[m][v]['Forecast_Hour_Gridded'],stats_dict[m][v][s],
+#                         linestyle='-',color=clr_sp[v],marker='o',label=v)
+#                
+#                plt.xticks(np.arange(min(stats_dict[m][v]['Forecast_Hour_Gridded']), 
+#                max(stats_dict[m][v]['Forecast_Hour_Gridded'])+12, 12))
+#    #            ax.set_xticks(numpy.arange(0, 1, 0.1))
+#    #            ax.set_yticks(numpy.arange(0, 1., 0.1))
+#                plt.grid(True)
+#                plt.legend(loc = 'upper left')
+#                plt.title(ens_dict[m]+' 850mb Moisture Flux '+s,fontsize=20)
+#                plt.xlabel('Forecast Hour',fontsize=14)
+#                plt.ylabel(var_units['QF850'],fontsize=14)
     
     #        fig.savefig(savedir+ens_dict[m]+'_850mb_Moisture_Flux_'+s+'_'+datestr+'.png',frameon=False,bbox_inches='tight')
     #        
