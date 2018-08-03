@@ -9,16 +9,15 @@ Created on Tue Jul 31 10:23:02 2018
 from netCDF4 import Dataset, num2date, date2num
 from datetime import datetime
 import numpy as np
-import EFA.efa_files.cfs_utilities_st as ut
 import surface_obs.madis_example.madis_utilities as mt
 import EFA.duplicate_madaus.efa_functions as ef
 import os
 
 # ecmwf, eccc for euro/canadian ensembles, ncep
-ensemble_type = ['eccc']
+ensemble_type = ['eccc','ecmwf','ncep']
 #start and end date to get ensembles. 
-start_date = datetime(2015,11,10,12) #YYYY,m,d,h
-end_date = datetime(2015,11,10,12)
+start_date = datetime(2015,11,10,0) #YYYY,m,d,h
+end_date = datetime(2015,11,17,12)
 hourstep = 12 #how often you want a new forecast initialization, usually 12 hr
 
 #variables with names coming from the raw TIGGE- see get_tigge_data if unsure of names.
@@ -107,8 +106,6 @@ for ens in ensemble_type:
         p_surf = surf.variables['sp'][:]
         u_surf = surf.variables['u10'][:]
         v_surf = surf.variables['v10'][:]
-        wind_surf = np.sqrt(u_surf**2+v_surf**2)
-
         
         #should have same lat/lon, members, and times as the surface
         #ensemble, so no need to load them here.
@@ -123,7 +120,6 @@ for ens in ensemble_type:
         
         # Allocate the state array
         print('Allocating the state vector array...')
-        #state = np.zeros((nvars,ntimes,nlats,nlons,nmems))
         state = np.zeros((nvars,ntimes,nmems,nlats,nlons))
         
         #get surface vapor pressure (hPa, or mb)
@@ -145,20 +141,20 @@ for ens in ensemble_type:
                 #make array of boolean where surface pressure is greater than 1000 hPa.
                 #this will create an array of the same shape of the ensemble, with
                 #True where the condition is met, and False otherwise. 
-                p_surf_less_1000 = p_surf >= p_aloft
+                p_surf_check = p_surf >= p_aloft
  
                 #calculate IWV of this column
                 #where the condition is not true, it will create values of 0
-                dp = np.subtract(p_surf,p_aloft,where=p_surf_less_1000)
-                q_mean = np.add(q_surf,q_aloft,where=p_surf_less_1000)/2
-                IWV = np.multiply(q_mean,dp,where=p_surf_less_1000)/g
-                
+                dp = np.subtract(p_surf,p_aloft,where=p_surf_check)
+                q_mean = np.add(q_surf,q_aloft,where=p_surf_check)/2
+                IWV = np.multiply(q_mean,dp,where=p_surf_check)/g                
                 state[0,:,:,:,:] = np.add(state[0,:,:,:,:],IWV)
+                
                 #calculate IVT of this column                
-                u_wind_mean = np.add(u_surf,u_aloft,where=p_surf_less_1000)/2
-                v_wind_mean = np.add(v_surf,v_aloft,where=p_surf_less_1000)/2                
-                u_IVT = np.multiply(IWV,u_wind_mean,where=p_surf_less_1000)
-                v_IVT = np.multiply(IWV,v_wind_mean,where=p_surf_less_1000)
+                u_wind_mean = np.add(u_surf,u_aloft,where=p_surf_check)/2
+                v_wind_mean = np.add(v_surf,v_aloft,where=p_surf_check)/2                
+                u_IVT = np.multiply(IWV,u_wind_mean,where=p_surf_check)
+                v_IVT = np.multiply(IWV,v_wind_mean,where=p_surf_check)
                
             else:
                 print('Working on',lev)
@@ -167,41 +163,33 @@ for ens in ensemble_type:
                 #for that gridbox, since the pressure levels are below ground there.
                 
     #-----------if surface pressure is between the 2 pressure levels
-                p_surf_between = (p_surf >= p_aloft) & (p_surf < p_aloft_lower)
+                p_surf_check = (p_surf >= p_aloft) & (p_surf < p_aloft_lower)
                 #average surface values with values of upper layer, and get 0s
                 #where this isn't the case
-                dp_between = np.subtract(p_surf,p_aloft,where=p_surf_between)
-                q_mean = np.add(q_surf,q_aloft,where=p_surf_between)/2
-                IWV_between = np.multiply(q_mean,dp_between,where=p_surf_between)/g               
-                state[0,:,:,:,:] = np.add(state[0,:,:,:,:],IWV_between)
+                dp = np.subtract(p_surf,p_aloft,where=p_surf_check)
+                q_mean = np.add(q_surf,q_aloft,where=p_surf_check)/2
+                IWV = np.multiply(q_mean,dp,where=p_surf_check)/g               
+                state[0,:,:,:,:] = np.add(state[0,:,:,:,:],IWV)
                 
-                u_wind_mean_between = np.add(u_surf,u_aloft,where=p_surf_between)/2
-                v_wind_mean_between = np.add(v_surf,v_aloft,where=p_surf_between)/2
-                u_IVT_between = np.multiply(IWV_between,u_wind_mean_between,where=p_surf_between)
-                v_IVT_between = np.multiply(IWV_between,v_wind_mean_between,where=p_surf_between)
+                u_wind_mean = np.add(u_surf,u_aloft,where=p_surf_check)/2
+                v_wind_mean = np.add(v_surf,v_aloft,where=p_surf_check)/2
+                u_IVT = u_IVT + np.multiply(IWV,u_wind_mean,where=p_surf_check)
+                v_IVT = v_IVT + np.multiply(IWV,v_wind_mean,where=p_surf_check)
                 
     #-----------if surface pressure is greater than both pressure levels-
                 #the two layers are both above ground               
-                p_surf_greater = (p_surf > p_aloft) & (p_surf > p_aloft_lower)
+                p_surf_check = (p_surf > p_aloft) & (p_surf > p_aloft_lower)
                 
                 #dp is a scalar in this case
-                dp_aloft = p_aloft_lower-p_aloft
-                q_aloft_lower = aloft.variables['q'][:,:,i-1,:,:]
-                q_mean = np.add(q_aloft_lower,q_aloft,where=p_surf_greater)/2
-                IWV_greater = np.multiply(q_mean,dp_aloft,where=p_surf_greater)/g
-                state[0,:,:,:,:] = np.add(state[0,:,:,:,:],IWV_greater)
+                dp = p_aloft_lower-p_aloft
+                q_mean = np.add(aloft.variables['q'][:,:,i-1,:,:],q_aloft,where=p_surf_check)/2
+                IWV = np.multiply(q_mean,dp,where=p_surf_check)/g
+                state[0,:,:,:,:] = np.add(state[0,:,:,:,:],IWV)
                 
-                u_aloft_lower = aloft.variables['u'][:,:,i-1,:,:]
-                v_aloft_lower = aloft.variables['v'][:,:,i-1,:,:]
-                
-                u_wind_mean_greater = np.add(u_aloft_lower,u_aloft,where=p_surf_greater)/2
-                v_wind_mean_greater = np.add(v_aloft_lower,v_aloft,where=p_surf_greater)/2
-                u_IVT_greater = np.multiply(IWV_greater,u_wind_mean_greater,where=p_surf_greater)
-                v_IVT_greater = np.multiply(IWV_greater,v_wind_mean_greater,where=p_surf_greater)     
-                
-                #add the IVT from each category of surface pressure to layer pressure
-                u_IVT = u_IVT + u_IVT_between + u_IVT_greater
-                v_IVT = v_IVT + v_IVT_between + v_IVT_between
+                u_wind_mean = np.add(aloft.variables['u'][:,:,i-1,:,:],u_aloft,where=p_surf_check)/2
+                v_wind_mean = np.add(aloft.variables['v'][:,:,i-1,:,:],v_aloft,where=p_surf_check)/2
+                u_IVT = u_IVT + np.multiply(IWV,u_wind_mean,where=p_surf_check)
+                v_IVT = v_IVT + np.multiply(IWV,v_wind_mean,where=p_surf_check)     
                                 
         #find magnitude of IVT 
         state[1,:,:,:,:] = np.sqrt(u_IVT**2+v_IVT**2)
@@ -218,7 +206,7 @@ for ens in ensemble_type:
         
         # Write ensemble forecast to netcdf - change name here
         #dset = Dataset(outdir+y+'-'+m+'-'+d+'_'+h+'_'+ens_type+'_'+outvar_string+'.nc','w')
-        dset = Dataset(outdir+y+'-'+m+'-'+d+'_'+h+'_'+tr_str+'_'+outvar_string+'.87nc','w')
+        dset = Dataset(outdir+y+'-'+m+'-'+d+'_'+h+'_'+tr_str+'_'+outvar_string+'.nc','w')
         dset.createDimension('time',None)
         dset.createDimension('lat',nlats)
         dset.createDimension('lon',nlons)
