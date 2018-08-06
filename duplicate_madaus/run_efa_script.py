@@ -24,7 +24,7 @@ import EFA.duplicate_madaus.efa_functions as ef
 
 start_time = datetime.now()
 print('start time: ',start_time)
-shell_script = False
+shell_script = True
 #indicate that we are inflating the posterior perturbations
 inf_post = False
 
@@ -150,9 +150,13 @@ def run_efa(ob_type,update_var,ob_err_var):
     if loc_type == 'GC':
         loc_rad = localize_radius
         loc_str = str(loc_rad)
+    elif loc_type == 'hybrid':
+        loc_rad = localize_radius
+        loc_str = str(loc_rad)+loc_type
     else:
         loc_rad = None
         loc_str = '_stat_sig'
+    
         
     time_lag = False
     
@@ -209,6 +213,12 @@ def run_efa(ob_type,update_var,ob_err_var):
                 ob_var = ob_dict['variance']
             elif use_ens_var == False:
                 ob_var = float(ob_err_var[o])
+                
+            #if we are using a hybrid localization radius- no localization within
+            #the AR, 1000 km outside of it
+            #if the lat/lon lie within some AR box, check if the ob point is in an AR
+                #get the IVT 12 hours into the forecast (3rd forecast hour)
+                #statecls.variables['IVT'][2]
                 
             #fill the observation class object with information for assimilation
             obser = Observation(value=ob_dict['ob'], time=utctime,

@@ -24,22 +24,23 @@ if shell_script==False:
     #used for loading the prior files-order matters for loading the file
     #used for prior ens stats comparison and for loading grid for use as observation
     #all the vars-look at the filename if unsure what they all are.
-    prior_vrbls = ['QF850','D-QF850']#['T2M','ALT']  #['T2M','ALT']
+    prior_vrbls = ['IWV','IVT','D-IVT']#['QF850','D-QF850']#['T2M','ALT']  #['T2M','ALT']
     #used for loading the posterior files-put in ob err var as part of the string, order matters
     #all the vars-look at the filename if unsure what they all are.
     #if doing stats on prior, don't worry about these, they won't be loaded.
-    post_vrbls = ['QF8501']#['ALT1','ALT0','ALT0-1']#['T2M','ALT']#
+    post_vrbls = ['IVT10000']#['QF8501']#['ALT1','ALT0','ALT0-1']#['T2M','ALT']#
     #which ob type we're getting stats for, can be more than 1 ['T2M','ALT']
-    ob_types = ['QF850']#['ALT']
+    ob_types = ['IWV','IVT']#['QF850']#['ALT']
     #observation error variance associated with the observation type
-    #If prior, don't worry about value, will be set to [''] later
-    ob_err_var = ['1']#[0] 
+    #If prior or if use_oberrvar is False, don't worry about value, won't be called
+    #If self_update == True, MAKE SURE THIS MATCHES OB ERR VAR AT END OF POST_VRBLS!!!
+    ob_err_var = ['10000','10000']#[0] 
     #all obs we will have in the end- for saving the file
     #8/2: or, what observation type(s) were assimilated to get the stats of the
     #variables in the .txt file- i.e. can have IVT assimilated, but in the end
     #there could be IVT and IWV stats in file, associated with the IVT
     #update if self_update is False. still for saving .txt file 
-    allobs = ['QF850']#['ALT']
+    allobs = ['IVT']#['QF850']#['ALT']
     #date range of ensembles used
     start_date = datetime(2015,11,14,0)#2013,4,4,0)
     end_date = datetime(2015,11,14,12)#2013,4,4,0)
@@ -49,7 +50,7 @@ if shell_script==False:
     #change for how far into the forecast to get observations, 1 is 6 hours in,
     #end_index is the last forecast hour to get obs for
     start_index = 2
-    end_index = 3
+    end_index = 2
     
     #if True, will load/do stats on posterior ensembles, if False, will load prior
     post=True
@@ -207,7 +208,7 @@ for date in dates:
         
         gridob_SE_dict[ob_type] = gridob_SE_dict.get(ob_type,{})
         gridob_variance_dict[ob_type] = gridob_variance_dict.get(ob_type,{})
-        
+                
         #Load in the ensemble data for a given initialization
         efa = Load_Data(date,ensemble_type,prior_vrbls,ob_types[i],[netcdf_varnames[i]],post_vrbls=post_vrbls,
                         grid=grid,new_format=new_format,efh=efh)
@@ -448,7 +449,7 @@ for date in dates:
                         efaIVT = Load_Data(date,ensemble_type,prior_vrbls,'IVT',[netcdf_varnames[i]],post_vrbls=post_vrbls,
                         grid=grid,new_format=new_format,efh=efh)
                         
-                        anl_IVT, lats, lons = efa.load_ens_netcdf(fh)
+                        anl_IVT, lats, lons = efaIVT.load_ens_netcdf(fh)
                         anl_IVT_mean = np.mean(anl_IVT,axis=-1)
                         
                         anl_IVT_AR = anl_IVT_mean[t2:b2,l2:r2]
