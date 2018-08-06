@@ -15,23 +15,24 @@ import matplotlib.pyplot as plt
 import time
 import EFA.duplicate_madaus.efa_functions as ef
 
-ens = 'ecmwf' #ncep, eccc, ecmwf
+ens = 'eccc' #ncep, eccc, ecmwf
 loc_rad = '1000'
-forecast_time = datetime(2015,11,10,12) # when the forecast was initialized
-analysis_time = datetime(2015,11,11,12) # when to compare with analysis
-oberrvar = ['0-1','1','10','100']
+forecast_time = datetime(2015,11,11,0) # when the forecast was initialized
+analysis_time = datetime(2015,11,13,0) # when to compare with analysis
+oberrvar = [100,1000,10000]
+#oberrvar = ['0-1','1','10','100']
 #oberrvar = [1,10,100,1000, 'ensvar', 250, 500, 750]
 varlist = ['TCW','TCW','TCW','TCW'] #used only when loading ob update self
 efh = '54hrs'
 grid = [-180,180,90,0,3]
-prior_var = ['TCW']#['QF850','D-QF850']#
+prior_var = ['IWV','IVT','D-IVT']#['QF850','D-QF850']#['TCW']#
 
-obd = 'self' #ob update 'all' or 'self'? 
+obd = 'all' #ob update 'all' or 'self'? 
 
 #variable we want to look at
-vrbl= 'TCW'#'QF850'#
+vrbl= 'IVT'#'QF850'#'TCW'#
 #what observation we used to update the ensemble
-ob_type = 'TCW' #used if ob update is 'all'
+ob_type = 'IVT'#'QF850'#'TCW' #used if ob update is 'all'
 
 #plotting variables
 s = 35
@@ -51,8 +52,8 @@ elif vrbl == 'TCW':
     varstring = 'total column water'
     varunit = '(mm)'
 elif vrbl == 'IVT':
-    cont_int = range(0,1000,50)
-    varstring = 'integrated vapor flux'
+    cont_int = range(0,1200,50)
+    varstring = 'integrated vapor transport'
     varunit = '(kg/m/s)'
 elif vrbl == 'IWV':
     cont_int = range(0,50,2)
@@ -268,7 +269,7 @@ for oev in oberrvar:
     plt.clabel(cs3, inline=0, fontsize=12,fmt='%.0f')
     cbar1 = m1.colorbar(cs1, location='right',pad="3%")
     cbar1.set_label('analysis '+varstring+' '+varunit,fontsize=12)
-    plt.title(ens_dict[ens]+' analysis (colorfill), prior (dashed), posterior (solid) of '+am+'/'+ad+'/'+ay+' '+ah+'Z ob err var '+str(oev)+' forecast, initialized on '+fm+'/'+fd+'/'+fy+' '+fh+'Z')
+    plt.title(ens_dict[ens]+' analysis (colorfill), prior (dashed), posterior (solid) of '+am+'/'+ad+'/'+ay+' '+ah+'Z ob err var '+str(oev)+' forecast, initialized on '+fm+'/'+fd+'/'+fy+' '+fh+'Z, updated with '+ob_type)
 
 #-----------------------------------------------------------------------------#
     #plot the change in forecast error (error posterior - error prior)
@@ -297,5 +298,5 @@ for oev in oberrvar:
     #cs1 = m1.contourf(x,y,prior_post_diff)     
     cbar1 = m1.colorbar(cs1, location='right',pad="3%")
     cbar1.set_label(varstring+' error change '+varunit,fontsize=12)
-    plt.title(ens_dict[ens]+' change in '+varstring+' (black) and change in absolute error (colorfill) of '+am+'/'+ad+'/'+ay+' '+ah+'Z forecast, '+str(oev)+' ob err var , initialized on '+fm+'/'+fd+'/'+fy+' '+fh+'Z')
+    plt.title(ens_dict[ens]+' change in '+vrbl+' (black) and change in absolute error (colorfill) of '+am+'/'+ad+'/'+ay+' '+ah+'Z forecast, '+str(oev)+' ob err var , initialized on '+fm+'/'+fd+'/'+fy+' '+fh+'Z, updated with '+ob_type)
     

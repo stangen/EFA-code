@@ -17,18 +17,19 @@ end_date = datetime(2015,11,15,12)
 
 #which ob type(s) were assimilated (8/2)? used to load the .txt file
 #prior to 8/2, naming convention was all types of obs the .txt file contained.
-assim_obs = ['TCW']#['TCW']#
+assim_obs = ['IVT']#['TCW']#
 
 grid = [-180,180,90,0,3]
 
 #want to plot each variable or control which are plotted?
-control_vars = False
+control_vars = True
 
-plot_vars = ['QF850','QF850100','QF850750','QF8501000']#,'QF850250','QF850500']
+#plot_vars = ['IWV','IWV100','IWV1000','IWV10000']#['QF850','QF850100','QF850750','QF8501000']#,'QF850250','QF850500']
+plot_vars = ['IVT','IVT100','IVT1000','IVT10000']
 
 AR_specific = True
 
-separate_plots = True
+separate_plots = False
 
 #prior_var_key = 'ALT'
 
@@ -36,7 +37,9 @@ var_units = {
             'ALT' : 'hPa$^{2}$',
             'T2M' : 'K$^{2}$',
             'QF850' : '(g/kg*m/s)$^{2}$',
-            'TCW' : 'mm'
+            'TCW' : 'mm',
+            'IWV' : 'mm',
+            'IVT' : 'kg/m/s'
             }
 
 ls = {
@@ -68,18 +71,26 @@ ls2 = {
        'TCW100' : ':',
        
        'IWV' : '-',
-       'IWV1' : ' ',
+       'IWV1' : '',
+       'IWV5' : ':',
        'IWV10' : '--',
-       'IWV100' : '-.',
-       'IWV1000' : ':',
+       'IWV20' : '-.',
+       'IWV100' : ':',
+       'IWV1000' : '',
+       'IWV5000' : '-.',
        'IWV10000' : '--',
+       'IWV20000' : ':',
        
        'IVT' : '-',
-       'IVT1' : ' ',
+       'IVT1' : '',
+       'IVT5' : ':',
        'IVT10' : '--',
-       'IVT100' : '-.',
-       'IVT1000' : ':',
-       'IVT10000' : '--'
+       'IVT20' : '-.',
+       'IVT100' : ':',
+       'IVT1000' : '',
+       'IVT5000' : '-.',
+       'IVT10000' : '--',
+       'IVT20000' : ':'
        
        }
 
@@ -102,17 +113,25 @@ md = {
               
        'IWV' : 'o',
        'IWV1' : 'o',
+       'IWV5' : 'o',
        'IWV10' : 'o',
-       'IWV100' : 'o',
+       'IWV20' : 'o',
+       'IWV100' : 'x',
        'IWV1000' : 'o',
+       'IWV5000' : 'o',
        'IWV10000' : 'o',
+       'IWV20000' : 'o',
        
        'IVT' : 'o',
        'IVT1' : 'o',
+       'IVT5' : 'o',
        'IVT10' : 'o',
-       'IVT100' : 'o',
+       'IVT20' : 'o',
+       'IVT100' : 'x',
        'IVT1000' : 'o',
-       'IVT10000' : 'o'
+       'IVT5000' : 'o',
+       'IVT10000' : 'o',
+       'IVT20000' : 'o'
        
       }
 
@@ -141,18 +160,27 @@ clr_sp = {
         
         'IWV' : 'k',
         'IWV1' : 'y',
+        'IWV5' : 'r',
         'IWV10' : 'g',
+        'IWV20' : 'c',
         'IWV100' : 'b',
         'IWV1000' : 'r',
+        'IWV5000' : 'y',
         'IWV10000' : 'g',
+        'IWV20000' : 'c',
+        
        
         'IVT' : 'k',
         'IVT1' : 'y',
+        'IVT5' : 'r',
         'IVT10' : 'g',
+        'IVT20' : 'c',
         'IVT100' : 'b',
         'IVT1000' : 'r',
-        'IVT10000' : 'g'
-        
+        'IVT5000' : 'y',
+        'IVT10000' : 'g',
+        'IVT20000' : 'c'
+               
         }
 
 ens_dict = {
@@ -165,8 +193,8 @@ ens_dict = {
 title_dict = { 
         'QF850' : '850mb Moisture Flux ',
         'TCW' : 'Total Column Water ',
-        'IWV' : 'Integrated Water Vapor',
-        'IVT' : 'Integrated Vapor Transport'
+        'IWV' : 'Integrated Water Vapor ',
+        'IVT' : 'Integrated Vapor Transport '
         }
 
 filedir = '/home/disk/hot/stangen/Documents/EFA/duplicate_madaus/mse_var_output/'
