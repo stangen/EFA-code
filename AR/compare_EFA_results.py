@@ -16,18 +16,19 @@ import time
 import EFA.duplicate_madaus.efa_functions as ef
 
 ens = 'eccc' #ncep, eccc, ecmwf
-loc_rad = '1000'
-forecast_time = datetime(2015,11,11,0) # when the forecast was initialized
-analysis_time = datetime(2015,11,13,0) # when to compare with analysis
-oberrvar = [100,1000,10000]
+loc_rad = '10000hybrid'#'1000'
+forecast_time = datetime(2015,11,10,12) # when the forecast was initialized
+analysis_time = datetime(2015,11,12,12) # when to compare with analysis
+oberrvar = [10000]
 #oberrvar = ['0-1','1','10','100']
 #oberrvar = [1,10,100,1000, 'ensvar', 250, 500, 750]
-varlist = ['TCW','TCW','TCW','TCW'] #used only when loading ob update self
+#varlist = ['TCW','TCW','TCW','TCW'] #used only when loading ob update self
+varlist = ['IVT10000','IWV20'] #used only when loading ob update self
 efh = '54hrs'
 grid = [-180,180,90,0,3]
 prior_var = ['IWV','IVT','D-IVT']#['QF850','D-QF850']#['TCW']#
 
-obd = 'all' #ob update 'all' or 'self'? 
+obd = 'self' #ob update 'all' or 'self'? 
 
 #variable we want to look at
 vrbl= 'IVT'#'QF850'#'TCW'#
@@ -206,7 +207,8 @@ for oev in oberrvar:
         #one observation error variance per file
         post_varstr = ob_type+str(oev)
     elif obd == 'self':
-        post_varstr = ef.var_num_string(varlist, oberrvar)
+        post_varstr = ef.var_string(varlist)
+        #post_varstr = ef.var_num_string(varlist, oberrvar)
         #if self-updating, add ob error variance to variable name for access in netCDF
         vrbl2 = vrbl+str(oev)
     # Filepath of the posterior forecast
