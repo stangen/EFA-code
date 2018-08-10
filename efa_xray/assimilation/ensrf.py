@@ -42,6 +42,11 @@ class EnSRF(Assimilation):
         # Do pre-processing to estimate obs and format
         # as state vector
         xam, Xap = self.format_prior_state()
+        
+        if self.loc == 'statsig2':
+            Xap_start = deepcopy(Xap)
+        
+        #make a deep copy of original if using initial correlation between ob and state
 
 
         numobs_assim = 0
@@ -49,7 +54,7 @@ class EnSRF(Assimilation):
         if self.verbose: print("Beginning observation loop")
         for obnum,ob in enumerate(self.obs):
 #            if (obnum % 100==0) and self.verbose: print("    On ob:", obnum)
-#            print('on ob '+str(obnum))
+            print('on ob '+str(obnum))
             # Reset the mean and perturbations
             
             #ST
@@ -84,7 +89,7 @@ class EnSRF(Assimilation):
             # And find the observation error variance from the R matrix
             # (Assumes ob errors are uncorrelated)
             obs_err = ob.error
-
+            #print(obs_err)
             # Find the innovation --the difference between the ob value
             # and the ensemble mean estimate of the ob
             # This is y-HXb
@@ -106,6 +111,12 @@ class EnSRF(Assimilation):
             # Option to localize the gain
             if self.loc not in [None, False]:
                 # Project the localization
+#                if self.loc == 'statsig':
+#                    state_localize = ob.localize(self.prior, type=self.loc,Xbp,ye)
+#                elif self.loc == 'statsig2':
+#                    state_localize = ob.localize(self.prior, type=self.loc,Xap_start,ye)
+#                
+#                else:
                 state_localize = ob.localize(self.prior, type=self.loc)
                 #print(state_localize.shape)
                 #print(dum_localize.shape)
@@ -122,7 +133,14 @@ class EnSRF(Assimilation):
                 state_localize = np.hstack((state_localize, obs_localize))
                 kcov = np.multiply(state_localize,kcov)
                 #kcov = np.dot(kcov,np.transpose(loc[ob,:]))
-   
+            
+            if self.loc == 'statsig':
+                kcov = ob.stat_sig(kcov,Xbp,ye)
+            elif self.loc == 'statsig2':
+                kcov = ob.stat_sig(kcov,Xap_start,ye)
+
+            
+            
             # Compute the Kalman gain
             kmat = np.divide(kcov, kdenom)
             #kmat = np.divide(kcov,kdenom)
@@ -145,8 +163,8 @@ class EnSRF(Assimilation):
             
             #ST artificially inflating the posterior pertubations by reducing beta.
             #this will reduce the subtraction from the prior pertubations
-            #beta_const = 1.1
-            #beta = beta/(beta_const)
+#            beta_const = 1.1
+#            beta = beta/(beta_const)
             
             kmat = np.multiply(beta,kmat)
 
