@@ -24,7 +24,7 @@ import EFA.duplicate_madaus.efa_functions as ef
 
 start_time = datetime.now()
 print('start time: ',start_time)
-shell_script = True
+shell_script = False
 #indicate that we are inflating the posterior perturbations
 inf_post = False
 
@@ -34,20 +34,21 @@ if shell_script == False:
     variables = ['IWV','IVT','D-IVT']#['TCW']#['QF850','D-QF850']#['T2M','ALT']#['T2M', 'ALT', 'P6HR', 'TCW']
     #the ob type of the observations we are assimilating, and its associated
     #observation error variance
-    obs_type = ['IVT']#['TCW']#['QF850']#['ALT','ALT']    
-    ob_err_var = ['100']#[1,0] #or ['ensvar'] for use ensemble variance
+    obs_type = ['IVT','IWV']#['TCW']#['QF850']#['ALT','ALT']    
+    ob_err_var = ['10000','20']#[1,0] #or ['ensvar'] for use ensemble variance
     #obs_dict = {'ALT':1, 'ALT':0}    
     #the variables in the netCDF we want to update
-    update_vars= ['IWV','IVT','D-IVT']#['TCW']#['QF850','D-QF850']#['ALT'] #['T2M','ALT']
+    update_vars= ['IVT','IWV']#['IWV','IVT','D-IVT']#['TCW']#['QF850','D-QF850']#['ALT'] #['T2M','ALT']
     #are the observations only updating their corresponding variable, or
     #are they updating all variables? -ie t2m only updates t2m, alt only updates alt
-    self_update=False #true if you want the above updates, otherwise false
+    self_update=True #true if you want the above updates, otherwise false
     #localization type
-    loc_type = 'GC'
-    #localization radius (for Gaspari-Cohn)
-    localize_radius = 1000
+    loc_type = 'statsig'#'hybrid'#'GC'
+    #localization radius (for Gaspari-Cohn) (confidence threshold for statsig)
+    #if hybrid, the localization radius for obs within the AR, other obs are still 1000
+    localize_radius = 99#2000#1000 
     #date to run efa
-    date = datetime(2015,11,13,12)#2013,4,1,0)
+    date = datetime(2015,11,10,0)#2013,4,1,0)
     #inflation?
     inflation = 'none'
     #what kind of observations are we using? MADIS or gridded future 0-hour
@@ -148,11 +149,19 @@ def run_efa(ob_type,update_var,ob_err_var):
     #assign the radius to the localization_radius variable in Observation
     #create a string for saving to specific directories
     if loc_type == 'GC':
+        localize_type = 'GC'
         loc_rad = localize_radius
         loc_str = str(loc_rad)
     elif loc_type == 'hybrid':
+        localize_type = 'GC'
+        #set the localization string to be the special loc radius, plus hybrid (2000hybrid)        
+        loc_str = str(localize_radius)+loc_type
+        
+    elif loc_type.startswith('statsig'):
+        localize_type = loc_type
         loc_rad = localize_radius
-        loc_str = str(loc_rad)+loc_type
+        loc_str = str(localize_radius)+loc_type
+
     else:
         loc_rad = None
         loc_str = '_stat_sig'
@@ -168,6 +177,25 @@ def run_efa(ob_type,update_var,ob_err_var):
     h = date.strftime('%H')
     
     observations = []
+    
+    if loc_type == 'hybrid':
+        #need to access 12-hour forecast IVT to determine presence of AR
+        efaIVT = Load_Data(date,ensemble_type,variables,'IVT',['IVT'],
+            grid=grid,new_format=new_format,efh=efh)
+        
+        #initialize an instance of the Load_data class (load in data)
+        IVT_statecls, lats, lons, elevs = efaIVT.load_netcdfs()
+
+        #check if IVT qualifies as AR
+        
+        IVT = IVT_statecls.variables['IVT'].values[2,:,:,:]
+        
+        #obtain the mean of the ensemble (nlats x nlons)
+        ens_mean = IVT.mean(axis=-1)
+        
+        #obtain variance of the ensemble (nlats x nlons)
+        variance = np.var(IVT,axis=-1,ddof=1)
+        
     for o, o_type in enumerate(ob_type):
         
         #if we are wanting to use ensemble variance as ob error variance
@@ -219,7 +247,26 @@ def run_efa(ob_type,update_var,ob_err_var):
             #if the lat/lon lie within some AR box, check if the ob point is in an AR
                 #get the IVT 12 hours into the forecast (3rd forecast hour)
                 #statecls.variables['IVT'][2]
-                
+            if loc_type == 'hybrid':    
+
+                if ob_dict['lon'] >= 140 and ob_dict['lon'] <= 245 and ob_dict['lat'] >= 33 and ob_dict['lat'] <= 51:
+                    
+                    #get the ensemble value at the lat/lon pair
+                    ob_value, ob_variance = ef.closest_points(ob_dict['lat'],ob_dict['lon'],lats,lons,variable=ens_mean,
+                                                 need_interp=True,gen_obs=True,variance=variance)
+                    #if ob value is AR and in the grid area, set its localization radius to the input loc_rad
+                    if ob_value >= 250:
+                        loc_rad = localize_radius
+                        print(str(ob_value))
+                    else:
+                        loc_rad = 1000
+                else:    
+                    #set the default loc_rad to be 1000
+                    loc_rad = 1000
+            
+            #check if it's working
+            print(str(ob_dict['ob']))
+            print(str(ob_dict['lat'])+' '+str(ob_dict['lon'])+' '+str(loc_rad))
             #fill the observation class object with information for assimilation
             obser = Observation(value=ob_dict['ob'], time=utctime,
                             lat=ob_dict['lat'],lon=ob_dict['lon'], obtype=o_type, localize_radius=loc_rad,
@@ -240,7 +287,7 @@ def run_efa(ob_type,update_var,ob_err_var):
 #    observations.append(ob1)
     #    
     # Put the state class object and observation objects into EnSRF object
-    assimilator = EnSRF(statecls, observations, inflation=inflation, loc=loc_type)
+    assimilator = EnSRF(statecls, observations, inflation=inflation, loc=localize_type)
     
     # Update the prior with EFA- post_state is an EnsembleState object
     post_state, post_obs = assimilator.update()
