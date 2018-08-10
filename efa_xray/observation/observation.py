@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from __future__ import print_function
 import numpy as np
+from scipy.stats import spearmanr
 import pandas as pd
 import xarray
 import _pickle as cPickle
@@ -84,11 +85,56 @@ class Observation:
         if type == 'GC':
             localization = gaspari_cohn(distances, halfwidth)
 
+            
+        elif type.startswith('statsig'):
+            #if not within 4000 km of the ob, don't let ob update the point.
+            localization = np.ones(distances.shape)
+            boolarray = distances > 4000
+            localization[boolarray] = 0
+
+            
+
         # Reshaping will be handled during the assimilation
         # For now, just return the array
         return localization
 
 
+
+    def stat_sig(self,kcov,state,ye):
+        #ye = ye[np.newaxis,:]
+        #want to check if correlation is statistically significant- 
+        #don't get the first value (this is a correlation of ye with itself,
+        #we just want the correlation of ye with the state- must be same length as state)
+        print(len(kcov))
+#        ptest = []
+#        numbers = range(state.shape[0])
+        
+        
+#        def calc_ptest(vector):
+#            return spearmanr(ye,vector)[1]
+        
+#        "M=range(1000)" "L=[m*2 for m in M]"
+        ptest = [spearmanr(ye,statei)[1] for statei in state]
+#        for i in numbers:
+##            print(ye.shape)
+##            print(ye)
+#            statei = state[i,:]
+##            print(statei.shape)
+##            print(statei)
+#            ptesti = spearmanr(ye,statei)[1]
+#            ptest.append(ptesti)
+#            #print(len(ptest))
+        #ptest = np.apply_along_axis(calc_ptest,1,state)
+        #ptest = np.array(ptest)
+        #do statistical significance test
+        #use halfwidth as confidence threshold
+        #convert confidence threshold to be compared with p test
+        significance = (100-self.localize_radius)/100
+        print(significance)
+        sigarray = ptest > significance #if p test is too high, chance of correlation being random is too high.
+        kcov[sigarray] = 0
+        
+        return kcov
 
 
 
