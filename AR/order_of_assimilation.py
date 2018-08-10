@@ -10,7 +10,8 @@ ens = np.array([18,19.5,20,18.5,21,19.5,21.5,19.5,20.5])
 ens_2 = np.array([22,23,23.5,22,24,22.5,25,22,23])
 ens_mean = np.mean(ens)
 ens_2_mean = np.mean(ens_2)
-obs = np.array([10, 20, 20,20,20,20,20])
+#obs = np.array([10, 20, 20,20,20,20,20])
+obs = np.array([19])
 R = 1
 loc_scalar = 1
 
@@ -25,11 +26,15 @@ print(np.var(pert,ddof=1))
 print(np.var(pert2,ddof=1))
 print(cov)
 
+print(np.corrcoef(ens,ens_2))
+
 
 for ob in obs:
+    print(pert)
+    print(pert2)
     ye_var = np.var(pert,ddof=1)
     
-    cov = np.dot(pert,pert2) /(len(obs)-1)
+    cov = np.dot(pert,pert2) /(len(ens)-1)
 
     K = ye_var/(ye_var+R)
     K2 = loc_scalar*cov/(ye_var+R)
@@ -52,5 +57,9 @@ for ob in obs:
     
     print('ens1 variance: ',np.var(pert,ddof=1))
     print('ens2 variance: ',np.var(pert2,ddof=1))
+    print(pert)
+    print(pert2)
+    
+    print(np.corrcoef(ens_mean+pert,ens_2_mean+pert2))
 
 
