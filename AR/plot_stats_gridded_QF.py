@@ -17,7 +17,7 @@ end_date = datetime(2015,11,15,12)
 
 #which ob type(s) were assimilated (8/2)? used to load the .txt file
 #prior to 8/2, naming convention was all types of obs the .txt file contained.
-assim_obs = ['IVT']#['TCW']#
+assim_obs = ['IWV']#['TCW']#
 
 grid = [-180,180,90,0,3]
 
@@ -25,7 +25,10 @@ grid = [-180,180,90,0,3]
 control_vars = True
 
 #plot_vars = ['IWV','IWV100','IWV1000','IWV10000']#['QF850','QF850100','QF850750','QF8501000']#,'QF850250','QF850500']
-plot_vars = ['IVT','IVT100','IVT1000','IVT10000']
+#plot_vars = ['IVT','IVT100','IVT1000','IVT5000','IVT10000','IVT20000']
+#plot_vars = ['IWV','IWV1','IWV5','IWV10','IWV20','IWV100']
+#plot_vars = ['IVT','IVT10000','IVT10000_loc2000hybrid','IVT10000_loc5000hybrid','IVT10000_loc10000hybrid']
+plot_vars = ['IWV','IWV20','IWV20_loc2000hybrid','IWV20_loc5000hybrid','IWV20_loc10000hybrid']
 
 AR_specific = True
 
@@ -80,6 +83,9 @@ ls2 = {
        'IWV5000' : '-.',
        'IWV10000' : '--',
        'IWV20000' : ':',
+       'IWV20_loc2000hybrid' : ':',
+       'IWV20_loc5000hybrid' : '--',
+       'IWV20_loc10000hybrid' : ':',
        
        'IVT' : '-',
        'IVT1' : '',
@@ -90,8 +96,10 @@ ls2 = {
        'IVT1000' : '',
        'IVT5000' : '-.',
        'IVT10000' : '--',
-       'IVT20000' : ':'
-       
+       'IVT20000' : ':',
+       'IVT10000_loc2000hybrid' : ':',
+       'IVT10000_loc5000hybrid' : '-.',
+       'IVT10000_loc10000hybrid' : ':',
        }
 
 md = {
@@ -121,6 +129,9 @@ md = {
        'IWV5000' : 'o',
        'IWV10000' : 'o',
        'IWV20000' : 'o',
+       'IWV20_loc2000hybrid' : 'o',
+       'IWV20_loc5000hybrid' : 'o',
+       'IWV20_loc10000hybrid' : 'x',
        
        'IVT' : 'o',
        'IVT1' : 'o',
@@ -131,7 +142,10 @@ md = {
        'IVT1000' : 'o',
        'IVT5000' : 'o',
        'IVT10000' : 'o',
-       'IVT20000' : 'o'
+       'IVT20000' : 'o',
+       'IVT10000_loc2000hybrid' : 'o',
+       'IVT10000_loc5000hybrid' : 'o',
+       'IVT10000_loc10000hybrid' : 'x'
        
       }
 
@@ -168,6 +182,9 @@ clr_sp = {
         'IWV5000' : 'y',
         'IWV10000' : 'g',
         'IWV20000' : 'c',
+        'IWV20_loc2000hybrid' : 'b',
+        'IWV20_loc5000hybrid' : 'c',
+        'IWV20_loc10000hybrid' : 'r',
         
        
         'IVT' : 'k',
@@ -179,7 +196,10 @@ clr_sp = {
         'IVT1000' : 'r',
         'IVT5000' : 'y',
         'IVT10000' : 'g',
-        'IVT20000' : 'c'
+        'IVT20000' : 'c',
+        'IVT10000_loc2000hybrid' : 'b',
+        'IVT10000_loc5000hybrid' : 'c',
+        'IVT10000_loc10000hybrid' : 'r'
                
         }
 
@@ -238,6 +258,11 @@ for line in stats:
     efa = line_split[1] #localization radius or prior
     var = line_split[2] #ensemble type
     ens = line_split[3] #observation variable type
+    #if we are testing a hybrid method of localization, make the ob variable type
+    #be the hybrid localization radius.
+    if efa.endswith('hybrid'):
+        ens = ens+'_'+efa
+    
     fh = line_split[4] #forecast hour
     mse_gridobs = line_split[5] #mean squared error of gridded obs
     variance_gridobs = line_split[6] #variance of gridded obs
@@ -319,7 +344,10 @@ for i in remove_list:
 stats_dict_vars = list(stats_dict.keys())
 #for v in stats_dict_vars:
 
-def plot_stats():
+def plot_stats(separate):
+    """
+    takes in a color table argument
+    """
     if control_vars == True:
         variables = plot_vars
     else:
@@ -327,8 +355,12 @@ def plot_stats():
     #each variable
     for v in variables:
         #if we are plotting gridded obs stats
-        plt.plot(stats_dict[m][v]['Forecast_Hour_Gridded'],stats_dict[m][v][s],
-                 linestyle=ls2[v],marker=md[v],color=clr[m],label=v+' '+ens_dict[m])
+        if separate == False:
+            plt.plot(stats_dict[m][v]['Forecast_Hour_Gridded'],stats_dict[m][v][s],
+                     linestyle=ls2[v],marker=md[v],color=clr[m],label=v+' '+ens_dict[m])
+        elif separate == True:
+            plt.plot(stats_dict[m][v]['Forecast_Hour_Gridded'],stats_dict[m][v][s],
+                     linestyle=ls2[v],marker=md[v],color=clr_sp[v],label=v+' '+ens_dict[m])            
         
         plt.xticks(np.arange(min(stats_dict[m][v]['Forecast_Hour_Gridded']), 
         max(stats_dict[m][v]['Forecast_Hour_Gridded'])+12, 12))
@@ -351,39 +383,39 @@ for s in stats_list:
         fig = plt.figure(figsize=(14,8))  
         #each ensemble type      
         for m in stats_dict_vars:
-            plot_stats()
+            plot_stats(False)
         #plt.show()
         #fig.savefig(savedir+'850mb_Moisture_Flux_'+s+'_'+datestr+'.png',frameon=False,bbox_inches='tight')
        
     elif separate_plots == True:
         for m in stats_dict_vars:
             fig = plt.figure(figsize=(14,8))  
-            plot_stats()
+            plot_stats(True)
             #plt.show()
             #fig.savefig(savedir+'850mb_Moisture_Flux_'+s+'_'+datestr+'.png',frameon=False,bbox_inches='tight')
  
                 
 #elif AR_specific == True:
-#    #separate plot for MSE and variance
-#    for s in stats_list:
-#        #each ensemble type      
-#        for m in stats_dict_vars:
-#            fig = plt.figure(figsize=(14,8))  
-#            #each variable
-#            for v in stats_dict[m]:
-#                #if we are plotting gridded obs stats
-#                plt.plot(stats_dict[m][v]['Forecast_Hour_Gridded'],stats_dict[m][v][s],
-#                         linestyle='-',color=clr_sp[v],marker='o',label=v)
-#                
-#                plt.xticks(np.arange(min(stats_dict[m][v]['Forecast_Hour_Gridded']), 
-#                max(stats_dict[m][v]['Forecast_Hour_Gridded'])+12, 12))
-#    #            ax.set_xticks(numpy.arange(0, 1, 0.1))
-#    #            ax.set_yticks(numpy.arange(0, 1., 0.1))
-#                plt.grid(True)
-#                plt.legend(loc = 'upper left')
-#                plt.title(ens_dict[m]+' 850mb Moisture Flux '+s,fontsize=20)
-#                plt.xlabel('Forecast Hour',fontsize=14)
-#                plt.ylabel(var_units['QF850'],fontsize=14)
+    ##separate plot for MSE and variance
+    #for s in stats_list:
+    #    #each ensemble type      
+    #    for m in stats_dict_vars:
+    #        fig = plt.figure(figsize=(14,8))  
+    #        #each variable
+    #        for v in stats_dict[m]:
+    #            #if we are plotting gridded obs stats
+    #            plt.plot(stats_dict[m][v]['Forecast_Hour_Gridded'],stats_dict[m][v][s],
+    #                     linestyle='-',color=clr_sp[v],marker='o',label=v)
+    #            
+    #            plt.xticks(np.arange(min(stats_dict[m][v]['Forecast_Hour_Gridded']), 
+    #            max(stats_dict[m][v]['Forecast_Hour_Gridded'])+12, 12))
+    ##            ax.set_xticks(numpy.arange(0, 1, 0.1))
+    ##            ax.set_yticks(numpy.arange(0, 1., 0.1))
+    #            plt.grid(True)
+    #            plt.legend(loc = 'upper left')
+    #            plt.title(ens_dict[m]+' 850mb Moisture Flux '+s,fontsize=20)
+    #            plt.xlabel('Forecast Hour',fontsize=14)
+    #            plt.ylabel(var_units['QF850'],fontsize=14)
     
     #        fig.savefig(savedir+ens_dict[m]+'_850mb_Moisture_Flux_'+s+'_'+datestr+'.png',frameon=False,bbox_inches='tight')
     #        
