@@ -35,6 +35,7 @@ class EnSRF(Assimilation):
         # Make a dummy localization here to allocate thisobs_err
         # array only once
         state_shape = self.prior.shape()[:-1] # Don't include mems
+        #shape of state_shape is nvars x ntimes x nlats x nlons
         dum_localize = np.ones(state_shape)
         Nstate = self.prior.nstate()
         Nens = self.prior.nmems()
@@ -134,10 +135,51 @@ class EnSRF(Assimilation):
                 kcov = np.multiply(state_localize,kcov)
                 #kcov = np.dot(kcov,np.transpose(loc[ob,:]))
             
-            if self.loc == 'statsig':
-                kcov = ob.stat_sig(kcov,Xbp,ye)
-            elif self.loc == 'statsig2':
-                kcov = ob.stat_sig(kcov,Xap_start,ye)
+            
+            
+            if self.loc.startswith('statsig'):
+                nvars = self.prior.nvars()
+                ntimes = self.prior.ntimes()
+                nlats = self.prior.ny()
+                nlons = self.prior.nx()
+                #count the number of gridpoints within 4000 km for each forecast hour
+                npoints_less4000 = np.count_nonzero(kcov)/(nvars*ntimes)
+#                print(npoints_less4000/(nlats*nlons))
+                if self.loc == 'statsig':
+                    kcov = ob.stat_sig(kcov,Xbp,ye)
+                elif self.loc == 'statsig2':
+                    kcov = ob.stat_sig(kcov,Xap_start,ye)
+                #find percentage of points that were updated by ob for each forecast hour
+                npoints_12hr = 0
+                npoints_24hr = 0
+                npoints_36hr = 0
+                npoints_48hr = 0
+                percent = {}
+                percent['12'] = percent.get('12',[])
+                percent['24'] = percent.get('24',[])
+                percent['36'] = percent.get('36',[])
+                percent['48'] = percent.get('48',[])
+                for i in range(0,self.prior.nvars()):
+                    npoints_12hr = npoints_12hr + np.count_nonzero(kcov[i*nvars*ntimes*nlats*nlons+2*nlats*nlons:i*nvars*ntimes*nlats*nlons+3*nlats*nlons])
+#                    print(i*nvars*ntimes*nlats*nlons+2*nlats*nlons)
+#                    print(i*nvars*ntimes*nlats*nlons+3*nlats*nlons)
+                    npoints_24hr = npoints_24hr + np.count_nonzero(kcov[i*nvars*ntimes*nlats*nlons+4*nlats*nlons:i*nvars*ntimes*nlats*nlons+5*nlats*nlons])
+                    npoints_36hr = npoints_36hr + np.count_nonzero(kcov[i*nvars*ntimes*nlats*nlons+6*nlats*nlons:i*nvars*ntimes*nlats*nlons+7*nlats*nlons])
+                    npoints_48hr = npoints_48hr + np.count_nonzero(kcov[i*nvars*ntimes*nlats*nlons+8*nlats*nlons:i*nvars*ntimes*nlats*nlons+9*nlats*nlons])
+                percent['12'].append(npoints_12hr/npoints_less4000)
+                percent['24'].append(npoints_24hr/npoints_less4000)
+                percent['36'].append(npoints_36hr/npoints_less4000)
+                percent['48'].append(npoints_48hr/npoints_less4000)
+#                print(npoints_less4000)
+#                print(npoints_12hr)
+#                print(npoints_24hr)
+#                print(npoints_36hr)
+#                print(npoints_48hr)
+#                print(npoints_12hr/npoints_less4000)
+#                print(npoints_24hr/npoints_less4000)
+#                print(npoints_36hr/npoints_less4000)
+#                print(npoints_48hr/npoints_less4000)
+
 
             
             
@@ -188,6 +230,13 @@ class EnSRF(Assimilation):
             numobs_assim = numobs_assim+1
 #            print('total number of obs assimilated so far: ',numobs_assim)
         print('total number of obs assimilated: ',numobs_assim)
+        
+        
+        if self.loc.startswith('statsig'):
+            for i in percent:
+                avg = np.mean(np.array(percent[i]))
+                print('average number of points updated for forecast hour '+i+': '+str(avg))
+            
         #print('beta constant: ',beta_const)
         # After having assimilated everything, rebuild the state
         return self.format_posterior_state(xam, Xap)
