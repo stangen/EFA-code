@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from __future__ import print_function
 import numpy as np
-from scipy.stats import spearmanr
+import scipy.stats.mstats as ss
 import pandas as pd
 import xarray
 import _pickle as cPickle
@@ -105,36 +105,82 @@ class Observation:
         #want to check if correlation is statistically significant- 
         #don't get the first value (this is a correlation of ye with itself,
         #we just want the correlation of ye with the state- must be same length as state)
-        print(len(kcov))
-#        ptest = []
-#        numbers = range(state.shape[0])
         
+        #table of critical spearman correlation values, corresponding with 
+        #nondirectional alpha values. Alpha values are, e.g. 1 - 90/100 = .1
+        # alpha of 0.1 means probability of rejecting the null hypothesis when it is true.
+        r_crit = {
+                20 : {
+                        90 : .380,
+                        95 : .447,
+                        98 : .522,
+                        99 : .570,
+                        99.5 : .612,
+                        99.8 : .662,
+                        99.9 : .693                        
+                        },
+                50 : {
+                        90 : .235,
+                        95 : .279,
+                        98 : .329,
+                        99 : .363,
+                        99.5 : .393,
+                        99.8 : .43,
+                        99.9 : .456                       
+                        }
+                }
         
-#        def calc_ptest(vector):
-#            return spearmanr(ye,vector)[1]
+        #get ranks/rank perts of ob estimate and state
+        #ye_rank = ss.rankdata(ye)
+        ye_rank = np.argsort(ye)
+        ye_rank = np.argsort(ye_rank)
+        #sort once to obtain the indices of a sorted array
+        state_rank = np.argsort(state,axis=1)
+        #sort again to obtain the rank - the double argsort is what causes code to run slowly
+        state_rank = np.argsort(state_rank,axis=1)
+        #state_rank = ss.rankdata(state)
+        ye_rank_pert = ye_rank - np.mean(ye_rank)
+        state_rank_pert = state_rank - np.mean(state_rank,axis=1)[:,None]
+        #calculate covariance of ranks, then spearman correlation
+        cov_rank = np.dot(state_rank_pert,ye_rank_pert)/len(ye)
+        spearmanr = cov_rank/(np.std(ye_rank_pert)*np.std(state_rank_pert,axis=1))
+        #find which values are below the critical r value (and therefore fail)
+        r_fail = spearmanr < r_crit[len(ye)][self.localize_radius]
+#        print(r_crit[len(ye)][self.localize_radius])
         
-#        "M=range(1000)" "L=[m*2 for m in M]"
-        ptest = [spearmanr(ye,statei)[1] for statei in state]
-#        for i in numbers:
-##            print(ye.shape)
-##            print(ye)
-#            statei = state[i,:]
-##            print(statei.shape)
-##            print(statei)
-#            ptesti = spearmanr(ye,statei)[1]
-#            ptest.append(ptesti)
-#            #print(len(ptest))
-        #ptest = np.apply_along_axis(calc_ptest,1,state)
-        #ptest = np.array(ptest)
-        #do statistical significance test
-        #use halfwidth as confidence threshold
-        #convert confidence threshold to be compared with p test
-        significance = (100-self.localize_radius)/100
-        print(significance)
-        sigarray = ptest > significance #if p test is too high, chance of correlation being random is too high.
-        kcov[sigarray] = 0
+        kcov[r_fail] = 0
+        
+##        ptest = []
+##        numbers = range(state.shape[0])
+#        
+#        
+##        def calc_ptest(vector):
+##            return spearmanr(ye,vector)[1]
+#        
+##        "M=range(1000)" "L=[m*2 for m in M]"
+#        ptest = [spearmanr(ye,statei)[1] for statei in state]
+##        for i in numbers:
+###            print(ye.shape)
+###            print(ye)
+##            statei = state[i,:]
+###            print(statei.shape)
+###            print(statei)
+##            ptesti = spearmanr(ye,statei)[1]
+##            ptest.append(ptesti)
+##            #print(len(ptest))
+#        #ptest = np.apply_along_axis(calc_ptest,1,state)
+#        #ptest = np.array(ptest)
+#        #do statistical significance test
+#        #use halfwidth as confidence threshold
+#        #convert confidence threshold to be compared with p test
+#        significance = (100-self.localize_radius)/100
+#        print(significance)
+#        sigarray = ptest > significance #if p test is too high, chance of correlation being random is too high.
+#        kcov[sigarray] = 0
         
         return kcov
+    
+    #nested dictionary with critical r values for stat significance
 
 
 
