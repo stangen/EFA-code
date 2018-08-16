@@ -350,3 +350,32 @@ def get_units(par):
                  'U1000','V1000','U10M','V10M']: return 'm/s'
     elif par=='OLR': return 'W m$^{-2}$'
     else: raise IOError('Invalid field: {}'.format(par))
+    
+def get_r_crit():
+    """
+    table of critical spearman correlation values, corresponding with 
+    nondirectional alpha values. Alpha values are, e.g. 1 - 90/100 = .1
+    alpha of 0.1 means probability of rejecting the null hypothesis when it is true.
+    """
+    r_crit = {
+        20 : {
+                90 : .380,
+                95 : .447,
+                98 : .522,
+                99 : .570,
+                99.5 : .612,
+                99.8 : .662,
+                99.9 : .693                        
+                },
+        50 : {
+                90 : .235,
+                95 : .279,
+                98 : .329,
+                99 : .363,
+                99.5 : .393,
+                99.8 : .43,
+                99.9 : .456                       
+                }
+        }
+        
+    return r_crit
