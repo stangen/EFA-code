@@ -258,9 +258,10 @@ for line in stats:
     efa = line_split[1] #localization radius or prior
     var = line_split[2] #ensemble type
     ens = line_split[3] #observation variable type
-    #if we are testing a hybrid method of localization, make the ob variable type
-    #be the hybrid localization radius.
-    if efa.endswith('hybrid'):
+    
+    #if we are testing a method of localization other than gaspari-cohn, make the ob variable type
+    #be the localization radius.
+    if efa.endswith('hybrid') or efa.endswith('statsig') or efa.endswith('statsig2'):
         ens = ens+'_'+efa
     
     fh = line_split[4] #forecast hour
