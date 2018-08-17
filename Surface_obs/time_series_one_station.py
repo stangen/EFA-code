@@ -11,22 +11,17 @@ Function to create a txt file with a time-series of observations for one locatio
 
 from surface_obs.madis_example.madis_utilities import make_datelist
 
+#----------------_Change these as necessary------------------------------------
 #Station name
 sta_name = 'KSEA'
-
 #Observation type
-ob_type = 'temp'
-
+ob_type = 'T2M'
+#------------------------------------------------------------------------------
 
 save_dir = '/home/disk/hot/stangen/Documents/surface_obs/MADIS/one_station/'
 
 s_date = '20130401_0000'
 e_date = '20130511_1800'
-
-var_dict = {
-        'alts': 'ALT',
-        'temp': 'T2M'
-        }
 
 #time-series to load observations
 d_list = make_datelist(start_date=s_date, end_date=e_date)
@@ -46,11 +41,6 @@ for t in d_list:
     for o in obs:
         if sta_name in o:
             #Write to a new observation file
-            f = open(save_dir+sta_name+'_'+var_dict[ob_type]+'.txt', 'a')
+            f = open(save_dir+sta_name+'_'+ob_type+'.txt', 'a')
             f.write(o)
             f.close()
-            
-#            f = open(base_dir+"/"+dates[0:6]+"/"+ob+"_"+var_short+"/"+ob+"_"+var_short+"_"+str(dates)+".txt","w")
-#            for s in sstr_one_station_1hr:
-#                f.write(s)
-#            f.close()
