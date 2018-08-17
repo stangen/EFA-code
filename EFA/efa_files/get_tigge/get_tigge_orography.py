@@ -11,9 +11,10 @@ from ecmwfapi import ECMWFDataServer
 from datetime import datetime
 server = ECMWFDataServer()
 
-
+#----------------Change these accordingly--------------------------------------
 start_date = datetime(2013,4,1,0)
-ens = 'ecmwf'
+ens = 'ncep'
+#------------------------------------------------------------------------------
 
 ens_dict = {
             'ecmwf' : 'ecmf',
