@@ -10,34 +10,27 @@ from datetime import datetime
 import numpy as np
 import EFA.efa_files.cfs_utilities_st as ut
 import surface_obs.madis_example.madis_utilities as mt
+import EFA.duplicate_madaus.efa_functions as ef
 import os
 
+#--------------Change these----------------------------------------------------
 #start and end date to get ensembles. 
-start_date = datetime(2015,11,11,0) #YYYY,m,d,h
-end_date = datetime(2015,11,11,0)
+start_date = datetime(2015,11,10,0) #YYYY,m,d,h
+end_date = datetime(2015,11,15,12)
 hourstep = 12 #how often you want a new forecast initialization, usually 12 hr
 # ecmwf, eccc for euro/canadian ensembles, ncep
-ensemble_type = ['ecmwf']
-
-#variables with names coming from the raw TIGGE- see get_tigge_data if unsure of names.
+ensemble_type = ['ncep']
+#variables with names coming from the raw TIGGE- see get_tigge_data, or tigge 
+#output filename if unsure of names.
 #the order matters to make filename match exactly. 
-in_variables = ['Q', 'U', 'V']#['T2M','SP']#
-
-#sfc for surface, pl for elevated
-lev = 'pl'
-
+in_variables = ['TCW']#['T2M','SP']#
+#sfc for surface, pl for aloft
+lev = 'sfc'
 #variables with names I want to have after it is processed
-variables = ['QF850','D-QF850']#['ALT','T2M']##, 'P6HR', 'TCW']
-#start_date = datetime(2013,4,1,0)
-#end_date = datetime(2013,4,1,0)
-#hourstep = 12
-#ensemble_type = ['eccc']
-#in_variables = ['T2M', 'SP']
-#lev = 'sfc'
-#variables = ['ALT','T2M']
+variables = ['TCW']#['ALT','T2M']##, 'P6HR', 'TCW']
 #a list of dates to loop through to load each forecast initialized on these dates
 dates = mt.make_datetimelist(start_date,end_date,hourstep)   
-
+#------------------------------------------------------------------------------
 
 
 def create_new_netcdf(date,ens_type,in_vrbls,vrbls):
@@ -71,16 +64,10 @@ def create_new_netcdf(date,ens_type,in_vrbls,vrbls):
             }
     
     #build a var string corresponding with naming convention of tigge files
-    invar_string = ''
-    for p in in_vrbls[:-1]:  
-        invar_string = invar_string+p+'_'
-    invar_string = invar_string+in_vrbls[-1]
+    invar_string = ef.var_string(in_vrbls)
     
     #build a var string corresponding with naming convention of output files
-    outvar_string = ''
-    for p in vrbls[:-1]:  
-        outvar_string = outvar_string+p+'_'
-    outvar_string = outvar_string+vrbls[-1]
+    outvar_string = ef.var_string(vrbls)
     
     
     # This is the input directory for the raw TIGGE netcdf
@@ -101,17 +88,15 @@ def create_new_netcdf(date,ens_type,in_vrbls,vrbls):
     
     # Shape of ncdata is nvars, ntimes, nmems, nlats, nlons
     #print(ncdata.variables.keys())
-    # Find the indices corresponding to the start and end times
     tunit = ncdata.variables[vardict['time']].units
     ftimes = num2date(ncdata.variables[vardict['time']][:],tunit)
     nmems = len(ncdata.dimensions[vardict['mem']])
-    #nmems4name = len(memfiles)
     ntimes = len(ftimes)
     nvars = len(vrbls)
     nlats = len(ncdata.dimensions[vardict['lat']])
     nlons = len(ncdata.dimensions[vardict['lon']])
     
-    #time range of ensemble
+    #time range of ensemble, for naming of file
     ftime_diff = ftimes[-1]-ftimes[0]
     tr = int((ftime_diff.days)*24 + (ftime_diff.seconds)/3600)
     tr_str = str(tr)+'hrs'
@@ -123,34 +108,34 @@ def create_new_netcdf(date,ens_type,in_vrbls,vrbls):
     # For the metadata, need a list of locations
     lats = ncdata.variables[vardict['lat']][:][:,None]
     lons = ncdata.variables[vardict['lon']][:][None,:]
+    
     # Do a 2d mesh of lat and lon
     lonarr, latarr = np.meshgrid(lons, lats)
     
     #And an array of ensemble members
     memarr = np.arange(1,nmems+1)
-    
-
-
-    
+       
     # Now to populate the state array
     for va, var in enumerate(vrbls):
-        print(var[0:2])
+        #reason index 0:2 is checked is that QF and D-QF can take place at different
+        #levels (QF850, D-QF850), so to avoid specifying each possible variable name, 
+        #just check 1st 2 chars.
         if var[0:2] not in ['QF','D-']:
-            field = ncdata.variables[vardict[var]][:,:,:,:]#[tbeg:tend,:,:]
+            field = ncdata.variables[vardict[var]][:,:,:,:]
             #print(field)
             print('Adding variable {}'.format(var))
             #convert surface pressure to altimeter setting
             if var=='ALT': 
                 #Read the orography netcdf file- for calculating altimeter setting
                 #has a time index, even when only one time is gotten from TIGGE- requires
-                #indexing like [0,:,:] to get this first(and only) time.
+                #indexing like [0,:,:] to get this first (and only) time.
                 orogdata = Dataset(orography, 'r')
-                #print(orogdata.variables)
                 elev = orogdata.variables[vardict['elev']][0,:,:]  
                 #Convert surface pressure to altimeter setting in mb
                 #pressure in netcdf file is in pascals
                 presinmb = field/100
                 field = presinmb/((288-0.0065*elev)/288)**5.2561
+            #find 6-hourly precipitation
             if var=='P6HR':
                 #create dummy field to facilitate subtracting of total precipitation
                 #t-1 from t without saving over t, so the next subtraction still works
@@ -180,16 +165,16 @@ def create_new_netcdf(date,ens_type,in_vrbls,vrbls):
         # make the ensemble dimension at the end of state
         field = np.swapaxes(field, 1, 3)
         field = np.swapaxes(field, 1, 2)
-         # Populate its component of the state array
+        # Populate its component of the state array
         state[va,:,:,:,:] = field
         
     print('Writing to netcdf...')
-        # Convert times back to integers
+    # Convert times back to integers
     valid_times = date2num(ftimes,tunit)
     
     # Write ensemble forecast to netcdf - change name here
     #dset = Dataset(outdir+y+'-'+m+'-'+d+'_'+h+'_'+ens_type+'_'+outvar_string+'.nc','w')
-    dset = Dataset(outdir+y+'-'+m+'-'+d+'_'+h+'_'+tr_str+'_22'+outvar_string+'.nc','w')
+    dset = Dataset(outdir+y+'-'+m+'-'+d+'_'+h+'_'+tr_str+'_'+outvar_string+'44.nc','w')
     dset.createDimension('time',None)
     dset.createDimension('lat',nlats)
     dset.createDimension('lon',nlons)
@@ -210,13 +195,13 @@ def create_new_netcdf(date,ens_type,in_vrbls,vrbls):
         #var = vardict[var]
         print('Writing variable {}'.format(var))
         dset.createVariable(var, np.float32, ('time','lat','lon','ens',))
-        dset.variables[var].units = ut.get_units(var)
+        dset.variables[var].units = ef.get_units(var)
         dset.variables[var][:] = state[v,:,:,:,:]
-    # Free up memory held by the state array
-    #del state
+    #completes writing the file
+    dset.close()
 
 
-#--------Code that calls the function to make a new netCDF--------------------
+#--------Call the function to make a new netCDF--------------------------------
 for ens in ensemble_type:
     for d in dates:
         create_new_netcdf(d,ens,in_variables,variables)
