@@ -17,6 +17,7 @@ def make_datelist(start_date = '20130401_0000', end_date = '20130406_0000', torf
     Includes the last value. If selected, also gets hour before and after 
     00,06,12,18. If torf == True, formats in %Y%m%d_%H00 format, otherwise
     formats in %Y%m%d%H format.
+    Returns list of strings. 
     """  
     
     #Convert string to datetime object
@@ -46,7 +47,7 @@ def make_datelist(start_date = '20130401_0000', end_date = '20130406_0000', torf
                 dt_list.append((dt + timedelta(seconds = 3600)).strftime('%Y%m%d%H'))
             elif hour_before_after == False:
                 dt_list.append(dt.strftime('%Y%m%d%H'))
-    	#dt = dt + timedelta(0,3600)
+                
         dt = dt + timedelta(0,timestep)
         
     return dt_list

@@ -8,8 +8,7 @@ import os
 import netCDF4 
 import madis_utilities as mt
 
-base_dir = "/home/disk/hot/stangen/Documents/surface_obs/MADIS/"
-
+#----------Change these--------------------------------------------------------
 #Set extent of MADIS data to extract from file
 minLat = 0.01 
 maxLat = 90
@@ -21,6 +20,20 @@ start_date = '20130401_0000'
 end_date = '20130703_1800'
 ob_type = ['metar','maritime'] #Can add 'raob'
 ob_vars = ['altimeter','temperature'] #or 'altimeter'
+
+# Use QC Boolean to determine whether obs should be kept. If False interpret QC string
+QCR = False
+# If False, don't use MADIS QC at all- instead, use observation if it lies between certain values.
+MADIS_QC = True
+
+#range of seconds before and after the time to include observations-
+#e.g. 1200 UTC observation file could include observations from 1100 to 1300 UTC.
+#below, there are references to hour before or hour after. If this value is changed,
+#the time window to use observations will be different from an hour before and after.
+second_range = 3600
+#------------------------------------------------------------------------------
+
+base_dir = "/home/disk/hot/stangen/Documents/surface_obs/MADIS/"
 
 #Call a function which creates a list of dates in 6 hour intervals
 date_list = mt.make_datelist(start_date, end_date, torf = True, hour_before_after=False)
@@ -90,15 +103,12 @@ def read_madis(ob_type='metar', ob_var='altimeter', dtstr='20130401_0000'):
     for s in stn_name:
         #get rid of the masked elements of the name of the station
         s = s[~s.mask]
-    	#decode list of bytes and join them to get the station identifier string
+        	#decode list of bytes and join them to get the station identifier string
         stns.append(b''.join(s).decode('utf-8'))
     
     #decode other character arrays (decoding is only necessary in Python 3)
     qc_var = [b.decode() for b in qc_var0]
     
-    # Use QC Boolean to determine whether obs should be kept. If False interpret QC string
-    QCR = False
-    MADIS_QC = True
     
     # If QC Boolean == 0 than the given observation passed the QC checks applied by MADIS.
     
@@ -143,7 +153,7 @@ def read_madis(ob_type='metar', ob_var='altimeter', dtstr='20130401_0000'):
     #Initialize string array (to store variables and write to ascii file)
 #    sstr = []
     
-    #Checking if stations are in China (psedoglobal coverage check)
+    #Checking if stations are in China (pseudoglobal coverage check)
 #    z = 0
 #    l = 0
 #    for i in stns:
@@ -167,14 +177,12 @@ def read_madis(ob_type='metar', ob_var='altimeter', dtstr='20130401_0000'):
             #If "S" is not included, the QC will only accept passing at least QC 3 - for global coverage, must contain S
             if ((not QCR) and (float(lats[t]) >= minLat) and (float(lats[t]) <= maxLat) and (float(lngs[t]) >= minLng) and (float(lngs[t]) <= maxLng) and ((qc_var[t] == "K") or (qc_var[t] == "V") or (qc_var[t] == "S"))):
         		#Save station identifier, latitude, longitude, elevation, epoch time, and observation
-            #if (alts[t] != '--'):
                 if ob_var == 'altimeter':
                     if var[t] > 93000 and var[t] < 107000:
                         sstr.append(str(stns[t])+","+str(lats[t])+","+str(lngs[t])+","+str(elevs[t])+","+str(epoch[t])+","+str(var[t]/100)+","+ob_type.upper()+","+str(station_type[t])+"\n")
                 elif ob_var == 'temperature':
                     if var[t] >= 230.15 and var[t] <= 323.15:
                         sstr.append(str(stns[t])+","+str(lats[t])+","+str(lngs[t])+","+str(elevs[t])+","+str(epoch[t])+","+str(var[t])+","+ob_type.upper()+","+str(station_type[t])+"\n")
-                #sstr.append(str(stns[t])+","+str(lats[t])+","+str(lngs[t])+","+str(elevs[t])+","+str(epoch[t])+","+str(var[t])+","+ob_type.upper()+"\n")
             #If QCR is set to "True", use the MADIS QC check
             elif ((QCR) and (var[t] != '--') and (float(lats[t]) >= minLat) and (float(lats[t]) <= maxLat) and (float(lngs[t]) >= minLng) and (float(lngs[t]) <= maxLng) and (qcr_var[t] == 0)):
         		#If the MADIS ob exists, is in the lat/lng bounding box and has passed all MADIS QC checks applied
@@ -195,9 +203,6 @@ def read_madis(ob_type='metar', ob_var='altimeter', dtstr='20130401_0000'):
             elif ob_var == 'temperature':
                 if ((var[t] != '--') and (float(lats[t]) >= minLat) and (float(lats[t]) <= maxLat) and (float(lngs[t]) >= minLng) and (float(lngs[t]) <= maxLng) and var[t] > 233.15 and var[t] < 313.15):# and station_type[t] == 0):
                     sstr.append(str(stns[t])+","+str(lats[t])+","+str(lngs[t])+","+str(elevs[t])+","+str(epoch[t])+","+str(var[t])+","+ob_type.upper()+","+str(station_type[t])+"\n")            
-    
-    #Sort the observations by station identifier 
-    #list.sort(sstr)
     
     print("Non-QC'd number of "+ob_var+" observations for "+dtstr+" : "+str(len(lats)))
     print("Number of "+ob_type+" "+ob_var+" observations retrieved: "+str(len(sstr)))
@@ -222,8 +227,8 @@ for dates in date_list:
     
         #Get the previous and following hour to also load. 
         #Convert dates string to datetime to add/subtract one hour
-        dates_hour_before = datetime.strptime(dates,'%Y%m%d_%H%M') - timedelta(seconds = 3600)
-        dates_hour_after = datetime.strptime(dates,'%Y%m%d_%H%M') + timedelta(seconds = 3600)
+        dates_hour_before = datetime.strptime(dates,'%Y%m%d_%H%M') - timedelta(seconds = second_range)
+        dates_hour_after = datetime.strptime(dates,'%Y%m%d_%H%M') + timedelta(seconds = second_range)
         #Convert back to string to have same style as dates
         dates_hour_before= dates_hour_before.strftime('%Y%m%d_%H00')
         dates_hour_after = dates_hour_after.strftime('%Y%m%d_%H00')
@@ -253,7 +258,7 @@ for dates in date_list:
             #for loop to append hour before, hour after, and dates observations to the list.
             sstr = []
             #Create an empty list to append observations into, without duplicate stations. 
-            #Must be done outside of hourlist for loop to append the files
+            #Must be done outside of hourlist for loop
             sstr_one_station = [] 
             
             #Loop through each hour (hour before, hour after, and dates)
@@ -264,8 +269,7 @@ for dates in date_list:
                 #change yyyy and mons so that the proper file is loaded in the read_madis function.
                 #this is because read_madis uses yyyy and mons and it needs to correlate with the correct hour.
                     yyyy = hours[0:4]
-                    mons = hours[4:6]
-                
+                    mons = hours[4:6]                
 #-------------------Call the function to read a MADIS netCDF file and filter the data.
                     #This function appends QC'd observations to sstr. 
                     sstr = read_madis(ob,ob_var,hours)
@@ -304,7 +308,6 @@ for dates in date_list:
                         prev_ob_time = mt.timestamp2utc(sstr_one_station_prev_split['time'])
                         #if the name of the station is 'SHIP' it isn't a unique name- check lat/lon as well
                         if sstr_split['name'] == 'SHIP' and sstr_one_station_prev_split['name'] == 'SHIP':
-                            #print(len(sstr_one_station))
                             #call function to check if lat/lon are within 1 degree of another ship-
                             #if it is, assume same ship. This will incorrectly eliminate some unique
                             #ships (close together), but not too many,and will eliminate moving ships.
@@ -320,7 +323,7 @@ for dates in date_list:
                                     sstr_one_station[ind] = sstr_str
                             #if off by more than 1 degree each, assume different ship, append ob to list.
                             elif ship_check == True:
-                                    sstr_one_station.append(sstr_str)
+                                sstr_one_station.append(sstr_str)
                  
                         #if the names are the same, only keep the observation closest to 00,06,12,18Z
                         #by doing a time check
@@ -348,11 +351,10 @@ for dates in date_list:
                 s_time = mt.timestamp2utc(s_split['time']) 
                 #if time is less than 1 hour away from 6-hour time, add observation
                 #to final list of observations
-                if abs(s_time-desired_time) <= timedelta(seconds=3600):                       
+                if abs(s_time-desired_time) <= timedelta(seconds=second_range):                       
                     sstr_one_station_1hr.append(s)
-                    #del sstr_one_station[i]
             print("Removed times outside of 1 hour window: New number of obs: " +str(len(sstr_one_station_1hr)))                                                             
-            #sstr = sstr_one_station
+
             #Write selected MADIS obtype variable data into CSV file
             f = open(base_dir+"/"+dates[0:6]+"/"+ob+"_"+var_short+"/"+ob+"_"+var_short+"_"+str(dates)+".txt","w")
             for s in sstr_one_station_1hr:
@@ -363,11 +365,11 @@ for dates in date_list:
             if ob == 'metar':
                 f = open(base_dir+"/"+dates[0:6]+"/combined_"+var_short+"/"+var_short+"_"+str(dates)+".txt","w")
                 for s in sstr_one_station_1hr:
-                        f.write(s)
+                    f.write(s)
                 f.close()
             #This is to append to an already created file instead of writing another one
             elif ob == 'maritime' or ob =='raob':
                 f = open(base_dir+"/"+dates[0:6]+"/combined_"+var_short+"/"+var_short+"_"+str(dates)+".txt","a")
                 for s in sstr_one_station_1hr:
-                        f.write(s)
+                    f.write(s)
                 f.close()

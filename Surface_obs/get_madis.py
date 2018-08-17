@@ -7,20 +7,21 @@ from time import strftime
 from datetime import timedelta
 import madis_utilities as mt
 
-#Set working directory
-base_dir="/home/disk/hot/stangen/Documents/surface_obs"
 
-#Retrieve start and end date from command line args
-#start_date = sys.argv[1]; 
-#end_date = sys.argv[2]
-
+#-------------Modify these-----------------------------------------------------
+#if true, obtain the observation type from MADIS server
 metar = True
 mesonet = False
 maritime = True
-raob = True
+raob = False
 
-start_time = '20130510_1200'
-end_time = '20130510_1200'
+#start and end time- will get observations at 6-hour intervals between these times.
+start_time = '20180614_0000'
+end_time = '20180614_0000'
+#------------------------------------------------------------------------------
+
+#Set working directory
+base_dir="/home/disk/hot/stangen/Documents/surface_obs"
 
 #Get current date/time
 dt_now = datetime.utcnow()
@@ -29,6 +30,7 @@ dt_hour = dt_hour - timedelta(0,3600) # Get previous hour (MADIS data is usually
 
 
 #make a list of dates
+#see make_datelist documentation for more information on this
 dt_list = mt.make_datelist(start_time,end_time,torf=False,hour_before_after=True)
 
 #Function to retrieve MADIS data, by observation type, from NOAA ftp server
@@ -87,7 +89,3 @@ for d in range(0,len(dt_list)):
     retrieve_madis_type("maritime",maritime)
     retrieve_madis_type("raob",raob)
 	
-#Remove MADIS data when finished to save space
-#os.system("rm -rf "+base_dir+"/metar.*")
-#os.system("rm -rf "+base_dir+"/mesonet.*")
-#os.system("rm -rf "+base_dir+"/maritime.*")
