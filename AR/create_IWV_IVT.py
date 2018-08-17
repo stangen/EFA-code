@@ -13,38 +13,34 @@ import surface_obs.madis_example.madis_utilities as mt
 import EFA.duplicate_madaus.efa_functions as ef
 import os
 
+#------------------Change these------------------------------------------------
 # ecmwf, eccc for euro/canadian ensembles, ncep
 ensemble_type = ['eccc','ecmwf','ncep']
 #start and end date to get ensembles. 
 start_date = datetime(2015,11,10,0) #YYYY,m,d,h
 end_date = datetime(2015,11,17,12)
 hourstep = 12 #how often you want a new forecast initialization, usually 12 hr
-
 #variables with names coming from the raw TIGGE- see get_tigge_data if unsure of names.
 #the order matters to make filename match exactly. 
-surf_variables = ['D2M','SP','U10','V10']
-upper_variables = ['Q','U','V']
-levels = ['1000','925','850','700','500','300']
-end_variables = ['IWV','IVT','D-IVT']
+surf_variables = ['D2M','SP','U10','V10'] #surface variables
+upper_variables = ['Q','U','V'] #upper variables
+levels = ['1000','925','850','700','500','300'] # levels in the upper level netCDF
+end_variables = ['IWV','IVT','D-IVT'] #variables we want to produce from this script.
+#------------------------------------------------------------------------------
 
 #a list of dates to loop through to load each forecast initialized on these dates
 dates = mt.make_datetimelist(start_date,end_date,hourstep)  
-
+#strings for loading the surface and aloft TIGGE netCDFs
 surf_str = ef.var_string(surf_variables)+'_sfc.nc'
 upper_str = ef.var_string(upper_variables)+'_'+ef.var_string(levels)+'_pl.nc'
+
+#number of variables in the netCDF produced from this script
 nvars = len(end_variables)
 
 g = 9.80665
 
 outvar_string = ef.var_string(end_variables)
 
-"""
-This function creates a netCDF from a raw TIGGE netCDF. The main purpose
-of this is to change surface pressure to altimeter setting, calculate
-6-hourly precipitation, and to rename/shorten variable names. Unfortunately
-using the float32 format for the variables uses twice the memory of the 
-raw TIGGE int16 format. 
-"""
 for ens in ensemble_type:
     for date in dates:
 
@@ -88,7 +84,6 @@ for ens in ensemble_type:
         surf = Dataset(surf_file, 'r')     
         # Shape of surf[variable] is nvars, ntimes, nmems, nlats, nlons
         #print(ncdata.variables.keys())
-        # Find the indices corresponding to the start and end times
         tunit = surf.variables[vardict['time']].units
         ftimes = num2date(surf.variables[vardict['time']][:],tunit)
         nmems = len(surf.dimensions[vardict['mem']])
@@ -103,21 +98,22 @@ for ens in ensemble_type:
         #And an array of ensemble members
         memarr = np.arange(1,nmems+1)
         
+        #surface pressure and winds
         p_surf = surf.variables['sp'][:]
         u_surf = surf.variables['u10'][:]
         v_surf = surf.variables['v10'][:]
-        
-        #should have same lat/lon, members, and times as the surface
-        #ensemble, so no need to load them here.
-        #Shape of aloft[variable] is ntimes x nmems x nlevs x nlats x nlons
-        #levs is ascending the atmosphere as index increases
-        aloft = Dataset(upper_file, 'r')
         
         #time range of ensemble
         ftime_diff = ftimes[-1]-ftimes[0]
         tr = int((ftime_diff.days)*24 + (ftime_diff.seconds)/3600)
         tr_str = str(tr)+'hrs'
         
+        #should have same lat/lon, members, and times as the surface
+        #ensemble, so no need to load them here.
+        #Shape of aloft[variable] is ntimes x nmems x nlevs x nlats x nlons
+        #levs is ascending the atmosphere as index increases
+        aloft = Dataset(upper_file, 'r')
+                
         # Allocate the state array
         print('Allocating the state vector array...')
         state = np.zeros((nvars,ntimes,nmems,nlats,nlons))
