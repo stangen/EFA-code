@@ -9,6 +9,7 @@ import os
 from ecmwfapi import ECMWFDataServer
 from datetime import datetime
 import surface_obs.madis_example.madis_utilities as mt
+import EFA.duplicate_madaus.efa_functions as ef
 server = ECMWFDataServer()
 
 ###---------Change these variables accordingly---------------------------------
@@ -18,10 +19,10 @@ end_date = datetime(2015,11,17,12)
 start_fh = '0' #first forecast hour of each forecast
 end_fh = '54' #last forecast hour of each forecast
 fh_step = '6' #increment of forecast hour to retrieve
-ens = 'ncep' #ensemble
-param = ['Q','U','V'] #parameters to get
-surface = False #True if surface variables, false if aloft (500mb?)
-levels = '850'
+ens = 'ecmwf' #ensemble
+param = ['Q','U','V']#['D2M','SP','U10','V10']# #parameters to get
+surface = False #True if surface variables, false if aloft
+levels = ['1000','925','850','700','500','300'] #only gets called if surface = False
 hourstep = 12 #how often you want a new forecast initialization, usually 12 hr
 #------------------------------------------------------------------------------
 
@@ -41,11 +42,17 @@ ens_num_dict = {
                 }
 
 param_dict = {
+            #surface variables
             'T2M' : '167', #2m temperature
+            'D2M' : '168', #2m dew point temperature
             'SP' : '134', #surface pressure
             'TCW' : '136', #total column water
             'PCP' : '228228', #total precipitation
+            'U10' : '165', #10-meter U component of wind
+            'V10' : '166', #10-meter V component of wind
             'MSLP' : '151', #mean sea level pressure
+            
+            #aloft variables
             'Z500' : '156', #500 mb height
             'Q' : '133', #specific humidity
             'U' : '131', #u-component of wind
@@ -82,11 +89,13 @@ def retreive_tigge_data(date):
         os.makedirs(save_dir)
         
     date = y+'-'+m+'-'+d      
+    
     if surface == True:
         target = save_dir+date+'_'+h+'_'+ens+'_'+var_string+'_sfc.nc'
         tigge_pf_sfc_request(date, h, target)
     elif surface == False:
-        target = save_dir+date+'_'+h+'_'+ens+'_'+var_string+'_pl.nc' 
+        levstr = ef.var_string(levels)
+        target = save_dir+date+'_'+h+'_'+ens+'_'+var_string+'_'+levstr+'_pl.nc' 
         tigge_pf_pl_request(date, h, target)
              
 #full ecmwf from 0-240 hr should be about 1 Gb for 2 variables (t2m and pwat)
