@@ -24,73 +24,65 @@ import EFA.duplicate_madaus.efa_functions as ef
 
 start_time = datetime.now()
 print('start time: ',start_time)
-shell_script = False
-#indicate that we are inflating the posterior perturbations
-inf_post = False
+
+shell_script = True
 
 if shell_script == False:
-    ensemble_type = 'eccc'
+    ensemble_type = 'eccc' #'eccc', 'ecmwf', or 'ncep'
     #All variables in the prior netCDF
     variables = ['IWV','IVT','D-IVT']#['TCW']#['QF850','D-QF850']#['T2M','ALT']#['T2M', 'ALT', 'P6HR', 'TCW']
     #the ob type of the observations we are assimilating, and its associated
     #observation error variance
-    obs_type = ['IVT','IWV']#['TCW']#['QF850']#['ALT','ALT']    
-    ob_err_var = ['10000','20']#[1,0] #or ['ensvar'] for use ensemble variance
-    #obs_dict = {'ALT':1, 'ALT':0}    
+    obs_type = ['IVT','IWV']#['TCW']#['QF850']#['ALT','ALT']
+    #observation error variance associated with the variables defined in obs_type.
+    #list must be same length as obs_type. i.e. ob error variance for IVT is 10000,
+    #ob error variance for IWV is 20.     
+    ob_err_var = ['10000','20'] #or ['ensvar'] for use ensemble variance as ob error variance
     #the variables in the netCDF we want to update
     update_vars= ['IVT','IWV']#['IWV','IVT','D-IVT']#['TCW']#['QF850','D-QF850']#['ALT'] #['T2M','ALT']
-    #are the observations only updating their corresponding variable, or
-    #are they updating all variables? -ie t2m only updates t2m, alt only updates alt
-    self_update=True #true if you want the above updates, otherwise false
-    #localization type
-    loc_type = 'statsig'#'hybrid'#'GC'
-    #localization radius (for Gaspari-Cohn) (confidence threshold for statsig)
-    #if hybrid, the localization radius for obs within the AR, other obs are still 1000
-    localize_radius = 99#2000#1000 
+    #is each observation type only updating its corresponding variable, or
+    #is it updating all variables? -ie t2m only updates t2m, alt only updates alt
+    #true if you want obs to only update their own variable type, otherwise false.
+    self_update=True 
+    #localization type- 'GC' is Gaspari-Cohn, 'hybrid' uses a different localization if an
+    #observation is within the AR being studied from 11/10/15 - 11/15/15, and
+    #'statsig' uses a Spearman rank correlation to determine which points
+    #covary with the ob estimate at a confidence threshold, defined in localize_radius
+    loc_type = 'GC'
+    #localization halfwidth in km (for Gaspari-Cohn) or, confidence threshold for
+    #statistical significance (statsig) in percent- i.e. 99 = 99% confidence threshold.
+    #if hybrid, the localization radius for obs within the AR, other obs use 1000 km.
+    localize_radius = 1000 
     #date to run efa
     date = datetime(2015,11,10,0)#2013,4,1,0)
     #inflation?
-    inflation = 'none'
+    inflation = 'none' #scalar value is all I have set up to deal with. 
     #what kind of observations are we using? MADIS or gridded future 0-hour
     #forecast "obs", sampled at some interval?
     ob_category = 'gridded' #'madis' or 'gridded'
     #if true, include observation error variance in the names of the posterior variables
     #in the netCDF files, and in the names of the netCDF files.
-    use_oberrvar = True
-    
+    use_oberrvar = True    
     new_format = True #old or new naming conventions?
-    efh = 54 #end forecast hour of each forecast, should only matter if new_format = True
-    grid = [-180,180,90,0,3] #grid of observations (if gridded. Shouldn't matter
-    #what is here if ob_category is 'madis', since all code will only do stuff
+    efh = 54 #end forecast hour of each forecast, used in file name
+    #grid of observations (if gridded. Shouldn't matter what is here if 
+    #ob_category is 'madis', since all code will only do stuff
     #with grid if ob_category is 'gridded', and if new_format = True
+    grid = [-180,180,90,0,3] 
     
-
 
 elif shell_script == True:
     ensemble_type = sys.argv[1]
     variables = sys.argv[2].split(',')
-    #obs_dict = json.loads(data)
     obs_type = sys.argv[3].split(',')
     ob_err_var = sys.argv[4].split(',')
-#    for i, err in enumerate(ob_err_var):
-#        try:
-#            ob_err_var[i] = int(err)
-#        except:
-#            ob_err_var[i] = float(err)
-#        finally:
-#            ob_err_var[i] = str(err)
     update_vars = sys.argv[5].split(',')
-    #update_vars= ['T2M','ALT']
-    #are the observations only updating their corresponding variable, or
-    #are they updating all variables? -ie t2m only updates t2m, alt only updates alt
     self_update = sys.argv[6]
     if self_update == 'true':
         self_update=True #true if you want the above updates, otherwise false
     elif self_update =='false':
         self_update=False
-    #localization type
     loc_type = sys.argv[7] #loc_type = 'GC' 
-    #localization radius (for Gaspari-Cohn)
     localize_radius = int(sys.argv[8])
     datestr = sys.argv[9]
     #first date that EFA is run in this batch
@@ -125,17 +117,7 @@ except:
     if inflation == 'none':
         inflation = None
         inflation_str = 'none'
-    #add here for what to pass in to inflation for if loading inflation file
-
-#code to change save inflation if just inflating the posterior    
-if inf_post == True:
-    if inflation is not None:
-        inflation = None
-        inflation_str = inflation_str+'post'
-        
-#if we are not dealing with gridded obs (madis obs), set grid to '[]'
-#if ob_category == 'madis':
-#    grid = []
+    
 
 def run_efa(ob_type,update_var,ob_err_var):
     """
@@ -165,12 +147,7 @@ def run_efa(ob_type,update_var,ob_err_var):
     else:
         loc_rad = None
         loc_str = '_stat_sig'
-    
         
-    time_lag = False
-    
-    #a list of dates to loop through to load each forecast initialized on these dates
-    
     y = date.strftime('%Y')
     m = date.strftime('%m')
     d = date.strftime('%d')
@@ -184,10 +161,9 @@ def run_efa(ob_type,update_var,ob_err_var):
             grid=grid,new_format=new_format,efh=efh)
         
         #initialize an instance of the Load_data class (load in data)
-        IVT_statecls, lats, lons, elevs = efaIVT.load_netcdfs()
-
-        #check if IVT qualifies as AR
-        
+        IVT_statecls, lats, lons, elevs = efaIVT.load_netcdfs()  
+        #get IVT 12 hours into the forecast, at time of observations 
+        #(time_ind = 2 is forecast hour 12)
         IVT = IVT_statecls.variables['IVT'].values[2,:,:,:]
         
         #obtain the mean of the ensemble (nlats x nlons)
@@ -195,7 +171,8 @@ def run_efa(ob_type,update_var,ob_err_var):
         
         #obtain variance of the ensemble (nlats x nlons)
         variance = np.var(IVT,axis=-1,ddof=1)
-        
+    
+    #loop through each observation type    
     for o, o_type in enumerate(ob_type):
         
         #if we are wanting to use ensemble variance as ob error variance
@@ -227,9 +204,11 @@ def run_efa(ob_type,update_var,ob_err_var):
             #get longitude positive-definite- ie -130 lon is 230 E
             if ob_dict['lon'] < 0:
                 ob_dict['lon'] = ob_dict['lon'] + 360
+            #get ob time in datetime format
             utctime = datetime.utcfromtimestamp(ob_dict['time'])
             if ob_category == 'madis':
-                #check elevation of 4 nearest gridpoints to see whether or not to assimilate ob
+                #check elevation of 4 nearest gridpoints to see whether or not to assimilate ob-
+                #returns true or false
                 TorF = ef.closest_points(ob_dict['lat'],ob_dict['lon'],lats,
                                               lons,ob_dict['elev'],elevs)
             elif ob_category == 'gridded':
@@ -244,9 +223,9 @@ def run_efa(ob_type,update_var,ob_err_var):
                 
             #if we are using a hybrid localization radius- no localization within
             #the AR, 1000 km outside of it
-            #if the lat/lon lie within some AR box, check if the ob point is in an AR
-                #get the IVT 12 hours into the forecast (3rd forecast hour)
-                #statecls.variables['IVT'][2]
+            #if the lat/lon lie within some AR box, check if the ob point is in an AR-
+            #if IVT > 250
+
             if loc_type == 'hybrid':    
 
                 if ob_dict['lon'] >= 140 and ob_dict['lon'] <= 245 and ob_dict['lat'] >= 33 and ob_dict['lat'] <= 51:
@@ -254,10 +233,10 @@ def run_efa(ob_type,update_var,ob_err_var):
                     #get the ensemble value at the lat/lon pair
                     ob_value, ob_variance = ef.closest_points(ob_dict['lat'],ob_dict['lon'],lats,lons,variable=ens_mean,
                                                  need_interp=True,gen_obs=True,variance=variance)
-                    #if ob value is AR and in the grid area, set its localization radius to the input loc_rad
+                    #if ob value is AR and in the grid area, set its localization radius to the input (hybrid) loc_rad
                     if ob_value >= 250:
                         loc_rad = localize_radius
-                        print(str(ob_value))
+                        #print(str(ob_value))
                     else:
                         loc_rad = 1000
                 else:    
@@ -265,8 +244,8 @@ def run_efa(ob_type,update_var,ob_err_var):
                     loc_rad = 1000
             
             #check if it's working
-            print(str(ob_dict['ob']))
-            print(str(ob_dict['lat'])+' '+str(ob_dict['lon'])+' '+str(loc_rad))
+#            print(str(ob_dict['ob']))
+#            print(str(ob_dict['lat'])+' '+str(ob_dict['lon'])+' '+str(loc_rad))
             #fill the observation class object with information for assimilation
             obser = Observation(value=ob_dict['ob'], time=utctime,
                             lat=ob_dict['lat'],lon=ob_dict['lon'], obtype=o_type, localize_radius=loc_rad,
@@ -274,27 +253,14 @@ def run_efa(ob_type,update_var,ob_err_var):
             observations.append(obser)                
 
     print('loaded '+str(len(observations))+' obs for assimilation')
-            
-#    ob1 = Observation(value=10000.25, time=datetime(2013,4,2,6),lat=24.55,lon=278.21,
-#                  obtype = ob_type[0], localize_radius=1000, assimilate_this=True,
-#                  error=ob_err_var[o])
-    
-#    ob1 = Observation(value=10000.25, time=datetime(2015,11,10,6),lat=24.55,lon=278.21,
-#                  obtype = ob_type[0], localize_radius=1000, assimilate_this=True,
-#                  error=ob_err_var[o])
-#    
-#    
-#    observations.append(ob1)
-    #    
+               
     # Put the state class object and observation objects into EnSRF object
     assimilator = EnSRF(statecls, observations, inflation=inflation, loc=localize_type)
     
-    # Update the prior with EFA- post_state is an EnsembleState object
-    post_state, post_obs = assimilator.update()
-    
-    state=post_state
-    
-    #build the string of where to save the files
+    # Update the prior with EFA- state is an EnsembleState object, is the posterior
+    state, post_obs = assimilator.update()
+        
+#---build the string of which directory to save the file--------------------------------
     outdir = '/home/disk/hot/stangen/Documents/posterior_ensembles/'
     #what kind of observations are we assimilating?
     outdir += ob_category + '/'
@@ -309,11 +275,9 @@ def run_efa(ob_type,update_var,ob_err_var):
     outdir += 'inf_'+inflation_str+'/'
     #directory for the type of localization used       
     outdir += 'loc_'+loc_str+'/'
-    #if dealing with time-lagged ensembles, add another directory
-    if time_lag == True:
-        outdir += 'time_lag/'
     #add directories for the ens type and year & month
     outdir += ensemble_type+'/'+y+m+'/'
+#----------------------------------------------------------------------------------------
             
     #Create output directories if they don't yet exist
     if (os.path.isdir(outdir)):
@@ -332,10 +296,11 @@ def run_efa(ob_type,update_var,ob_err_var):
             
     #convert 1-length ob err var list to a string with no decimals
     #this makes it so that multiple ob err vars that acted on one data type
-    #can all be saved to one netCDF.
+    #can all be saved to one netCDF- makes managing files easier where I was testing
+    #what observation error variance to use.
     #more specifically, this adds ob err var to the variable name in the netCDF.
     #ob_err_var_str is only called if self_update == True, so the ob err var
-    #is never in the variable name if self_update == False.
+    #is never in the variable name within the netCDF if self_update == False.
     ob_err_var_str = ''
     if use_oberrvar == True:
         ob_err_var_str = str(ob_err_var[0]).replace('.','-')
@@ -348,11 +313,11 @@ def run_efa(ob_type,update_var,ob_err_var):
     if self_update == True:
         for var in state.vars():
             checkfile = outdir_date_ens+'*'
-            # If we're writing a single variable and the other variable already exists,
-            # append to that file
+            # If we're self-updating variables and we are on the 2nd or later variable in
+            # the loop, this will return with something
             existing_file = glob.glob(checkfile)
 
-            #if the other variable already exists
+            #if other variables already exists, append to the netCDF
             if existing_file != []:
                 print('Appending to existing file!')
                 #should only be one file in there, convert from list to string
@@ -369,25 +334,20 @@ def run_efa(ob_type,update_var,ob_err_var):
                 #the .nc
                 existing_file = existing_file.replace('.nc', '')
                 # Rename the checkfile so the filename no longer specifies a 
-                # single variable type
+                # single variable type- add new variable to filename
                 newfile = existing_file+'_'+ef.var_num_string(ob_type,ob_err_var)+'.nc'
-
-                #print(newfile)
                 os.system('mv {} {}'.format(existing_file+'.nc',newfile))
-                # ALL DONE!!
             else:                
                 # If the checkfile does not exist, make a new file
                 outfile = outdir_date_ens+'_'+ef.var_num_string(ob_type,ob_err_var)+'.nc'
                 ef.make_netcdf(state,outfile,ob_err_var_str)
     
     #if we are updating all variable types with the observation (regardless of its type)
-    #observation error variance is not saved in the variable name in the netCDF,
-    #only in the filename here.
+    #and use_oberrvar == True, observation error variance is not saved in the 
+    #variable name in the netCDF, only in the filename here.
     elif self_update == False:
         outfile = outdir_date_ens+'_'+ef.var_num_string(ob_type,ob_err_var)+'.nc'
-        ef.make_netcdf(state,outfile)
-
-    
+        ef.make_netcdf(state,outfile)    
 
 #----------Call the run_efa function. Use a for loop if self-updating variables
 #----------This is to update each variable one at a time.----------------------
