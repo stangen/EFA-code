@@ -116,8 +116,6 @@ class Observation:
         state_rank = np.zeros(state_1sort.shape)
         state_rank[n,state_1sort] = np.arange(len(state_1sort[0]))
         
-        #sort again to obtain the rank - double argsort is what causes code to run slowly
-#        state_rank = np.argsort(state_1sort,axis=1)
 #        print(state[0])
 #        print(state_1sort[0])
 #        print(state_rank[0])
