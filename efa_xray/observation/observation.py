@@ -49,8 +49,6 @@ class Observation:
         identically matches this observation type and simply
         interpolate to that point.
         """
-        #ST I think this actually interpolates a value to the exact location
-        #of the observation lat/lon, maybe from other nearby points?
         return state.interpolate(self.obtype, self.time, self.lat, self.lon)
         
 
@@ -86,7 +84,8 @@ class Observation:
         if type == 'GC':
             localization = gaspari_cohn(distances, halfwidth)
 
-            
+        
+        # added by ST
         elif type.startswith('statsig'):
             #if not within 4000 km of the ob, don't let ob update the point.
             localization = np.ones(distances.shape)
@@ -100,7 +99,7 @@ class Observation:
         return localization
 
 
-
+    #----Function created/added by ST---------------------------------------
     def stat_sig(self,kcov,state,ye):
         #want to check if correlation is statistically significant- 
         #don't get the first value (this is a correlation of ye with itself,
