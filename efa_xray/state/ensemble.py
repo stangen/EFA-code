@@ -162,7 +162,8 @@ class EnsembleState(xarray.Dataset):
 #                 xu.sin(xu.radians(lat)),\
 #                 xu.cos(xu.radians(self['lon'].values)) - 
 #                 xu.cos(xu.radians(lon)))
-        # ST I changed dist to this because it was finding points from halfway around the world before
+        # ST I changed dist to this because commented dist wasn't working right- 
+        #it was finding points from halfway around the world before
         dist = self.distance_to_point(lat,lon)
         # Get indices of the flattened array
         nearest_raw = dist.argsort(axis=None)[:npt]
