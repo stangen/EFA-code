@@ -11,38 +11,48 @@ import numpy as np
 from datetime import datetime
 import EFA.duplicate_madaus.efa_functions as ef
 
+#--------_Change these--------------------------------------------------------
 
+#start and end dates of statistical averaging are used to load the correct file
 start_date = datetime(2015,11,10,0)
 end_date = datetime(2015,11,15,12)
 
-#which ob type(s) were assimilated (8/2)? used to load the .txt file
-#prior to 8/2, naming convention was all types of obs the .txt file contained.
-assim_obs = ['IWV']#['TCW']#
+#which ob type(s) were assimilated? used to load the correct .txt filename
+#or, if desired, naming convention could be all types of obs the .txt file contains.
+assim_obs = ['IVT']#['TCW']#
 
+#grid used to generate gridded obs, used for loading correct .txt filename
 grid = [-180,180,90,0,3]
 
 #want to plot each variable or control which are plotted?
 control_vars = True
 
+
+#if control_vars = True, plot_vars controls which variables we are going to plot. This can be useful 
+#if there are lots of different variables in the txt file and we don't want to plot them all.
 #plot_vars = ['IWV','IWV100','IWV1000','IWV10000']#['QF850','QF850100','QF850750','QF8501000']#,'QF850250','QF850500']
 #plot_vars = ['IVT','IVT100','IVT1000','IVT5000','IVT10000','IVT20000']
 #plot_vars = ['IWV','IWV1','IWV5','IWV10','IWV20','IWV100']
-#plot_vars = ['IVT','IVT10000','IVT10000_loc2000hybrid','IVT10000_loc5000hybrid','IVT10000_loc10000hybrid']
-plot_vars = ['IWV','IWV20','IWV20_loc2000hybrid','IWV20_loc5000hybrid','IWV20_loc10000hybrid']
+plot_vars = ['IVT_prior','IVT10000_loc1000','IVT10000_loc2000hybrid','IVT10000_loc5000hybrid','IVT10000_loc10000hybrid']
+#plot_vars = ['IWV','IWV20','IWV20_loc2000hybrid','IWV20_loc5000hybrid','IWV20_loc10000hybrid']
 
+#are we wanting to look at statistics for MSE/variance within a specific AR?
 AR_specific = True
 
+#do we want a separate plot for each ensemble type?
 separate_plots = False
 
-#prior_var_key = 'ALT'
+#gridded or madis obs?
+
+#-------------------------------------------------------------------------------
 
 var_units = {
             'ALT' : 'hPa$^{2}$',
             'T2M' : 'K$^{2}$',
             'QF850' : '(g/kg*m/s)$^{2}$',
-            'TCW' : 'mm',
-            'IWV' : 'mm',
-            'IVT' : 'kg/m/s'
+            'TCW' : 'mm$^{2}$',
+            'IWV' : 'mm$^{2}$',
+            'IVT' : '(kg/m/s)$^{2}$'
             }
 
 ls = {
@@ -73,11 +83,11 @@ ls2 = {
        'TCW10' : '-.',
        'TCW100' : ':',
        
-       'IWV' : '-',
+       'IWV_prior' : '-',
        'IWV1' : '',
        'IWV5' : ':',
        'IWV10' : '--',
-       'IWV20' : '-.',
+       'IWV20_loc1000' : '-.',
        'IWV100' : ':',
        'IWV1000' : '',
        'IWV5000' : '-.',
@@ -87,7 +97,7 @@ ls2 = {
        'IWV20_loc5000hybrid' : '--',
        'IWV20_loc10000hybrid' : ':',
        
-       'IVT' : '-',
+       'IVT_prior' : '-',
        'IVT1' : '',
        'IVT5' : ':',
        'IVT10' : '--',
@@ -95,7 +105,7 @@ ls2 = {
        'IVT100' : ':',
        'IVT1000' : '',
        'IVT5000' : '-.',
-       'IVT10000' : '--',
+       'IVT10000_loc1000' : '--',
        'IVT20000' : ':',
        'IVT10000_loc2000hybrid' : ':',
        'IVT10000_loc5000hybrid' : '-.',
@@ -119,11 +129,11 @@ md = {
        'TCW10' : 'o',
        'TCW100' : 'o',
               
-       'IWV' : 'o',
+       'IWV_prior' : 'o',
        'IWV1' : 'o',
        'IWV5' : 'o',
        'IWV10' : 'o',
-       'IWV20' : 'o',
+       'IWV20_loc1000' : 'o',
        'IWV100' : 'x',
        'IWV1000' : 'o',
        'IWV5000' : 'o',
@@ -133,7 +143,7 @@ md = {
        'IWV20_loc5000hybrid' : 'o',
        'IWV20_loc10000hybrid' : 'x',
        
-       'IVT' : 'o',
+       'IVT_prior' : 'o',
        'IVT1' : 'o',
        'IVT5' : 'o',
        'IVT10' : 'o',
@@ -141,7 +151,7 @@ md = {
        'IVT100' : 'x',
        'IVT1000' : 'o',
        'IVT5000' : 'o',
-       'IVT10000' : 'o',
+       'IVT10000_loc1000' : 'o',
        'IVT20000' : 'o',
        'IVT10000_loc2000hybrid' : 'o',
        'IVT10000_loc5000hybrid' : 'o',
@@ -238,12 +248,10 @@ varstr = ef.var_string(assim_obs)
 
 gridstr = ef.var_string(grid)
 
-#if AR_specific == True:
-#    filepath = filedir+datestr+'_'+varstr+'_'+gridstr+'_gridobs_ARonly.txt'
-#else:
-#    filepath = filedir+datestr+'_'+varstr+'_'+gridstr+'_gridobs.txt'
-
-filepath = filedir+datestr+'_'+varstr+'_'+gridstr+'_gridobs.txt'
+if AR_specific == True:
+    filepath = filedir+datestr+'_'+varstr+'_'+gridstr+'_gridobs_ARspecific.txt'
+else:
+    filepath = filedir+datestr+'_'+varstr+'_'+gridstr+'_gridobs.txt'
 
 f1 = open(filepath, 'r')
 stats = f1.readlines()
@@ -261,12 +269,14 @@ for line in stats:
     
     #if we are testing a method of localization other than gaspari-cohn, make the ob variable type
     #be the localization radius.
-    if efa.endswith('hybrid') or efa.endswith('statsig') or efa.endswith('statsig2'):
-        ens = ens+'_'+efa
+    #if efa.endswith('hybrid') or efa.endswith('statsig') or efa.endswith('statsig2'):
+    
+    #combine the variable type and the localization radius/type together to make a descriptive dictionary key
+    ens = ens+'_'+efa
     
     fh = line_split[4] #forecast hour
-    mse_gridobs = line_split[5] #mean squared error of gridded obs
-    variance_gridobs = line_split[6] #variance of gridded obs
+    mse_gridobs = line_split[5] #MSE of gridded obs if AR_specific == False, or MSE of AR gridpoints if AR_specific == True
+    variance_gridobs = line_split[6] #variance of gridded obs if AR_specific == False, or variance of AR gridpoints if if AR_specific == True
     #if we are plotting the AR-specific region
     #if AR_specific == False:
     mse_gridall = line_split[7] #mean squared error of entire grid
@@ -333,21 +343,19 @@ for v in stats_dict:
 
             
 #plotting variables
-#stats_list = ['MSE_Stationary','Variance_Stationary']
 #get all stats types in a list, remove forecast hour
 stats_list = list(stats_dict[v][e].keys())
 remove_list = ['Forecast_Hour_Gridded']
 for i in remove_list:
     stats_list.remove(i)
 
-#now plot 
-#separate plot for each variable type- remove the prior variable type
+#the different ensemble types in the .txt file (eccc, ecmwf, ncep) 
 stats_dict_vars = list(stats_dict.keys())
-#for v in stats_dict_vars:
 
+#now plot
 def plot_stats(separate):
     """
-    takes in a color table argument
+    takes in a boolean argument which affects which color table to use
     """
     if control_vars == True:
         variables = plot_vars
@@ -355,6 +363,7 @@ def plot_stats(separate):
         variables = stats_dict[m]
     #each variable
     for v in variables:
+        print(v)
         #if we are plotting gridded obs stats
         if separate == False:
             plt.plot(stats_dict[m][v]['Forecast_Hour_Gridded'],stats_dict[m][v][s],
@@ -377,16 +386,15 @@ def plot_stats(separate):
         plt.xlabel('Forecast Hour',fontsize=14)
         plt.ylabel(var_units[vstr],fontsize=14)
 
-#if AR_specific == False:
-    #separate plot for MSE and variance
+
 for s in stats_list:
     if separate_plots == False:
         fig = plt.figure(figsize=(14,8))  
         #each ensemble type      
         for m in stats_dict_vars:
             plot_stats(False)
-        #plt.show()
-        #fig.savefig(savedir+'850mb_Moisture_Flux_'+s+'_'+datestr+'.png',frameon=False,bbox_inches='tight')
+            #plt.show()
+            #fig.savefig(savedir+'850mb_Moisture_Flux_'+s+'_'+datestr+'.png',frameon=False,bbox_inches='tight')
        
     elif separate_plots == True:
         for m in stats_dict_vars:
