@@ -55,7 +55,7 @@ class EnSRF(Assimilation):
         if self.verbose: print("Beginning observation loop")
         for obnum,ob in enumerate(self.obs):
 #            if (obnum % 100==0) and self.verbose: print("    On ob:", obnum)
-            print('on ob '+str(obnum))
+            #print('on ob '+str(obnum))
             # Reset the mean and perturbations
             
             #ST
@@ -112,12 +112,6 @@ class EnSRF(Assimilation):
             # Option to localize the gain
             if self.loc not in [None, False]:
                 # Project the localization
-#                if self.loc == 'statsig':
-#                    state_localize = ob.localize(self.prior, type=self.loc,Xbp,ye)
-#                elif self.loc == 'statsig2':
-#                    state_localize = ob.localize(self.prior, type=self.loc,Xap_start,ye)
-#                
-#                else:
                 state_localize = ob.localize(self.prior, type=self.loc)
                 #print(state_localize.shape)
                 #print(dum_localize.shape)
@@ -132,9 +126,7 @@ class EnSRF(Assimilation):
                 # Now need to localize for obs
                 obs_localize = ob.localize(self.obs, type=self.loc)
                 state_localize = np.hstack((state_localize, obs_localize))
-                kcov = np.multiply(state_localize,kcov)
-                #kcov = np.dot(kcov,np.transpose(loc[ob,:]))
-            
+                kcov = np.multiply(state_localize,kcov)            
             
             
             if self.loc.startswith('statsig'):
