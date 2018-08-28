@@ -128,7 +128,7 @@ class EnSRF(Assimilation):
                 state_localize = np.hstack((state_localize, obs_localize))
                 kcov = np.multiply(state_localize,kcov)            
             
-            
+            #Added by ST to "localize" based on statistical significance test
             if self.loc.startswith('statsig'):
                 nvars = self.prior.nvars()
                 ntimes = self.prior.ntimes()
@@ -223,13 +223,12 @@ class EnSRF(Assimilation):
 #            print('total number of obs assimilated so far: ',numobs_assim)
         print('total number of obs assimilated: ',numobs_assim)
         
-        
+        #----_Added by ST--------------------------------------
         if self.loc.startswith('statsig'):
             for i in percent:
                 avg = np.mean(np.array(percent[i]))
                 print('average number of points updated for forecast hour '+i+': '+str(avg))
             
-        #print('beta constant: ',beta_const)
         # After having assimilated everything, rebuild the state
         return self.format_posterior_state(xam, Xap)
         
