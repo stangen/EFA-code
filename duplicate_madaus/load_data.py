@@ -19,22 +19,24 @@ class Load_Data():
     """
     This class exists mainly because the two functions share some variables,
     and this helps reduce the amount of redundant inputs into each function. 
-    #ens_type, ob_type are str; vrbls, update_var are lists of str, date is datetime object.
+    #ens_type, ob_type are str; vrbls, update_var, post_vrbls are lists of str, 
+    #grid is list of ints, date is datetime object, new_format is boolean.
     date = date of the model initialization
-    ens_type = eccc, ecmwf
-    prior_vrbls = all the variables in the prior netCDF
-    ob_type = the observation variable type we will be assimilating (only 1)
-    update_var = the variable type(s) we will be updating
+    ens_type = eccc, ecmwf, ncep
+    prior_vrbls = all the variables in the prior netCDF (T2M, ALT, IVT, etc)
+    ob_type = the observation variable type we will be assimilating (only 1- T2M, ALT, IVT, etc)
+    update_var = the variable type(s) we will be updating (T2M, ALT, IVT, etc)
     post_vrbls = all the variables in the posterior netCDF - only used when 
     running statistics on the posterior ensemble in mse_variance_gridded
         for use in mse_variance, ob_type is the variable type of the observation,
         without observation error variance attached with it. This is to load 
-        observations, which do not have ob err var as part of the name.
+        observations, which do not have observation error variance as part of 
+        their filename.
         update_var is used purely to load the netCDF we are doing stats on, 
         which may have ob error variance as part of the variable name. This can
         include the posterior, or the prior, if we are interested in the prior stats.
-        These should match if ob error variance was not used in creating the posterior
-        variable names, otherwise update_var contains ob err variance.
+        ob_type and update_var should match if ob error variance was not used 
+        in creating the posterior variable names, otherwise update_var contains ob err variance.
         (just 1, since it runs 1 at a time)
         
         for use in generate_gridded_obs, update_var and post_vrbls are not needed.
@@ -49,6 +51,7 @@ class Load_Data():
         b = bottom side latitude of the grid region
         s = number of degrees longitude apart obs are at equator, and number
         of degrees apart each row of obs is spaced latitudinally.
+        grid is used to load filenames, and is also used in save_gridded_obs
         new_format = if True, file names will be called using the "new format"
         efh = end forecast hour (i.e. what's the last forecast hour in the forecast?)
     """
@@ -85,9 +88,19 @@ class Load_Data():
     def load_netcdfs(self,post=False,ob_cat='madis',ob_upd='ob_update_self',inf='none',lr='1000'):
         """
         Loads the ensemble netCDF and the elevation netCDF. 
-        Allows an option to package the ensemble data into an EnsembleState 
+        Packages ensemble data into an EnsembleState (xarray)
         object for use in Luke's code. If posterior ensemble, there are more 
-        options for exactly what EFA took place for finding the right file.      
+        options for exactly what EFA took place for finding the right file. 
+        
+        post = boolean, if true, we are loading the posterior, if false, loading the prior.
+        posterior options:
+            ob_cat = observation category, either 'madis' or 'gridded' observations
+            ob_upd = observation update, is either 'ob_update_self' or 'ob_update_all'-
+            did we use the observations to update just their corresponding variables,
+            or did we allow them to update all variable types in the ensemble?
+            inf = inflation
+            lr = localization radius we used
+            
         """
         
         # directory where the ensemble of all times is
@@ -120,7 +133,7 @@ class Load_Data():
         orography = '/home/disk/hot/stangen/Documents/tigge_ensembles/orography/2013-04-01_00_'+self.ens_type+'.nc'
         orog_data = Dataset(orography,"r")
         #print(of.variables)
-        elevs = orog_data.variables['orog'][0,:] # Elevation of ecmwf or eccc  
+        elevs = orog_data.variables['orog'][0,:] # Elevation of ecmwf, eccc, ncep  
         
         # storing the variable data in a dict (state?)
         allvars = {}

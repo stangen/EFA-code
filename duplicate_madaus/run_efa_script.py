@@ -29,45 +29,62 @@ shell_script = True
 
 if shell_script == False:
     ensemble_type = 'eccc' #'eccc', 'ecmwf', or 'ncep'
+    
     #All variables in the prior netCDF
     variables = ['IWV','IVT','D-IVT']#['TCW']#['QF850','D-QF850']#['T2M','ALT']#['T2M', 'ALT', 'P6HR', 'TCW']
-    #the ob type of the observations we are assimilating, and its associated
+    
+    #the ob type of the observations we are assimilating, and its associated    
     #observation error variance
     obs_type = ['IVT','IWV']#['TCW']#['QF850']#['ALT','ALT']
+    
     #observation error variance associated with the variables defined in obs_type.
     #list must be same length as obs_type. i.e. ob error variance for IVT is 10000,
     #ob error variance for IWV is 20.     
-    ob_err_var = ['10000','20'] #or ['ensvar'] for use ensemble variance as ob error variance
+    ob_err_var = ['10000','20'] #or ['ensvar'] for using ensemble variance as ob error variance
+    
     #the variables in the netCDF we want to update
     update_vars= ['IVT','IWV']#['IWV','IVT','D-IVT']#['TCW']#['QF850','D-QF850']#['ALT'] #['T2M','ALT']
+    
     #is each observation type only updating its corresponding variable, or
     #is it updating all variables? -ie t2m only updates t2m, alt only updates alt
     #true if you want obs to only update their own variable type, otherwise false.
     self_update=True 
+    
     #localization type- 'GC' is Gaspari-Cohn, 'hybrid' uses a different localization if an
     #observation is within the AR being studied from 11/10/15 - 11/15/15, and
     #'statsig' uses a Spearman rank correlation to determine which points
     #covary with the ob estimate at a confidence threshold, defined in localize_radius
     loc_type = 'GC'
+    
     #localization halfwidth in km (for Gaspari-Cohn) or, confidence threshold for
     #statistical significance (statsig) in percent- i.e. 99 = 99% confidence threshold.
+    #statsig uses the covariances from the ensemble which is being updated as observations are assimilated,
+    #statsig2 uses the prior ensemble to determine statistical significance
     #if hybrid, the localization radius for obs within the AR, other obs use 1000 km.
     localize_radius = 1000 
+    
     #date to run efa
     date = datetime(2015,11,10,0)#2013,4,1,0)
+    
     #inflation?
     inflation = 'none' #scalar value is all I have set up to deal with. 
+    
     #what kind of observations are we using? MADIS or gridded future 0-hour
     #forecast "obs", sampled at some interval?
     ob_category = 'gridded' #'madis' or 'gridded'
+    
     #if true, include observation error variance in the names of the posterior variables
     #in the netCDF files, and in the names of the netCDF files.
-    use_oberrvar = True    
+    use_oberrvar = True   
+    
     new_format = True #old or new naming conventions?
+    
     efh = 54 #end forecast hour of each forecast, used in file name
+    
     #grid of observations (if gridded. Shouldn't matter what is here if 
     #ob_category is 'madis', since all code will only do stuff
-    #with grid if ob_category is 'gridded', and if new_format = True
+    #with grid if ob_category is 'gridded', and if new_format = True)
+    #format is west edge, east edge, north edge, south edge, sampling interval
     grid = [-180,180,90,0,3] 
     
 
