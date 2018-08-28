@@ -88,9 +88,11 @@ class Load_Data():
     def load_netcdfs(self,post=False,ob_cat='madis',ob_upd='ob_update_self',inf='none',lr='1000'):
         """
         Loads the ensemble netCDF and the elevation netCDF. 
-        Packages ensemble data into an EnsembleState (xarray)
-        object for use in Luke's code. If posterior ensemble, there are more 
-        options for exactly what EFA took place for finding the right file. 
+        Packages and returns ensemble data into an EnsembleState (xarray)
+        object for use in efa_xray code. Also returns latitudes, longitudes, 
+        and elevations of the ensemble type. 
+        If posterior ensemble, there are more options for exactly what EFA 
+        took place for finding the right file. 
         
         post = boolean, if true, we are loading the posterior, if false, loading the prior.
         posterior options:
@@ -188,10 +190,11 @@ class Load_Data():
         """
         Loads the observations corresponding with n hours after ensemble was
         initialized (default 6 hours). Returns the observations from the text file.
-        Loads MADIS observations if True, loads gridded observations if False.
+        -Loads MADIS observations if madis=True, loads gridded observations if False.
         -If variance == True, loads gridded observations which also contain 
         ensemble variance at the ob location.
-        -Gridded and MADIS observations must be generated before calling this function.
+        -Gridded and MADIS observations must be generated/obtained before calling this function.
+        Returns a list of observations. 
         """
         
         dty, dtm, dtd, dth = ef.dt_str_timedelta(self.date,forecast_hour)
@@ -209,7 +212,6 @@ class Load_Data():
                 obs_file += '_variance'
             obs_file += '.txt'
         print('loading '+ob_str+' obs from '+dty+dtm+dtd+'_'+dth+'00')
-        #print(obs_file)
         f1 = open(obs_file, 'r')
         obs = f1.readlines()
         
@@ -223,7 +225,7 @@ class Load_Data():
         with the same format as MADIS observations.
         
         If get_variance is true, will also save the variance of the ensemble
-        at the observation locations.
+        at the observation locations at the end of each line.
         """
         basedir = '/home/disk/hot/stangen/Documents/gridded_obs/'
         
