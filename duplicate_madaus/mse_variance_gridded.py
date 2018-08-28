@@ -20,62 +20,81 @@ shell_script=False
 AR_specific = True #using a predefined value to find gridspaces where an AR is present.
 
 if shell_script==False:
-    ensemble_type = 'ncep'
+    ensemble_type = 'ecmwf' #'eccc','ncep'
+    
     #used for loading the prior files-order matters for loading the file
     #used for prior ens stats comparison and for loading grid for use as observation
     #all the vars-look at the filename if unsure what they all are.
     prior_vrbls = ['IWV','IVT','D-IVT']#['QF850','D-QF850']#['T2M','ALT']  #['T2M','ALT']
-    #used for loading the posterior files-put in ob err var as part of the string, order matters
-    #all the vars-look at the filename if unsure what they all are.
-    #if doing stats on prior, don't worry about these, they won't be loaded.
-    post_vrbls = ['IVT10000']#['QF8501']#['ALT1','ALT0','ALT0-1']#['T2M','ALT']#
+    
+    #used for loading the posterior filenames-put in ob err var as part of the string
+    #(if we saved the variable names that way), order matters
+    #all the variables-look at the filename if unsure what they all are.
+    #if doing stats on prior, don't worry about these, they won't be used.
+    #May contain observation error variance at end of variable name.
+    #This is what kind of observations, and their associated observation error variance,
+    #used to update the prior ensemble. 
+    post_vrbls = ['IVT10000','IWV20']#['QF8501']#['ALT1','ALT0','ALT0-1']#['T2M','ALT']#
+    
     #which ob type we're getting stats for, can be more than 1 ['T2M','ALT']
-    ob_types = ['IWV','IVT']#['QF850']#['ALT']
+    ob_types = ['IWV']#['QF850']#['ALT']
+    
     #observation error variance associated with the observation type
     #If prior or if use_oberrvar is False, don't worry about value, won't be called
-    #If self_update == True, MAKE SURE THIS MATCHES OB ERR VAR AT END OF POST_VRBLS!!!
-    ob_err_var = ['10000','10000']#[0] 
+    #If self_update == false, MAKE SURE THIS MATCHES OB ERR VAR AT END OF post_vrbls!!!
+    ob_err_var = ['20']#['20']#[0] 
+    
     #all obs we will have in the end- for saving the file
-    #8/2: or, what observation type(s) were assimilated to get the stats of the
+    #or, if desired, what observation type(s) were assimilated to get the stats of the
     #variables in the .txt file- i.e. can have IVT assimilated, but in the end
     #there could be IVT and IWV stats in file, associated with the IVT
-    #update if self_update is False. still for saving .txt file 
-    allobs = ['IVT']#['QF850']#['ALT']
-    #date range of ensembles used
-    start_date = datetime(2015,11,14,0)#2013,4,4,0)
-    end_date = datetime(2015,11,14,12)#2013,4,4,0)
-    #hour increment between ensemble forecasts
+    #update if self_update is False.
+    allobs = ['IWV']#['QF850']#['ALT']
+    
+    #date range of ensemble initializations used/timeframe to average statistics over
+    start_date = datetime(2015,11,10,0)#2013,4,4,0)
+    end_date = datetime(2015,11,15,12)#2013,4,4,0)
+    
+    #hour increment between ensemble forecast initializations
     incr = 12
     
-    #change for how far into the forecast to get observations, 1 is 6 hours in,
-    #end_index is the last forecast hour to get obs for
+    #change for how far into the forecast to get statistics on the ensemble, 
+    #1 is 6 hours in, 2 for 12 hours in, etc
+    #end_index is the last forecast hour to get statistics on the ensemble for
     start_index = 2
-    end_index = 2
+    end_index = 8
     
     #if True, will load/do stats on posterior ensembles, if False, will load prior
     post=True
      
-    #localization radius
-    loc_rad = '1000'
+    #localization halfwidth in km (for Gaspari-Cohn - i.e. 1000) 
+    #or, confidence threshold for statistical significance (statsig/statsig2) in percent- 
+    #i.e. 99 = 99% confidence threshold. format will be NNstatsig or NNstatsig2
+    #if hybrid, the localization radius for obs within the AR, other obs use 1000 km.
+    #format for hybrid is NNNNhybrid
+    loc_rad = '90statsig'
     
     #inflation factor (string for loading files)
     inflation = 'none'
     
-    #what kind of observations did we assimilate? MADIS or gridded future 0-hour
-    #forecast "obs", sampled at some interval?
+    #what kind of observations did we assimilate? MADIS or gridded next-cycle 0-hour
+    #forecast "obs", sampled at some spatial interval?
     ob_category = 'gridded'
     
     new_format = True #old or new naming conventions?
-    efh = 54 #end forecast hour of each forecast
-    grid = [-180,180,90,0,3] #grid of observations (if gridded)
-    #if true, include observation error variance in the names of the posterior variables
-    #in the netCDF files, and in the names of the netCDF files, to load them.
-    use_oberrvar = True
-    #did we self-update each variable
-    self_update = False
-    #did we use ens
-    #use_ens_var = False
     
+    efh = 54 #end forecast hour of each forecast
+    
+    grid = [-180,180,90,0,3] #grid of observations (if gridded)
+    
+    #if true, include observation error variance in the names of the posterior variables
+    #in the netCDF files, and in the names of the netCDF files, to load them properly.
+    use_oberrvar = True
+    
+    #did we self-update each variable
+    self_update = True
+    
+    #-------Don't change these-------------------------------------------------
     #create strings for saving file at the end
     sy = start_date.strftime('%Y')
     sm = start_date.strftime('%m')
@@ -88,6 +107,7 @@ if shell_script==False:
     eh = end_date.strftime('%H')
     
     datestr=sy+sm+sd+sh+'-'+ey+em+ed+eh
+    #--------------------------------------------------------------------------
     
 elif shell_script==True:
     ensemble_type = sys.argv[1]
@@ -115,7 +135,7 @@ elif shell_script==True:
     new_format = sys.argv[16]
     if new_format == 'true':
         new_format=True
-    elif self_update == 'false':
+    elif new_format == 'false':
         new_format=False
     efh = int(sys.argv[17])
     grid = sys.argv[18].split(',')
@@ -136,12 +156,15 @@ elif shell_script==True:
 
 
 
-save_dir = '/home/disk/hot/stangen/Documents/EFA/duplicate_madaus/mse_var_output/'    
+save_dir = '/home/disk/hot/stangen/Documents/EFA/duplicate_madaus/mse_var_output/'   
+ 
 #variable string (for saving the .txt file)
 varstr = ef.var_string(allobs)
+
 #make a list of netCDF variable names/strings from obs+obs error var
 #post_vrbls contains the variable names in the filename in the posterior
 netcdf_varnames = []
+
 #make a list of variable names we want to save to the .txt file (this may include ob err variance,
 #even when not doing self-update)
 dict_varnames = []
@@ -154,7 +177,6 @@ for i, ob in enumerate(ob_types):
     #set ob_err_var to [''], since ob err var was not included in names.    
     if post == False or use_oberrvar == False or self_update == False:
         netcdf_varnames.append(ob)
-        #ob_err_var = ['']*len(ob_types)
     else:
         netcdf_varnames.append(ef.var_num_string([ob],[ob_err_var[i]]))
     #this defines the variable names in the dictionary/.txt file we are creating.
@@ -214,13 +236,9 @@ for date in dates:
                         grid=grid,new_format=new_format,efh=efh)
         statecls, lats, lons, elevs = efa.load_netcdfs(post=post,ob_cat=ob_category,inf=inflation,lr=loc_rad,ob_upd=ob_upd)
         
-        #Want to interpolate ALL observations valid during a given ensemble forecast.
-        #Or not, to minimize runtime of script. 1 ens, var, and forecast hour takes
-        #about 1 minute to run. 
+        #initialize index with which to loop through the forecast hours.
         hour_step = 6
         j = start_index
-        #fh = hour_step*j
-        #sfh = str(fh)
         # j = the current forecast hour index. i.e. 1 = 6 hr, 2 = 12 hr, 3 = 18 hr, etc.
         while j <= end_index:
         #while fh <= end_hour:
@@ -247,9 +265,10 @@ for date in dates:
                 data_dict[ob_type][sfh]['station_all_error_variance'] = data_dict[ob_type][sfh].get('station_all_error_variance', np.array([]))
                 data_dict[ob_type][sfh]['weight'] = data_dict[ob_type][sfh].get('weight',np.array([]))
                 
-                #can probably delete this
+                #used to append to later the observations which pass terrain check or all observations.
                 obs_pass = []
                 obs_allmaritime = []
+                
                 for ob_counter, ob in enumerate(obs):
                     #this gets the observation information from the text file
                     ob_info = mt.get_ob_info(ob)
@@ -268,7 +287,6 @@ for date in dates:
                     
                     #for stations which pass the terrain check (and were assimilated):
                     if TorF == True:
-                    #if len(interp) > 0:
                         #calculate MSE
                         se = (np.mean(interp)-ob_value)**2
                         #calculate variance
@@ -326,6 +344,7 @@ for date in dates:
                 gridob_variance_dict[ob_type][sfh]['gridpoints_region2'] = gridob_variance_dict[ob_type][sfh].get('gridpoints_region2',[])
                 gridob_variance_dict[ob_type][sfh]['gridpoints_region2_AR'] = gridob_variance_dict[ob_type][sfh].get('gridpoints_region2_AR',[])
                 
+                #comparison with gridded observations- runs slowly
                 if AR_specific == False:
                     for ob_counter, ob in enumerate(grid_obs):
                         #this gets the observation information from the text file
@@ -419,7 +438,8 @@ for date in dates:
                 
 #----------------------------------------------------------------------------------------------------------
                 #comparison of only the gridpoints within the region which contain the AR
-                #AR subjectively defined here as 850 moisture transport > 60 g/kg*m/s
+                #for 850 mb moisture flux, AR subjectively defined here as > 60 g/kg*m/s
+                #for IWV/IVT variables, AR defined as IVT > 250 kg/m/s
                 
                 #time conditions to isolate this specific AR:
                 #don't use analysis times including and after 11/16 00Z at all
@@ -473,7 +493,7 @@ for date in dates:
             #print(fh)
             sfh = str(fh)
 
-#now go through all the data, convert to numpy arrays, and calculate the bias, 
+#now go through all the data, convert to numpy arrays, and calculate the bias (never saved in this script), 
 #mse, and mean variance for each station and forecast hour
 
 #create list to save for creating plots
@@ -547,7 +567,7 @@ if ob_types[i] == 'T2M' or ob_types[i] == 'ALT':
                 
                 #append to the stats list each statistic and info for one inflation, localization radius, ens type, variable+ob_error_var, and forecast hour.
                 #order of stats is comparison with: stationary MADIS obs MSE/variance, all MADIS obs MSE/variance,
-                #MSE/var at gridded observation locations, MSE/var for entire grid (averaged proportional to surface area of NH.)
+                #MSE/var at gridded observation locations, MSE/var for entire grid (averaged proportional to surface area of northern hemisphere.)
                 stats_list.append(inflation+','+prior_or_post+','+ensemble_type+','+var+','+f_h+','+str(data_dict[var][f_h]['average_mse'])+','+str(data_dict[var][f_h]['average_variance'])+','+str(MSE)+','+str(variance)+','+str(MSE_gridob_obs)+','+str(variance_gridob_obs)+','+str(MSE_gridob_fullgrid)+','+str(variance_gridob_fullgrid)+'\n')
             except:            
                 #append to the stats list each statistic and info for one inflation, localization radius, ens type, variable+ob_error_var, and forecast hour.
@@ -585,10 +605,13 @@ else:
             variance_gridob_region2_AR = np.average(variance_gridob_region2_AR_list,weights=MSE_gridob_region2_ARweights_list)
 
             if AR_specific == False:
+                #order of stats is comparison with: all gridded observations MSE/variance, all gridpoints MSE/variance, 
+                #west coast gridpoint MSE/variance, region roughly impacted by this AR gridpoint MSE/variance
                 stats_list.append(inflation+','+prior_or_post+','+ensemble_type+','+var+','+f_h+','+str(MSE_gridob_obs)+','+str(variance_gridob_obs)+','+str(MSE_gridob_fullgrid)+','+str(variance_gridob_fullgrid)+','+str(MSE_gridob_region)+','+str(variance_gridob_region)+','+str(MSE_gridob_region2)+','+str(variance_gridob_region2)+'\n')
             
             elif AR_specific == True:
-                #ARonly_stats_list.append(inflation+','+prior_or_post+','+ensemble_type+','+var+','+f_h+','+str(MSE_gridob_region2_AR)+','+str(variance_gridob_region2_AR)+'\n')
+                #order of stats is the same EXCEPT that instead of MSE/variance comparison against gridded observations, 
+                #the first MSE/variance pair is the average MSE/variance of gridpoints ONLY containing this specific AR. 
                 stats_list.append(inflation+','+prior_or_post+','+ensemble_type+','+var+','+f_h+','+str(MSE_gridob_region2_AR)+','+str(variance_gridob_region2_AR)+','+str(MSE_gridob_fullgrid)+','+str(variance_gridob_fullgrid)+','+str(MSE_gridob_region)+','+str(variance_gridob_region)+','+str(MSE_gridob_region2)+','+str(variance_gridob_region2)+'\n')
 
 #save the stats list after all forecast hours have been appended for one variable
@@ -606,18 +629,10 @@ for s in stats_list:
     f.write(s)
 f.close()
 
-#if AR_specific == True:
-#    f = open(AR_savedir_str, 'a')
-#    for s in ARonly_stats_list:
-#        f.write(s)
-#    f.close()
-
 end_time = datetime.now()
 print('end time: ',end_time)
 print('total time elapsed: ',end_time-start_time)
 print('Done!')
-
-#want to save ens type, ob, forecast hour in string identifier, followed by mse, variance, and error variance
 
 ##this was to save all the stations that pass the elevation check so I could plot them. 
 #f = open('/home/disk/hot/stangen/Documents/EFA/duplicate_madaus/plots/2013040106obs_allmaritime.txt','w')
