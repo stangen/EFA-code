@@ -44,11 +44,11 @@ if shell_script==False:
     #If self_update == false, MAKE SURE THIS MATCHES OB ERR VAR AT END OF post_vrbls!!!
     ob_err_var = ['20']#['20']#[0] 
     
-    #all obs we will have in the end- for saving the file
+    #all obs we will have stats for in this file- used only in naming the file
     #or, if desired, what observation type(s) were assimilated to get the stats of the
     #variables in the .txt file- i.e. can have IVT assimilated, but in the end
-    #there could be IVT and IWV stats in file, associated with the IVT
-    #update if self_update is False.
+    #there could be IVT and IWV stats in file, associated with the IVT update if self_update is False
+    #and IVT was used to update both IVT and IWV.
     allobs = ['IWV']#['QF850']#['ALT']
     
     #date range of ensemble initializations used/timeframe to average statistics over
@@ -354,14 +354,15 @@ for date in dates:
                             ob_info['lon'] = ob_info['lon'] + 360
                         utctime = datetime.utcfromtimestamp(ob_info['time'])
                         #find interpolated ob estimate, if it passes the terrain check.
-                        #the terrain check is done within the closest_points function
+                        #the terrain check is done within the closest_points function, but for gridded
+                        #observations, the terrain check was never used to determine whether to assimilate 
+                        #the ob or not, so here, the boolean TorF is not used.
                         interp, TorF = ef.closest_points(ob_info['lat'],ob_info['lon'],lats,lons,ob_info['elev'],
                                                    elevs,utctime,statecls['validtime'].values,
                                                    statecls.variables[netcdf_varnames[i]].values,need_interp=True)
                         
                         ob_value = ob_info['ob']
-                        #calculate MSE
-                        
+                        #calculate SE                        
                         se = (np.mean(interp)-ob_value)**2
                         #calculate variance
                         hx_variance_unbiased = np.var(interp, ddof=1)
@@ -499,8 +500,6 @@ for date in dates:
 #create list to save for creating plots
 stats_list = []
 
-ARonly_stats_list = []
-
 #if we can compare with MADIS obs
 if ob_types[i] == 'T2M' or ob_types[i] == 'ALT': 
     for var in ob_dict:
@@ -566,7 +565,7 @@ if ob_types[i] == 'T2M' or ob_types[i] == 'ALT':
                 variance_gridob_fullgrid = np.mean(variance_gridob_fullgrid_list)
                 
                 #append to the stats list each statistic and info for one inflation, localization radius, ens type, variable+ob_error_var, and forecast hour.
-                #order of stats is comparison with: stationary MADIS obs MSE/variance, all MADIS obs MSE/variance,
+                #order of stats is comparison with: stationary MADIS obs MSE/variance, all MADIS obs MSE/variance (which pass terrain check)
                 #MSE/var at gridded observation locations, MSE/var for entire grid (averaged proportional to surface area of northern hemisphere.)
                 stats_list.append(inflation+','+prior_or_post+','+ensemble_type+','+var+','+f_h+','+str(data_dict[var][f_h]['average_mse'])+','+str(data_dict[var][f_h]['average_variance'])+','+str(MSE)+','+str(variance)+','+str(MSE_gridob_obs)+','+str(variance_gridob_obs)+','+str(MSE_gridob_fullgrid)+','+str(variance_gridob_fullgrid)+'\n')
             except:            
@@ -611,7 +610,7 @@ else:
             
             elif AR_specific == True:
                 #order of stats is the same EXCEPT that instead of MSE/variance comparison against gridded observations, 
-                #the first MSE/variance pair is the average MSE/variance of gridpoints ONLY containing this specific AR. 
+                #the first MSE/variance pair is the average MSE/variance of only gridpoints containing this specific AR. 
                 stats_list.append(inflation+','+prior_or_post+','+ensemble_type+','+var+','+f_h+','+str(MSE_gridob_region2_AR)+','+str(variance_gridob_region2_AR)+','+str(MSE_gridob_fullgrid)+','+str(variance_gridob_fullgrid)+','+str(MSE_gridob_region)+','+str(variance_gridob_region)+','+str(MSE_gridob_region2)+','+str(variance_gridob_region2)+'\n')
 
 #save the stats list after all forecast hours have been appended for one variable
@@ -621,7 +620,8 @@ if new_format == True:
     savedir_str += '_' + ef.var_string(grid)
 if ob_category == 'gridded':
     savedir_str += '_gridobs'
-AR_savedir_str = savedir_str+'_ARonly.txt'
+if AR_specific == True:
+    savedir_str += '_ARspecific'
 savedir_str += '.txt'
 
 f = open(savedir_str, 'a')

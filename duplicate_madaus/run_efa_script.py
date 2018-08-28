@@ -50,17 +50,18 @@ if shell_script == False:
     #true if you want obs to only update their own variable type, otherwise false.
     self_update=True 
     
-    #localization type- 'GC' is Gaspari-Cohn, 'hybrid' uses a different localization if an
-    #observation is within the AR being studied from 11/10/15 - 11/15/15, and
-    #'statsig' uses a Spearman rank correlation to determine which points
+    #localization type- 'GC' is Gaspari-Cohn
+    #'hybrid' uses a different localization radius if an
+    #observation is within the AR being studied from 11/10/15 - 11/15/15
+    #'statsig' and 'statsig2' use a Spearman rank correlation to determine which points
     #covary with the ob estimate at a confidence threshold, defined in localize_radius
+    #'statsig' uses the covariances from the ensemble which is being updated as observations are assimilated,
+    #'statsig2' uses the prior ensemble to determine statistical significance
     loc_type = 'GC'
     
-    #localization halfwidth in km (for Gaspari-Cohn) or, confidence threshold for
-    #statistical significance (statsig) in percent- i.e. 99 = 99% confidence threshold.
-    #statsig uses the covariances from the ensemble which is being updated as observations are assimilated,
-    #statsig2 uses the prior ensemble to determine statistical significance
-    #if hybrid, the localization radius for obs within the AR, other obs use 1000 km.
+    #localization halfwidth in km (for loc_type = 'GC') or, confidence threshold for
+    #statistical significance ('statsig'/'statsig2') in percent- i.e. 99 = 99% confidence threshold.
+    #for 'hybrid', the localization radius for obs within the AR, other obs use 1000 km.
     localize_radius = 1000 
     
     #date to run efa
@@ -209,7 +210,7 @@ def run_efa(ob_type,update_var,ob_err_var):
         if ob_category == 'madis':
             #load in the obs file
             obs = efa.load_obs()
-        #if we are assimilating future 0-hour forecast gridded "observations"
+        #if we are assimilating next-cycle 0-hour forecast gridded "observations"
         elif ob_category == 'gridded':
             #load in the obs file
             obs = efa.load_obs(forecast_hour=12,madis=False,variance=use_ens_var)
@@ -238,16 +239,15 @@ def run_efa(ob_type,update_var,ob_err_var):
             elif use_ens_var == False:
                 ob_var = float(ob_err_var[o])
                 
-            #if we are using a hybrid localization radius- no localization within
-            #the AR, 1000 km outside of it
+            #if we are using a hybrid localization radius- longer localization 
+            #radius within the AR, 1000 km outside of it
             #if the lat/lon lie within some AR box, check if the ob point is in an AR-
             #if IVT > 250
-
             if loc_type == 'hybrid':    
 
                 if ob_dict['lon'] >= 140 and ob_dict['lon'] <= 245 and ob_dict['lat'] >= 33 and ob_dict['lat'] <= 51:
                     
-                    #get the ensemble value at the lat/lon pair
+                    #get the ensemble value at the lat/lon pair (ob_variance isn't used)
                     ob_value, ob_variance = ef.closest_points(ob_dict['lat'],ob_dict['lon'],lats,lons,variable=ens_mean,
                                                  need_interp=True,gen_obs=True,variance=variance)
                     #if ob value is AR and in the grid area, set its localization radius to the input (hybrid) loc_rad
@@ -274,7 +274,7 @@ def run_efa(ob_type,update_var,ob_err_var):
     # Put the state class object and observation objects into EnSRF object
     assimilator = EnSRF(statecls, observations, inflation=inflation, loc=localize_type)
     
-    # Update the prior with EFA- state is an EnsembleState object, is the posterior
+    # Update the prior with EFA- state is an EnsembleState object and is the posterior, post_obs isn't used
     state, post_obs = assimilator.update()
         
 #---build the string of which directory to save the file--------------------------------

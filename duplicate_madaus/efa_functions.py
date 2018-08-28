@@ -14,7 +14,7 @@ def closest_points(ob_lat, ob_lon, lats, lons, ob_elev=None, elevs=None, ob_time
                    times=None, variable=None, k=4, need_interp=False, gen_obs=False,variance=0):
     """
     Function which uses the Haversine formula to compute the distances from one 
-    observation lat/lon to each gridpoint. It finds the indices of the n closest 
+    observation lat/lon to each gridpoint. It finds the indices of the k closest 
     gridpoints (default 4). It then calls functions to check elevation and/or
     interpolate the ensemble to the observation location.
     
@@ -26,7 +26,7 @@ def closest_points(ob_lat, ob_lon, lats, lons, ob_elev=None, elevs=None, ob_time
     elevs: required for check elevation function
     ob_time: required for interpolate function
     times: required for interpolate function
-    variable: required for interpolate function   
+    variable: required for interpolate, generate_obs functions   
     k = number of points to find
     need_interp: If True, call function to interpolate the ensemble 
     to the ob location/time. If False, call function to check 
@@ -54,7 +54,7 @@ def closest_points(ob_lat, ob_lon, lats, lons, ob_elev=None, elevs=None, ob_time
 
     #find nearest 4 points (indices), in order from closest to farthest
     closest_4 = dist_flat.argsort(axis=None)[:k]
-    #print(dist_flat[closest_4])
+
     #do we need to do interpolation?
     if need_interp==True:
         #4 closest distances
@@ -87,7 +87,7 @@ def interpolate(closey, closex, distances, times, variable, ob_time):
     closex = 4 closest lon indices of the ensemble
     distances = distance from 4 closest gridpoints to the observation, for use in weights
     times = forecast times of the ensemble, in datetime format
-    variable = ensemble values of variable (ALT or T2M)
+    variable = ensemble values of variable (e.g. ALT, T2M, IVT): ntimes x nlats x nlons x nmems
     ob_time = observation time, in datetime format
     returns: value of ensemble interpolated to ob location.
 
@@ -155,12 +155,12 @@ def generate_obs(closey,closex,distances,variable,variance):
     closey = 4 closest lat indices of the ensemble
     closex = 4 closest lon indices of the ensemble
     distances = distance from 4 closest gridpoints to the observation, for use in weights
-    variable = ensemble mean values of variable (ALT or T2M)
+    variable = ensemble mean values of variable (e.g. ALT, T2M, IVT) at each grid point
     variance = ensemble variance of ensemble at ob location
     
     returns: interpolated "observation" and the variance at the location.
     The variance is only actually used if get_variance in save_gridded_obs 
-    is set to true, but the observation (ensemble mean) is always saved.
+    is set to true, but the observation (ensemble mean) is always used.
     """
     
     spaceweights = np.zeros(distances.shape)
@@ -207,7 +207,7 @@ def check_elev(idx,elevs,ob_elev):
 def var_string(vrbls):
     """
     Function which takes in a list of variables and returns a string, formatted
-    like var1_var2_var3, for use in saving files. 
+    like var1_var2_var3, for use in saving files. Also replaces periods with dashes.
     """
     var_string = ''
     for v in vrbls[:-1]:  
@@ -218,7 +218,7 @@ def var_string(vrbls):
 def var_num_string(vrbls, nums):
     """
     Function which takes in a list of variables and a list of numbers 
-    (observation error variance) and returns a string, formatted like
+    (usually observation error variance) and returns a string, formatted like
     var1num1_var2num2, for use in saving files. The lists must be the 
     same length to work properly. Also replaces periods with dashes.
     """
@@ -231,8 +231,8 @@ def var_num_string(vrbls, nums):
 def make_netcdf(state,outfile,ob_err_var=''):
     """
     Function which creates/saves a netCDF file
-    Takes in the full state array, the file path and file name, and an 
-    optional argument for naming the newly created variables using the
+    Takes in the full state array (state), the file path and file name (outfile), 
+    and an optional argument (ob_err_var) for naming the newly created variables using the
     observation error variance used to run EFA. 
     """
     #tunit='seconds since 1970-01-01'
@@ -242,28 +242,28 @@ def make_netcdf(state,outfile,ob_err_var=''):
     ob_err_var = str(ob_err_var).replace(',','-')
     # Write ensemble forecast to netcdf
     with Dataset(outfile,'w') as dset:
-            dset.createDimension('time',None)
-            dset.createDimension('lat',state.ny())
-            dset.createDimension('lon',state.nx())
-            dset.createDimension('ens',state.nmems())
-            dset.createVariable('time','i4',('time',))
-            dset.createVariable('lat',np.float32,('lat',))
-            dset.createVariable('lon',np.float32,('lon'))
-            dset.createVariable('ens','i4',('ens',))
-            dset.variables['time'].units = tunit
-            dset.variables['lat'].units = 'degrees_north'
-            dset.variables['lon'].units = 'degrees_east'
-            dset.variables['ens'].units = 'member_number'
-            dset.variables['time'][:] = date2num(state.ensemble_times(),tunit)
-            dset.variables['lat'][:] = state['lat'].values[:,0]
-            dset.variables['lon'][:] = state['lon'].values[0,:]
-            dset.variables['ens'][:] = state['mem'].values
-            for var in state.vars():
-                varstr = var+ob_err_var
-                print('Writing variable {}'.format(var))
-                dset.createVariable(varstr, np.float32, ('time','lat','lon','ens',))
-                dset.variables[varstr].units = get_units(var)
-                dset.variables[varstr][:] = state[var].values
+        dset.createDimension('time',None)
+        dset.createDimension('lat',state.ny())
+        dset.createDimension('lon',state.nx())
+        dset.createDimension('ens',state.nmems())
+        dset.createVariable('time','i4',('time',))
+        dset.createVariable('lat',np.float32,('lat',))
+        dset.createVariable('lon',np.float32,('lon'))
+        dset.createVariable('ens','i4',('ens',))
+        dset.variables['time'].units = tunit
+        dset.variables['lat'].units = 'degrees_north'
+        dset.variables['lon'].units = 'degrees_east'
+        dset.variables['ens'].units = 'member_number'
+        dset.variables['time'][:] = date2num(state.ensemble_times(),tunit)
+        dset.variables['lat'][:] = state['lat'].values[:,0]
+        dset.variables['lon'][:] = state['lon'].values[0,:]
+        dset.variables['ens'][:] = state['mem'].values
+        for var in state.vars():
+            varstr = var+ob_err_var
+            print('Writing variable {}'.format(var))
+            dset.createVariable(varstr, np.float32, ('time','lat','lon','ens',))
+            dset.variables[varstr].units = get_units(var)
+            dset.variables[varstr][:] = state[var].values
                 
 def get_ob_points(left=-180,right=180,top=90,bottom=0,spacing=3):
     """
@@ -288,13 +288,6 @@ def get_ob_points(left=-180,right=180,top=90,bottom=0,spacing=3):
     of the observation pairs will always lie on that line of longitude for
     each row of latitudes.
     """
-    
-    
-#    left = -180
-#    right = 180
-#    bottom = 0
-#    top = 90
-#    spacing = 3
     
     #create list of latitudes from given box
     lats = range(bottom,top+spacing,spacing)
@@ -354,8 +347,10 @@ def get_units(par):
 def get_r_crit():
     """
     table of critical spearman correlation values, corresponding with 
-    nondirectional alpha values. Alpha values are, e.g. 1 - 90/100 = .1
-    alpha of 0.1 means probability of rejecting the null hypothesis when it is true.
+    nondirectional alpha values. Alpha values are 1 minus confidence level, e.g. 1 - 90/100 = .1
+    alpha of 0.1 means probability of rejecting the null hypothesis when it is true is 0.1.
+    See https://www.jstor.org/stable/1165017?seq=4#page_scan_tab_contents
+    by Philip H. Ramsey, "Critical Values for Spearman's Rank Order Correlation"
     """
     r_crit = {
         20 : {
