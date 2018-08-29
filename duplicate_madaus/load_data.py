@@ -115,7 +115,7 @@ class Load_Data():
         elif post==True:
             post_varstring = ef.var_string(self.post_vrbls)
             if self.new_format == False:
-                infile = '/home/disk/hot/stangen/Documents/posterior_ensembles/'+ob_cat+'/'+ob_upd+('/inf_'+inf).replace('.','-')+'/loc_'+str(lr)+'/'+self.ens_type+'/'+self.y+self.m+'/'+self.y+'-'+self.m+'-'+self.d+'_'+self.h+'_'+post_varstring+'.nc' 
+                infile = '/home/disk/hot/stangen/Documents/posterior_ensembles/'+ob_cat+'/'+ob_upd+('/inf_'+inf).replace('.','-')+'/loc_'+str(lr)+'/'+self.ens_type+'/'+self.y+self.m+'/'+self.y+'-'+self.m+'-'+self.d+'_'+self.h+'_'+self.ens_type+'_'+post_varstring+'.nc' 
             elif self.new_format == True:
                 infile = '/home/disk/hot/stangen/Documents/posterior_ensembles/'+ob_cat+'/'+ob_upd+('/inf_'+inf).replace('.','-')+'/loc_'+str(lr)+'/'+self.ens_type+'/'+self.y+self.m+'/'+self.y+'-'+self.m+'-'+self.d+'_'+self.h+'_'+self.efh+'_'+str(self.l)+'_'+str(self.r)+'_'+str(self.t)+'_'+str(self.b)+'_'+str(self.s)+'_'+post_varstring+'.nc'                 
             prior_or_post='posterior'

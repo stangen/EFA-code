@@ -361,7 +361,7 @@ def run_efa(ob_type,update_var,ob_err_var):
     
     #if we are updating all variable types with the observation (regardless of its type)
     #and use_oberrvar == True, observation error variance is not saved in the 
-    #variable name in the netCDF, only in the filename here.
+    #variable name in the netCDF, but it is saved in the filename.
     elif self_update == False:
         outfile = outdir_date_ens+'_'+ef.var_num_string(ob_type,ob_err_var)+'.nc'
         ef.make_netcdf(state,outfile)    

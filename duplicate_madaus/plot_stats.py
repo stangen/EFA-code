@@ -11,11 +11,13 @@ import numpy as np
 from datetime import datetime
 import efa_functions as ef
 
-
+#----------Change these accordingly-------------------------------------------
 start_date = datetime(2013,4,1,0)
 end_date = datetime(2013,4,30,12)
 
 variables = ['ALT']
+
+#-----------------------------------------------------------------------------
 
 var_units = {
             'ALT' : 'hPa$^{2}$',

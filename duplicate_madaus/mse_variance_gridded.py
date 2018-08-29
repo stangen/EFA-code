@@ -17,7 +17,9 @@ print('start time: ',start_time)
 #to run this in spyder, change this to False, to run in shell script, change to True
 shell_script=False
 
-AR_specific = True #using a predefined value to find gridspaces where an AR is present.
+AR_specific = False#True #using a predefined value to find gridspaces where an AR is present.
+
+gridobs_avail = True #are gridded observations available to compare with ensemble?
 
 if shell_script==False:
     ensemble_type = 'ecmwf' #'eccc','ncep'
@@ -25,19 +27,19 @@ if shell_script==False:
     #used for loading the prior files-order matters for loading the file
     #used for prior ens stats comparison and for loading grid for use as observation
     #all the vars-look at the filename if unsure what they all are.
-    prior_vrbls = ['IWV','IVT','D-IVT']#['QF850','D-QF850']#['T2M','ALT']  #['T2M','ALT']
+    prior_vrbls = ['T2M','ALT']#['IWV','IVT','D-IVT']#['QF850','D-QF850']#['T2M','ALT']  #
     
     #used for loading the posterior filenames-put in ob err var as part of the string
-    #(if we saved the variable names that way), order matters
+    #(if we saved the variable names that way- i.e. if we set use_oberrvar = True in run_efa_script.py), order matters
     #all the variables-look at the filename if unsure what they all are.
     #if doing stats on prior, don't worry about these, they won't be used.
     #May contain observation error variance at end of variable name.
     #This is what kind of observations, and their associated observation error variance,
     #used to update the prior ensemble. 
-    post_vrbls = ['IVT10000','IWV20']#['QF8501']#['ALT1','ALT0','ALT0-1']#['T2M','ALT']#
+    post_vrbls = ['T2M','ALT']#['IVT10000','IWV20']#['QF8501']#['ALT1','ALT0','ALT0-1']##
     
     #which ob type we're getting stats for, can be more than 1 ['T2M','ALT']
-    ob_types = ['IWV']#['QF850']#['ALT']
+    ob_types = ['ALT']#['IWV']#['QF850']#
     
     #observation error variance associated with the observation type
     #If prior or if use_oberrvar is False, don't worry about value, won't be called
@@ -49,11 +51,11 @@ if shell_script==False:
     #variables in the .txt file- i.e. can have IVT assimilated, but in the end
     #there could be IVT and IWV stats in file, associated with the IVT update if self_update is False
     #and IVT was used to update both IVT and IWV.
-    allobs = ['IWV']#['QF850']#['ALT']
+    allobs = ['ALT']#['IWV']#['QF850']#
     
     #date range of ensemble initializations used/timeframe to average statistics over
-    start_date = datetime(2015,11,10,0)#2013,4,4,0)
-    end_date = datetime(2015,11,15,12)#2013,4,4,0)
+    start_date = datetime(2013,4,10,0)#datetime(2015,11,10,0)#2013,4,4,0)
+    end_date = datetime(2013,4,10,12)#datetime(2015,11,15,12)#2013,4,4,0)
     
     #hour increment between ensemble forecast initializations
     incr = 12
@@ -61,27 +63,27 @@ if shell_script==False:
     #change for how far into the forecast to get statistics on the ensemble, 
     #1 is 6 hours in, 2 for 12 hours in, etc
     #end_index is the last forecast hour to get statistics on the ensemble for
-    start_index = 2
-    end_index = 8
+    start_index = 1#2
+    end_index = 2#8
     
     #if True, will load/do stats on posterior ensembles, if False, will load prior
-    post=True
+    post=False#True
      
-    #localization halfwidth in km (for Gaspari-Cohn - i.e. 1000) 
-    #or, confidence threshold for statistical significance (statsig/statsig2) in percent- 
-    #i.e. 99 = 99% confidence threshold. format will be NNstatsig or NNstatsig2
+    #localization halfwidth in km (for Gaspari-Cohn - i.e. 1000) , plus type if other than GC.
+    #other options than GC include confidence threshold for statistical significance (statsig/statsig2) in percent- 
+    #i.e. 99 = 99% confidence threshold. format will be 'NNstatsig' or 'NNstatsig2'
     #if hybrid, the localization radius for obs within the AR, other obs use 1000 km.
-    #format for hybrid is NNNNhybrid
-    loc_rad = '90statsig'
+    #format for hybrid is 'NNNNhybrid'
+    loc_rad = '1000'#'90statsig'
     
     #inflation factor (string for loading files)
     inflation = 'none'
     
     #what kind of observations did we assimilate? MADIS or gridded next-cycle 0-hour
-    #forecast "obs", sampled at some spatial interval?
-    ob_category = 'gridded'
+    #forecast "obs", sampled at some spatial interval? 'madis' or 'gridded'
+    ob_category = 'madis'#'gridded'
     
-    new_format = True #old or new naming conventions?
+    new_format = False#True #old or new naming conventions?
     
     efh = 54 #end forecast hour of each forecast
     
@@ -89,7 +91,7 @@ if shell_script==False:
     
     #if true, include observation error variance in the names of the posterior variables
     #in the netCDF files, and in the names of the netCDF files, to load them properly.
-    use_oberrvar = True
+    use_oberrvar = False#True
     
     #did we self-update each variable
     self_update = True
@@ -323,7 +325,7 @@ for date in dates:
             
             #-------Start of gridded obs load--------------------------------------------------------------------
             #gridded observations are only available every 12 hours
-            if ob_category =='gridded' and j % 2 == 0:
+            if gridobs_avail == True and j % 2 == 0:
                 #load in the gridded observations for comparison
                 grid_obs = efa.load_obs(fh,madis=False)
                 
@@ -438,56 +440,58 @@ for date in dates:
                 gridob_variance_dict[ob_type][sfh]['gridpoints_region2'].append(avg_var_region2)
                 
 #----------------------------------------------------------------------------------------------------------
-                #comparison of only the gridpoints within the region which contain the AR
-                #for 850 mb moisture flux, AR subjectively defined here as > 60 g/kg*m/s
-                #for IWV/IVT variables, AR defined as IVT > 250 kg/m/s
-                
-                #time conditions to isolate this specific AR:
-                #don't use analysis times including and after 11/16 00Z at all
-                #don't use latitudes between -180 and -150 between 11/14 12Z and 11/15 12Z
-                
-                #get analysis time
-                anl_time = date+timedelta(hours=fh)
-                if anl_time < datetime(2015,11,16,0):
-                    print('looking at the AR stats')
-                    #if we're in that time range, set western edge to -150 instead of -180
-                    if anl_time >= datetime(2015,11,14,12):
-                        l2 = int(abs(-180+150)*2)
-                        se_region2 = se[t2:b2,l2:r2]
-                        var_region2 = fcst_var[t2:b2,l2:r2]
-                        print('changing western edge')
-                
-                    #get the region and make it a masked array- region where the AR
-                    #is for the forecast hour, according to the analysis grid
-                    anl_AR = anl_ens_mean[t2:b2,l2:r2]
-                    #mask elements which are less than a threshold
-                    if ob_type.startswith('QF850'):
-                        boolarray = anl_AR >= 60
-                    elif ob_type.startswith('IVT'):
-                        boolarray = anl_AR >= 250
-                    elif ob_type.startswith('IWV'):
-                        #need to access analysis IVT to determine presence of AR
-                        efaIVT = Load_Data(date,ensemble_type,prior_vrbls,'IVT',[netcdf_varnames[i]],post_vrbls=post_vrbls,
-                        grid=grid,new_format=new_format,efh=efh)
-                        
-                        anl_IVT, lats, lons = efaIVT.load_ens_netcdf(fh)
-                        anl_IVT_mean = np.mean(anl_IVT,axis=-1)
-                        
-                        anl_IVT_AR = anl_IVT_mean[t2:b2,l2:r2]
-                        boolarray = anl_IVT_AR >= 250
-                        
-                    #mask se and variance elements which are not associated with an AR
-#                    se_region2.mask = boolarray
-#                    var_region2.mask = boolarray
-                    #create weight array the same size as se_region2
-                    lonAR, latAR = np.radians(np.meshgrid(lons[l2:r2], lats[t2:b2]))
-                    weights_AR = np.cos(latAR)
+                if AR_specific == True:
+                    #comparison of only the gridpoints within the region which contain the AR
+                    #for 850 mb moisture flux, AR subjectively defined here as > 60 g/kg*m/s
+                    #for IWV/IVT variables, AR defined as IVT > 250 kg/m/s
                     
-                    gridob_SE_dict[ob_type][sfh]['gridpoints_region2_AR'].extend(se_region2[boolarray])
-                    gridob_variance_dict[ob_type][sfh]['gridpoints_region2_AR'].extend(var_region2[boolarray])
-                    gridob_SE_dict[ob_type][sfh]['gridpoints_region2_AR_weights'].extend(weights_AR[boolarray])
+                    #time conditions to isolate this specific AR:
+                    #don't use analysis times including and after 11/16 00Z at all
+                    #don't use latitudes between -180 and -150 between 11/14 12Z and 11/15 12Z
                     
-                    AR_list.extend(anl_AR[boolarray])                        
+                    #get analysis time
+                    anl_time = date+timedelta(hours=fh)
+                    if anl_time < datetime(2015,11,16,0):
+                        print('looking at the AR stats')
+                        #if we're in that time range, set western edge to -150 instead of -180
+                        if anl_time >= datetime(2015,11,14,12):
+                            l2 = int(abs(-180+150)*2)
+                            se_region2 = se[t2:b2,l2:r2]
+                            var_region2 = fcst_var[t2:b2,l2:r2]
+                            print('changing western edge')
+                    
+                        #get the region and make it a masked array- region where the AR
+                        #is for the forecast hour, according to the analysis grid
+                        anl_AR = anl_ens_mean[t2:b2,l2:r2]
+                        #mask elements which are less than a threshold
+                        if ob_type.startswith('QF850'):
+                            boolarray = anl_AR >= 60
+                        elif ob_type.startswith('IVT'):
+                            boolarray = anl_AR >= 250
+                        elif ob_type.startswith('IWV'):
+                            #need to access analysis IVT to determine presence of AR
+                            efaIVT = Load_Data(date,ensemble_type,prior_vrbls,'IVT',[netcdf_varnames[i]],post_vrbls=post_vrbls,
+                            grid=grid,new_format=new_format,efh=efh)
+                            
+                            anl_IVT, lats, lons = efaIVT.load_ens_netcdf(fh)
+                            anl_IVT_mean = np.mean(anl_IVT,axis=-1)
+                            
+                            anl_IVT_AR = anl_IVT_mean[t2:b2,l2:r2]
+                            boolarray = anl_IVT_AR >= 250
+                            
+                        #mask se and variance elements which are not associated with an AR
+    #                    se_region2.mask = boolarray
+    #                    var_region2.mask = boolarray
+                        #create weight array the same size as se_region2
+                        lonAR, latAR = np.radians(np.meshgrid(lons[l2:r2], lats[t2:b2]))
+                        weights_AR = np.cos(latAR)
+                        
+                        gridob_SE_dict[ob_type][sfh]['gridpoints_region2_AR'].extend(se_region2[boolarray])
+                        gridob_variance_dict[ob_type][sfh]['gridpoints_region2_AR'].extend(var_region2[boolarray])
+                        gridob_SE_dict[ob_type][sfh]['gridpoints_region2_AR_weights'].extend(weights_AR[boolarray])
+                        
+                        AR_list.extend(anl_AR[boolarray])
+#----------------------------------------------------------------------------------------------
             #update the forecast hour to load the next forecast, 6 hours later
             j = j + 1
             fh = hour_step*j
@@ -537,9 +541,6 @@ if ob_types[i] == 'T2M' or ob_types[i] == 'ALT':
             variance_list = np.array(variance_dict[var][f_h])
             #variance_list_sorted = np.sort(variance_list)
             variance = np.mean(variance_list)
-            
-    #        SE_list_stationary = data_dict[var][f_h]['station_all_mse']
-    #        SE_list_stationary_sorted = np.sort(SE_list_stationary)
             
             #gridded observations are only available every 12 hours
             #all of the forecast hours will go into the ob_dict/data_dicts. However,
