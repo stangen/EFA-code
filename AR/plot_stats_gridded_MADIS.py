@@ -11,11 +11,18 @@ import numpy as np
 from datetime import datetime
 import EFA.duplicate_madaus.efa_functions as ef
 
+#--------Change these----------------------------------------------------------
 
 start_date = datetime(2013,4,1,0)
 end_date = datetime(2013,4,30,12)
 
+#which variables are in the .txt file?
 variables = ['ALT']
+
+#did we assimilate MADIS or gridded observations? 'madis' or 'gridded'
+ob_category = 'gridded'
+
+#-----------------------------------------------------------------------------
 
 #prior_var_key = 'ALT'
 
@@ -58,7 +65,12 @@ datestr=sy+sm+sd+sh+'-'+ey+em+ed+eh
 
 varstr = ef.var_string(variables)
 
-filepath = filedir+datestr+'_'+varstr+'_gridobs.txt'#'loc500.txt'
+
+filepath = filedir+datestr+'_'+varstr
+if ob_category == 'gridded':
+    filepath += '_gridobs.txt'
+elif ob_category == 'madis':
+    filepath += '.txt'
 
 f1 = open(filepath, 'r')
 stats = f1.readlines()
@@ -89,8 +101,6 @@ for line in stats:
     #new stuff
     srt['MSE_All_Maritime'] = srt.get('MSE_All_Maritime',[])
     srt['Variance_All_Maritime'] = srt.get('Variance_All_Maritime',[])
-
-    #stats_dict[var][ens][efa][']
     
     #add the data to the dictionary
     srt['Forecast_Hour_Madis'].append(int(fh))
@@ -150,10 +160,18 @@ for i in remove_list:
     stats_list.remove(i)
 
 #now plot 
-#separate plot for each variable type- remove the prior variable type
+#separate plot for each variable type- remove the prior variable type, if
+#the prior variable type name differs from other variable type names (i.e.,
+#if we added observation error variance to the variable name in the .txt file)
 stats_dict_vars = list(stats_dict.keys())
 for j in variables:
-    stats_dict_vars.remove(j)
+    count=0
+    for k in stats_dict_vars:
+        if k.startswith(j):
+            count +=1
+    if count > 1:
+        stats_dict_vars.remove(j)
+
 for v in stats_dict_vars:
 #for v in variables:
     #separate plot for MSE and variance
@@ -172,19 +190,21 @@ for v in stats_dict_vars:
                     plt.plot(stats_dict[v][m][l]['Forecast_Hour_Gridded'],stats_dict[v][m][l][s],
                              linestyle=ls[l],marker='o',color=clr[m],label=l+' '+m)
                 
-            #add the prior for each ens type to each variable and stat_type plot
-            for k in variables:
-                #match the prior variable name (ALT) with the assimilated variable name (ALT1)
-                if v[:len(k)] == k:
-                    z = v[:len(k)]
-                    if len(stats_dict[z][m]['prior'][s]) == len(stats_dict[z][m]['prior']['Forecast_Hour_Madis']):
-                        plt.plot(stats_dict[z][m]['prior']['Forecast_Hour_Madis'],stats_dict[z][m]['prior'][s],
-                                 linestyle=ls['prior'],marker='o',color=clr[m],label='prior '+m)
-                        
-                    elif len(stats_dict[z][m]['prior'][s]) == len(stats_dict[z][m]['prior']['Forecast_Hour_Gridded']):
-                        plt.plot(stats_dict[z][m]['prior']['Forecast_Hour_Gridded'],stats_dict[z][m]['prior'][s],
-                                 linestyle=ls['prior'],marker='o',color=clr[m],label='prior '+m)
-        
+            #add the prior for each ens type to each variable and stat_type plot- only
+            #necessary if variable name is different for prior (if we added ob err var to variable name in .txt file)
+            if count > 1:
+                for k in variables:
+                    #match the prior variable name (ALT) with the assimilated variable name (ALT1)
+                    if v[:len(k)] == k:
+                        z = v[:len(k)]
+                        if len(stats_dict[z][m]['prior'][s]) == len(stats_dict[z][m]['prior']['Forecast_Hour_Madis']):
+                            plt.plot(stats_dict[z][m]['prior']['Forecast_Hour_Madis'],stats_dict[z][m]['prior'][s],
+                                     linestyle=ls['prior'],marker='o',color=clr[m],label='prior '+m)
+                            
+                        elif len(stats_dict[z][m]['prior'][s]) == len(stats_dict[z][m]['prior']['Forecast_Hour_Gridded']):
+                            plt.plot(stats_dict[z][m]['prior']['Forecast_Hour_Gridded'],stats_dict[z][m]['prior'][s],
+                                     linestyle=ls['prior'],marker='o',color=clr[m],label='prior '+m)
+            
 #        plt.plot(stats_dict[v]['ecmwf']['prior']['Forecast_Hour'],stats_dict[v]['ecmwf']['prior'][s],
 #                 linestyle='dashed',marker='o',color='r',label='Original ECMWF')
 #        plt.plot(stats_dict[v]['ecmwf']['posterior']['Forecast_Hour'],stats_dict[v]['ecmwf']['posterior'][s],

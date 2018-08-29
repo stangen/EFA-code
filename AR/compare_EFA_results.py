@@ -15,34 +15,41 @@ import matplotlib.pyplot as plt
 import time
 import EFA.duplicate_madaus.efa_functions as ef
 
-ens = 'eccc' #ncep, eccc, ecmwf
-loc_rad = '10000hybrid'#'1000'
-forecast_time = datetime(2015,11,10,12) # when the forecast was initialized
-analysis_time = datetime(2015,11,12,12) # when to compare with analysis
-oberrvar = [10000]
+#--------Change these----------------------------------------------------------
+ens = 'eccc' #ncep, eccc, ecmwf- ensemble type
+loc_rad = '10000hybrid'#'98statsig'#'10000hybrid'#'1000' #localization radius/type (if not Gaspari-Cohn) - look at filepath if uncertain
+forecast_time = datetime(2015,11,11,12) # when the forecast was initialized
+analysis_time = datetime(2015,11,13,12) # when to compare with analysis
+oberrvar = [10000] #observation error variance, can be a list of them that you
+#used to test which values to use with which variables. The script will loop through
+#each value here to plot comparisons with the prior. If obd = 'all', this will be
+#used to load the filename
 #oberrvar = ['0-1','1','10','100']
 #oberrvar = [1,10,100,1000, 'ensvar', 250, 500, 750]
 #varlist = ['TCW','TCW','TCW','TCW'] #used only when loading ob update self
-varlist = ['IVT10000','IWV20'] #used only when loading ob update self
-efh = '54hrs'
-grid = [-180,180,90,0,3]
-prior_var = ['IWV','IVT','D-IVT']#['QF850','D-QF850']#['TCW']#
+varlist = ['IVT10000','IWV20'] #used only when loading ob update self (obd = 'self') - all the variables in the ensemble (look at filename)
+efh = '54hrs' #used to load filename
+grid = [-180,180,90,0,3] #used to load filename
+prior_var = ['IWV','IVT','D-IVT']#['QF850','D-QF850']#['TCW']# #all the variables in the prior netCDF, used to load filename
 
-obd = 'self' #ob update 'all' or 'self'? 
+obd = 'self' #when updating the prior, did we do ob update 'all' or 'self'? 
 
-#variable we want to look at
-vrbl= 'IVT'#'QF850'#'TCW'#
-#what observation we used to update the ensemble
-ob_type = 'IVT'#'QF850'#'TCW' #used if ob update is 'all'
+vrbl= 'IVT'#'QF850'#'TCW'# #variable we want to look at
+
+#what observation we used to update the ensemble - if obd = 'self', make sure this matches vrbl
+#if obd = 'all', this will be used to load the filename- can differ from vrbl
+ob_type = 'IVT'#'QF850'#'TCW' 
 
 #plotting variables
-s = 35
-n = 50
-w = -180
-e = -115
+s = 35 #south boundary displayed
+n = 50 #north boundary
+w = -180 #west boundary
+e = -115 #east boundary
 lat_ts = 40
 figsize1 = 18
 figsize2 = 12
+
+#------------------------------------------------------------------------------
 
 if vrbl == 'QF850':
     cont_int = range(0,300,20)
@@ -208,7 +215,6 @@ for oev in oberrvar:
         post_varstr = ob_type+str(oev)
     elif obd == 'self':
         post_varstr = ef.var_string(varlist)
-        #post_varstr = ef.var_num_string(varlist, oberrvar)
         #if self-updating, add ob error variance to variable name for access in netCDF
         vrbl2 = vrbl+str(oev)
     # Filepath of the posterior forecast
@@ -236,8 +242,8 @@ for oev in oberrvar:
     mae_post_region = np.mean(np.average(abs(post_error_region),axis=0,weights=weights_region))
     print('Mean absolute error of the posterior forecast: ',mae_post)
     print('Mean absolute error of the posterior forecast in the plotted region: ',mae_post_region)
-    print('Change in absolute error: ',mae_post-mae_prior)
-    print('Change in absolute error: ',mae_post_region-mae_prior_region)
+    print('Mean change in absolute error of the posterior forecast: ',mae_post-mae_prior)
+    print('Mean change in absolute error in the plotted region: ',mae_post_region-mae_prior_region)
     
     #set the vmin and vmax so that the divergent colorbar of change in error is centered around 0
     #get just the region we're interested in

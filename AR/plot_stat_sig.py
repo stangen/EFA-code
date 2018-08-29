@@ -25,13 +25,14 @@ import EFA.duplicate_madaus.efa_functions as ef
 
 """
 Script to plot where correlation between ob estimate and state
-is statistically significant.
+is statistically significant at certain confidence threshold.
 """
 
+#---------------Change these---------------------------------------------------
 #date/time of ensemble initialization
 forecast_time = datetime(2015,11,11,0)
 #ensemble type
-ens = 'ecmwf'
+ens = 'eccc'
 #variable we want to look at
 vrbl= 'IVT'
 #latitude of ob location
@@ -52,6 +53,7 @@ lat_ts = 40
 figsize1 = 18
 figsize2 = 12
 
+#-----------------------------------------------------------------------------
 
 #end forecast hour string
 efh = '54hrs'
@@ -128,6 +130,8 @@ for i in time_ind:
     #map = Basemap(projection='ortho',lat_0=45,lon_0=-100,resolution='l')
     m1 = Basemap(projection='merc',llcrnrlat=s,urcrnrlat=n,\
                 llcrnrlon=w,urcrnrlon=e,lat_ts=lat_ts,resolution='c')
+    #mercator coordinates of ob location
+    xpoint,ypoint=m1(ob_lon,ob_lat)
     # draw coastlines, country boundaries, fill continents.
     m1.drawcoastlines(linewidth=1.25)
     m1.drawcountries(linewidth=1.25)
@@ -143,6 +147,8 @@ for i in time_ind:
     
     cs1 = m1.contourf(x,y,prior_mean_region)
     m1.contour(x,y,r_pass_region)
+    #plot ob location on map
+    m1.scatter(xpoint,ypoint,s=100, zorder=4,c='black',marker='o',edgecolor='k')
 #    cs1 = m1.contourf(x,y,anl_mean_region,cont_int)
 #    cs3 = m1.contour(x,y,anl_mean_region,cont_int,colors='white',linewidths=0.5)
 #    cs2 = m1.contour(x,y,prior_mean_region,cont_int,colors='black',linewidths=1)
