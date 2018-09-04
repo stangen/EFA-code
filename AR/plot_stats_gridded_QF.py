@@ -213,6 +213,52 @@ clr_sp = {
                
         }
 
+plot_dict = {
+       'QF850' : '-', #solid
+       'QF850ensvar' : '--', #dashed
+       'QF8501000' : ':', #dotted
+       'QF850100' : '-.', #dashdotted
+       'QF85010' : ' ',
+       'QF8501' : '' ,
+       'QF850250' : '--',
+       'QF850500' : '--',
+       'QF850750' : '--',
+       
+       'TCW' : '-',
+       'TCW0-1' : ' ',
+       'TCW1' : '--',
+       'TCW10' : '-.',
+       'TCW100' : ':',
+       
+       'IWV' : {'prior' : {'ls' : '-', 'mkr' : 'o', 'clr' : 'k'}},
+       'IWV1' : {'loc1000' : {'ls' : '', 'mkr' : 'o', 'clr' : 'y'}},
+       'IWV5' : {'loc1000' : {'ls' : ':', 'mkr' : 'o', 'clr' : 'r'}},
+       'IWV10' : {'loc1000' : {'ls' : '--', 'mkr' : 'o', 'clr' : 'g'}},
+       'IWV20' : {'loc1000' : {'ls' : '-.', 'mkr' : 'o', 'clr' : 'c'},
+                  'loc2000hybrid': {'ls' : ':', 'mkr' : 'o', 'clr' : 'b'},
+                  'loc5000hybrid': {'ls' : '--', 'mkr' : 'o', 'clr' : 'c'},
+                  'loc10000hybrid': {'ls' : ':', 'mkr' : 'x', 'clr' : 'r'}},
+       'IWV100' : {'loc1000' : {'ls' : ':', 'mkr' : 'x', 'clr' : 'b'}},
+       'IWV1000' : {'loc1000' : {'ls' : '', 'mkr' : 'o', 'clr' : 'r'}},
+       'IWV5000' : {'loc1000' : {'ls' : '-.', 'mkr' : 'o', 'clr' : 'y'}},
+       'IWV10000' : {'loc1000' : {'ls' : '--', 'mkr' : 'o', 'clr' : 'g'}},
+       'IWV20000' : {'loc1000' : {'ls' : ':', 'mkr' : 'o', 'clr' : 'c'}},
+       
+       'IVT_prior' : '-',
+       'IVT1' : '',
+       'IVT5' : ':',
+       'IVT10' : '--',
+       'IVT20' : '-.',
+       'IVT100' : ':',
+       'IVT1000' : '',
+       'IVT5000' : '-.',
+       'IVT10000_loc1000' : '--',
+       'IVT20000' : ':',
+       'IVT10000_loc2000hybrid' : ':',
+       'IVT10000_loc5000hybrid' : '-.',
+       'IVT10000_loc10000hybrid' : ':',
+        }
+
 ens_dict = {
         'eccc': 'CMC',
         'ecmwf' : 'ECMWF',
