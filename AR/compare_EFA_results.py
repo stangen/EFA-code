@@ -16,10 +16,10 @@ import time
 import EFA.duplicate_madaus.efa_functions as ef
 
 #--------Change these----------------------------------------------------------
-ens = 'eccc' #ncep, eccc, ecmwf- ensemble type
-loc_rad = '10000hybrid'#'98statsig'#'10000hybrid'#'1000' #localization radius/type (if not Gaspari-Cohn) - look at filepath if uncertain
-forecast_time = datetime(2015,11,11,12) # when the forecast was initialized
-analysis_time = datetime(2015,11,13,12) # when to compare with analysis
+ens = 'ncep' #ncep, eccc, ecmwf- ensemble type
+loc_rad = ['2000hybrid','5000hybrid','10000hybrid']#'98statsig'#'10000hybrid'#'1000' #localization radius/type (if not Gaspari-Cohn) - look at filepath if uncertain
+forecast_time = datetime(2015,11,12,12) # when the forecast was initialized
+analysis_time = datetime(2015,11,14,12) # when to compare with analysis
 oberrvar = [10000] #observation error variance, can be a list of them that you
 #used to test which values to use with which variables. The script will loop through
 #each value here to plot comparisons with the prior. If obd = 'all', this will be
@@ -27,12 +27,12 @@ oberrvar = [10000] #observation error variance, can be a list of them that you
 #oberrvar = ['0-1','1','10','100']
 #oberrvar = [1,10,100,1000, 'ensvar', 250, 500, 750]
 #varlist = ['TCW','TCW','TCW','TCW'] #used only when loading ob update self
-varlist = ['IVT10000','IWV20'] #used only when loading ob update self (obd = 'self') - all the variables in the ensemble (look at filename)
+varlist = ['IVT10000','IWV20'] #used only when loading ob update self (obd = 'self') - all the variables & their associated ob err var in the posterior ensemble (look at filename)
 efh = '54hrs' #used to load filename
 grid = [-180,180,90,0,3] #used to load filename
 prior_var = ['IWV','IVT','D-IVT']#['QF850','D-QF850']#['TCW']# #all the variables in the prior netCDF, used to load filename
 
-obd = 'self' #when updating the prior, did we do ob update 'all' or 'self'? 
+obd = 'self'#'self' #when updating the prior, did we do ob update 'all' or 'self'? 
 
 vrbl= 'IVT'#'QF850'#'TCW'# #variable we want to look at
 
@@ -206,105 +206,107 @@ plt.title(ens_dict[ens]+' prior (black) and error (colorfill) of '+am+'/'+ad+'/'
 
 #-----------------------------------------------------------------------------#
 
+#loop through each localization type
+for loc in loc_rad:
 
-#loop through each observation error variance
-for oev in oberrvar:    
-    vrbl2 = vrbl
-    if obd == 'all':
-        #one observation error variance per file
-        post_varstr = ob_type+str(oev)
-    elif obd == 'self':
-        post_varstr = ef.var_string(varlist)
-        #if self-updating, add ob error variance to variable name for access in netCDF
-        vrbl2 = vrbl+str(oev)
-    # Filepath of the posterior forecast
-    post_path = '/home/disk/hot/stangen/Documents/posterior_ensembles/gridded/ob_update_'+obd+'/inf_none/loc_'+loc_rad+'/'+ens+'/'+fy+fm+'/'+fy+'-'+fm+'-'+fd+'_'+fh+'_'+efh+'_'+grid_str+'_'+post_varstr+'.nc'
+    #loop through each observation error variance
+    for oev in oberrvar:    
+        vrbl2 = vrbl
+        if obd == 'all':
+            #one observation error variance/assimilated ob type per file
+            post_varstr = ob_type+str(oev)
+        elif obd == 'self':
+            post_varstr = ef.var_string(varlist)
+            #if self-updating, add ob error variance to variable name for access in netCDF
+            vrbl2 = vrbl+str(oev)
+        # Filepath of the posterior forecast
+        post_path = '/home/disk/hot/stangen/Documents/posterior_ensembles/gridded/ob_update_'+obd+'/inf_none/loc_'+loc+'/'+ens+'/'+fy+fm+'/'+fy+'-'+fm+'-'+fd+'_'+fh+'_'+efh+'_'+grid_str+'_'+post_varstr+'.nc'
+        
+        print('loading posterior netCDF: '+fy+fm+fd+fh+' '+str(oev)+' ob err var')
+        # Load the posterior data
+        with Dataset(post_path, 'r') as ncdata:
+            post = ncdata.variables[vrbl2][:]
+            times2 = ncdata.variables['time']
+        
+        post_mean = np.mean(post[timeind,:,:],axis=-1)  
+        post_mean_region = post_mean[t:b,l:r]
+        post_error = post_mean-anl_mean
+        post_error_region = post_error[t:b,l:r]
+        
+        #change in absolute error
+        error_diff = abs(post_error)-abs(prior_error)
+        error_diff_region = error_diff[t:b,l:r]
+        #difference between posterior and prior (change in forecast)
+        prior_post_diff = post_mean-prior_mean
+        prior_post_diff_region = prior_post_diff[t:b,l:r]
+        
+        mae_post = np.mean(np.average(abs(post_error),axis=0,weights=weights))
+        mae_post_region = np.mean(np.average(abs(post_error_region),axis=0,weights=weights_region))
+        print('Mean absolute error of the posterior forecast for ob err var '+str(oev)+', loc '+loc+': '+str(mae_post))
+        print('Mean absolute error of the posterior forecast in the plotted region for ob err var '+str(oev)+', loc '+loc+': '+str(mae_post_region))
+        print('Mean change in absolute error of the posterior forecast for ob err var '+str(oev)+', loc '+loc+': '+str(mae_post-mae_prior))
+        print('Mean change in absolute error in the plotted region for ob err var '+str(oev)+', loc '+loc+': '+str(mae_post_region-mae_prior_region))
+        
+        #set the vmin and vmax so that the divergent colorbar of change in error is centered around 0
+        #get just the region we're interested in
+        error_diff_region = error_diff[t:b,l:r]
+        #find largest absolute value of difference in error
+        vmax = np.max(abs(error_diff_region))
+        vmin = 0-vmax
+          
+    #-----------------------------------------------------------------------------#
+        #plot the posterior forecast error, with contour as the forecast
+        fig = plt.figure(figsize=(figsize1,figsize2))
+        ax1 = fig.add_subplot(111)
+        # Plot the difference between the prior and posterior
+        #map = Basemap(projection='ortho',lat_0=45,lon_0=-100,resolution='l')
+        m1 = Basemap(projection='merc',llcrnrlat=s,urcrnrlat=n,\
+                    llcrnrlon=w,urcrnrlon=e,lat_ts=lat_ts,resolution='c')
+        # draw coastlines, country boundaries, fill continents.
+        m1.drawcoastlines(linewidth=1.25)
+        m1.drawcountries(linewidth=1.25)
+        m1.drawstates()
+        # draw lat/lon grid lines every half degree.
+        #labels[left,right,top,bottom]  1=True 0=False
+        m1.drawmeridians(np.arange(0,360,5),labels=[1,0,0,1],fontsize=10,linewidth=0.5)
+        m1.drawparallels(np.arange(-90,90,1),labels=[1,0,0,1],fontsize=10,linewidth=0.5)
+        
+        #cs1 = m1.contourf(x,y,post_error)
+        cs1 = m1.contourf(x,y,anl_mean_region,cont_int,cmap=plt.cm.jet)
+        cs2 = m1.contour(x,y,post_mean_region,cont_int,colors='black',linewidths=1)
+        plt.clabel(cs2, inline=0, fontsize=12,fmt='%.0f')#,cmap=plt.cm.Reds)
+        cs3 = m1.contour(x,y,prior_mean_region,cont_int,colors='black',linestyles='dashed',linewidths=1)
+        plt.clabel(cs3, inline=0, fontsize=12,fmt='%.0f')
+        cbar1 = m1.colorbar(cs1, location='right',pad="3%")
+        cbar1.set_label('analysis '+varstring+' '+varunit,fontsize=12)
+        plt.title(ens_dict[ens]+' analysis (colorfill), prior (dashed), posterior (solid) of '+am+'/'+ad+'/'+ay+' '+ah+'Z forecast, initialized on '+fm+'/'+fd+'/'+fy+' '+fh+'Z, updated with '+ob_type+' ob err var '+str(oev)+', loc:'+loc)
     
-    print('loading posterior netCDF: '+fy+fm+fd+fh+' '+str(oev)+' ob err var')
-    # Load the posterior data
-    with Dataset(post_path, 'r') as ncdata:
-        post = ncdata.variables[vrbl2][:]
-        times2 = ncdata.variables['time']
+    #-----------------------------------------------------------------------------#
+        #plot the change in forecast error (error posterior - error prior)
+        fig = plt.figure(figsize=(figsize1,figsize2))
+        ax1 = fig.add_subplot(111)
+        # Plot the difference between the prior and posterior
+        #map = Basemap(projection='ortho',lat_0=45,lon_0=-100,resolution='l')
+        m1 = Basemap(projection='merc',llcrnrlat=s,urcrnrlat=n,\
+                    llcrnrlon=w,urcrnrlon=e,lat_ts=lat_ts,resolution='c')
+        # draw coastlines, country boundaries, fill continents.
+        m1.drawcoastlines(linewidth=1.25)
+        m1.drawcountries(linewidth=1.25)
+        m1.drawstates()
+        # draw lat/lon grid lines every half degree.
+        #labels[left,right,top,bottom]  1=True 0=False
+        m1.drawmeridians(np.arange(0,360,5),labels=[1,0,0,1],fontsize=10,linewidth=0.5)
+        m1.drawparallels(np.arange(-90,90,1),labels=[1,0,0,1],fontsize=10,linewidth=0.5)   
     
-    post_mean = np.mean(post[timeind,:,:],axis=-1)  
-    post_mean_region = post_mean[t:b,l:r]
-    post_error = post_mean-anl_mean
-    post_error_region = post_error[t:b,l:r]
+        cs1 = m1.contourf(x,y,error_diff_region,20,vmin=vmin,vmax=vmax,cmap=plt.cm.seismic) 
+        #cs2 = m1.contour(x,y,error_diff,colors='white',linewidths=1)
+        cs4 = m1.contour(x,y,error_diff_region,[0],colors='white',linewidths=2)
+        cs3 = m1.contour(x,y,prior_post_diff_region,10,colors='black',linewidths=1)
     
-    #change in absolute error
-    error_diff = abs(post_error)-abs(prior_error)
-    error_diff_region = error_diff[t:b,l:r]
-    #difference between posterior and prior (change in forecast)
-    prior_post_diff = post_mean-prior_mean
-    prior_post_diff_region = prior_post_diff[t:b,l:r]
-    
-    mae_post = np.mean(np.average(abs(post_error),axis=0,weights=weights))
-    mae_post_region = np.mean(np.average(abs(post_error_region),axis=0,weights=weights_region))
-    print('Mean absolute error of the posterior forecast: ',mae_post)
-    print('Mean absolute error of the posterior forecast in the plotted region: ',mae_post_region)
-    print('Mean change in absolute error of the posterior forecast: ',mae_post-mae_prior)
-    print('Mean change in absolute error in the plotted region: ',mae_post_region-mae_prior_region)
-    
-    #set the vmin and vmax so that the divergent colorbar of change in error is centered around 0
-    #get just the region we're interested in
-    error_diff_region = error_diff[t:b,l:r]
-    #find largest absolute value of difference in error
-    vmax = np.max(abs(error_diff_region))
-    vmin = 0-vmax
-      
-#-----------------------------------------------------------------------------#
-    #plot the posterior forecast error, with contour as the forecast
-    fig = plt.figure(figsize=(figsize1,figsize2))
-    ax1 = fig.add_subplot(111)
-    # Plot the difference between the prior and posterior
-    #map = Basemap(projection='ortho',lat_0=45,lon_0=-100,resolution='l')
-    m1 = Basemap(projection='merc',llcrnrlat=s,urcrnrlat=n,\
-                llcrnrlon=w,urcrnrlon=e,lat_ts=lat_ts,resolution='c')
-    # draw coastlines, country boundaries, fill continents.
-    m1.drawcoastlines(linewidth=1.25)
-    m1.drawcountries(linewidth=1.25)
-    m1.drawstates()
-    # draw lat/lon grid lines every half degree.
-    #labels[left,right,top,bottom]  1=True 0=False
-    m1.drawmeridians(np.arange(0,360,5),labels=[1,0,0,1],fontsize=10,linewidth=0.5)
-    m1.drawparallels(np.arange(-90,90,1),labels=[1,0,0,1],fontsize=10,linewidth=0.5)
-    
-    #cs1 = m1.contourf(x,y,post_error)
-    cs1 = m1.contourf(x,y,anl_mean_region,cont_int,cmap=plt.cm.jet)
-    cs2 = m1.contour(x,y,post_mean_region,cont_int,colors='black',linewidths=1)
-    plt.clabel(cs2, inline=0, fontsize=12,fmt='%.0f')#,cmap=plt.cm.Reds)
-    cs3 = m1.contour(x,y,prior_mean_region,cont_int,colors='black',linestyles='dashed',linewidths=1)
-    plt.clabel(cs3, inline=0, fontsize=12,fmt='%.0f')
-    cbar1 = m1.colorbar(cs1, location='right',pad="3%")
-    cbar1.set_label('analysis '+varstring+' '+varunit,fontsize=12)
-    plt.title(ens_dict[ens]+' analysis (colorfill), prior (dashed), posterior (solid) of '+am+'/'+ad+'/'+ay+' '+ah+'Z ob err var '+str(oev)+' forecast, initialized on '+fm+'/'+fd+'/'+fy+' '+fh+'Z, updated with '+ob_type)
-
-#-----------------------------------------------------------------------------#
-    #plot the change in forecast error (error posterior - error prior)
-    fig = plt.figure(figsize=(figsize1,figsize2))
-    ax1 = fig.add_subplot(111)
-    # Plot the difference between the prior and posterior
-    #map = Basemap(projection='ortho',lat_0=45,lon_0=-100,resolution='l')
-    m1 = Basemap(projection='merc',llcrnrlat=s,urcrnrlat=n,\
-                llcrnrlon=w,urcrnrlon=e,lat_ts=lat_ts,resolution='c')
-    # draw coastlines, country boundaries, fill continents.
-    m1.drawcoastlines(linewidth=1.25)
-    m1.drawcountries(linewidth=1.25)
-    m1.drawstates()
-    # draw lat/lon grid lines every half degree.
-    #labels[left,right,top,bottom]  1=True 0=False
-    m1.drawmeridians(np.arange(0,360,5),labels=[1,0,0,1],fontsize=10,linewidth=0.5)
-    m1.drawparallels(np.arange(-90,90,1),labels=[1,0,0,1],fontsize=10,linewidth=0.5)   
-
-    cs1 = m1.contourf(x,y,error_diff_region,20,vmin=vmin,vmax=vmax,cmap=plt.cm.seismic) 
-    #cs2 = m1.contour(x,y,error_diff,colors='white',linewidths=1)
-    cs4 = m1.contour(x,y,error_diff_region,[0],colors='white',linewidths=2)
-    cs3 = m1.contour(x,y,prior_post_diff_region,10,colors='black',linewidths=1)
-
-    #plt.clabel(cs2, inline=0, fontsize=12, fmt='%.0f')
-    plt.clabel(cs3, inline=0, fontsize=12)#,fmt='%.0f')
-    #cs1 = m1.contourf(x,y,prior_post_diff)     
-    cbar1 = m1.colorbar(cs1, location='right',pad="3%")
-    cbar1.set_label(varstring+' error change '+varunit,fontsize=12)
-    plt.title(ens_dict[ens]+' change in '+vrbl+' (black) and change in absolute error (colorfill) of '+am+'/'+ad+'/'+ay+' '+ah+'Z forecast, '+str(oev)+' ob err var , initialized on '+fm+'/'+fd+'/'+fy+' '+fh+'Z, updated with '+ob_type)
-    
+        #plt.clabel(cs2, inline=0, fontsize=12, fmt='%.0f')
+        plt.clabel(cs3, inline=0, fontsize=12)#,fmt='%.0f')
+        #cs1 = m1.contourf(x,y,prior_post_diff)     
+        cbar1 = m1.colorbar(cs1, location='right',pad="3%")
+        cbar1.set_label(varstring+' error change '+varunit,fontsize=12)
+        plt.title(ens_dict[ens]+' change in '+vrbl+' (black) and change in absolute error (colorfill) of '+am+'/'+ad+'/'+ay+' '+ah+'Z forecast, initialized on '+fm+'/'+fd+'/'+fy+' '+fh+'Z, updated with '+ob_type+' ob err var '+str(oev)+', loc:'+loc)
+        
