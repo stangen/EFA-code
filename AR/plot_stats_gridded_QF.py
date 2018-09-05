@@ -19,7 +19,12 @@ end_date = datetime(2015,11,15,12)
 
 #which ob type(s) were assimilated? used to load the correct .txt filename
 #or, if desired, naming convention could be all types of obs the .txt file contains.
-assim_obs = ['IVT']#['TCW']#
+assim_obs = ['IWV']#['TCW']#
+
+#what ob types are we looking at? could differ from assim_obs if
+#we used assim_obs to update more than one variable (i.e. we didn't self-update)
+#used if plotting change in statistic (if plot_change_stats = True)
+plot_ob = 'IWV'
 
 #grid used to generate gridded obs, used for loading correct .txt filename
 grid = [-180,180,90,0,3]
@@ -30,17 +35,21 @@ control_vars = True
 
 #if control_vars = True, plot_vars controls which variables we are going to plot. This can be useful 
 #if there are lots of different variables in the txt file and we don't want to plot them all.
-#plot_vars = ['IWV','IWV100','IWV1000','IWV10000']#['QF850','QF850100','QF850750','QF8501000']#,'QF850250','QF850500']
-#plot_vars = ['IVT','IVT100','IVT1000','IVT5000','IVT10000','IVT20000']
-#plot_vars = ['IWV','IWV1','IWV5','IWV10','IWV20','IWV100']
-plot_vars = ['IVT_prior','IVT10000_loc1000','IVT10000_loc2000hybrid','IVT10000_loc5000hybrid','IVT10000_loc10000hybrid']
-#plot_vars = ['IWV','IWV20','IWV20_loc2000hybrid','IWV20_loc5000hybrid','IWV20_loc10000hybrid']
+#plot_vars = ['QF850_prior','QF8501_loc1000','QF85010_loc1000','QF850100_loc1000','QF850250_loc1000','QF850500_loc1000','QF850750_loc1000','QF8501000_loc1000']
+#plot_vars = ['TCW_prior','TCW0-1_loc1000','TCW1_loc1000','TCW10_loc1000','TCW100_loc1000']
+#plot_vars = ['IVT_prior','IVT100_loc1000','IVT1000_loc1000','IVT5000_loc1000','IVT10000_loc1000','IVT20000_loc1000']
+#plot_vars = ['IWV_prior','IWV1_loc1000','IWV5_loc1000','IWV10_loc1000','IWV20_loc1000','IWV100_loc1000']
+#plot_vars = ['IVT_prior','IVT10000_loc1000','IVT10000_loc2000hybrid','IVT10000_loc5000hybrid','IVT10000_loc10000hybrid']
+plot_vars = ['IWV_prior','IWV20_loc1000','IWV20_loc2000hybrid','IWV20_loc5000hybrid','IWV20_loc10000hybrid']
 
 #are we wanting to look at statistics for MSE/variance within a specific AR?
 AR_specific = True
 
 #do we want a separate plot for each ensemble type?
 separate_plots = False
+
+#plot actual statistics, or change in statistics?
+plot_change_stats = True
 
 #gridded or madis obs?
 
@@ -66,177 +75,37 @@ ls = {
       
       }
 
-ls2 = {
-       'QF850' : '-', #solid
-       'QF850ensvar' : '--', #dashed
-       'QF8501000' : ':', #dotted
-       'QF850100' : '-.', #dashdotted
-       'QF85010' : ' ',
-       'QF8501' : '' ,
-       'QF850250' : '--',
-       'QF850500' : '--',
-       'QF850750' : '--',
-       
-       'TCW' : '-',
-       'TCW0-1' : ' ',
-       'TCW1' : '--',
-       'TCW10' : '-.',
-       'TCW100' : ':',
-       
-       'IWV_prior' : '-',
-       'IWV1' : '',
-       'IWV5' : ':',
-       'IWV10' : '--',
-       'IWV20_loc1000' : '-.',
-       'IWV100' : ':',
-       'IWV1000' : '',
-       'IWV5000' : '-.',
-       'IWV10000' : '--',
-       'IWV20000' : ':',
-       'IWV20_loc2000hybrid' : ':',
-       'IWV20_loc5000hybrid' : '--',
-       'IWV20_loc10000hybrid' : ':',
-       
-       'IVT_prior' : '-',
-       'IVT1' : '',
-       'IVT5' : ':',
-       'IVT10' : '--',
-       'IVT20' : '-.',
-       'IVT100' : ':',
-       'IVT1000' : '',
-       'IVT5000' : '-.',
-       'IVT10000_loc1000' : '--',
-       'IVT20000' : ':',
-       'IVT10000_loc2000hybrid' : ':',
-       'IVT10000_loc5000hybrid' : '-.',
-       'IVT10000_loc10000hybrid' : ':',
-       }
-
-md = {
-       'QF850' : 'o', #solid
-       'QF850ensvar' : 'o', #dashed
-       'QF8501000' : 'o', #dotted
-       'QF850100' : 'o', #dashdotted
-       'QF850250' : 'x',
-       'QF850500' : '*',
-       'QF850750' : 's',
-       'QF85010' : 'x',
-       'QF8501' : '*' ,
-       
-       'TCW' : 'o',
-       'TCW0-1' : 'o',
-       'TCW1' : 'o',
-       'TCW10' : 'o',
-       'TCW100' : 'o',
-              
-       'IWV_prior' : 'o',
-       'IWV1' : 'o',
-       'IWV5' : 'o',
-       'IWV10' : 'o',
-       'IWV20_loc1000' : 'o',
-       'IWV100' : 'x',
-       'IWV1000' : 'o',
-       'IWV5000' : 'o',
-       'IWV10000' : 'o',
-       'IWV20000' : 'o',
-       'IWV20_loc2000hybrid' : 'o',
-       'IWV20_loc5000hybrid' : 'o',
-       'IWV20_loc10000hybrid' : 'x',
-       
-       'IVT_prior' : 'o',
-       'IVT1' : 'o',
-       'IVT5' : 'o',
-       'IVT10' : 'o',
-       'IVT20' : 'o',
-       'IVT100' : 'x',
-       'IVT1000' : 'o',
-       'IVT5000' : 'o',
-       'IVT10000_loc1000' : 'o',
-       'IVT20000' : 'o',
-       'IVT10000_loc2000hybrid' : 'o',
-       'IVT10000_loc5000hybrid' : 'o',
-       'IVT10000_loc10000hybrid' : 'x'
-       
-      }
 
 clr = {
         'ecmwf' : 'r',
         'eccc' : 'k',
         'ncep' : 'b'
         }
-#color for separate plot for each ensemble type
-clr_sp = {
-        'QF850' : 'k', #solid
-        'QF850ensvar' : 'b', #dashed
-        'QF8501000' : 'r', #dotted
-        'QF850100' : 'g', #dashdotted
-        'QF85010' : 'c',
-        'QF8501' : 'y', 
-        'QF850250' : 'm',
-        'QF850500' : 'y',
-        'QF850750' : 'c',
-        
-        'TCW' : 'k',
-        'TCW0-1' : 'y',
-        'TCW1' : 'g',
-        'TCW10' : 'b',
-        'TCW100' : 'r',
-        
-        'IWV' : 'k',
-        'IWV1' : 'y',
-        'IWV5' : 'r',
-        'IWV10' : 'g',
-        'IWV20' : 'c',
-        'IWV100' : 'b',
-        'IWV1000' : 'r',
-        'IWV5000' : 'y',
-        'IWV10000' : 'g',
-        'IWV20000' : 'c',
-        'IWV20_loc2000hybrid' : 'b',
-        'IWV20_loc5000hybrid' : 'c',
-        'IWV20_loc10000hybrid' : 'r',
-        
-       
-        'IVT' : 'k',
-        'IVT1' : 'y',
-        'IVT5' : 'r',
-        'IVT10' : 'g',
-        'IVT20' : 'c',
-        'IVT100' : 'b',
-        'IVT1000' : 'r',
-        'IVT5000' : 'y',
-        'IVT10000' : 'g',
-        'IVT20000' : 'c',
-        'IVT10000_loc2000hybrid' : 'b',
-        'IVT10000_loc5000hybrid' : 'c',
-        'IVT10000_loc10000hybrid' : 'r'
-               
-        }
 
 plot_dict = {
-       'QF850' : '-', #solid
-       'QF850ensvar' : '--', #dashed
-       'QF8501000' : ':', #dotted
-       'QF850100' : '-.', #dashdotted
-       'QF85010' : ' ',
-       'QF8501' : '' ,
-       'QF850250' : '--',
-       'QF850500' : '--',
-       'QF850750' : '--',
+       'QF850' : {'prior' : {'ls' : '-', 'mkr' : 'o', 'clr' : 'k'}},#solid
+       'QF850ensvar' : {'loc1000' : {'ls' : '--', 'mkr' : 'o', 'clr' : 'b'}}, #dashed
+       'QF8501000' : {'loc1000' : {'ls' : ':', 'mkr' : 'o', 'clr' : 'r'}}, #dotted
+       'QF850100' : {'loc1000' : {'ls' : '-.', 'mkr' : 'o', 'clr' : 'g'}}, #dashdotted
+       'QF85010' : {'loc1000' : {'ls' : ' ', 'mkr' : 'x', 'clr' : 'c'}},
+       'QF8501' : {'loc1000' : {'ls' : '', 'mkr' : '*', 'clr' : 'y'}},
+       'QF850250' : {'loc1000' : {'ls' : '--', 'mkr' : 'x', 'clr' : 'm'}},
+       'QF850500' : {'loc1000' : {'ls' : '--', 'mkr' : '*', 'clr' : 'y'}},
+       'QF850750' : {'loc1000' : {'ls' : '', 'mkr' : 's', 'clr' : 'c'}},
        
-       'TCW' : '-',
-       'TCW0-1' : ' ',
-       'TCW1' : '--',
-       'TCW10' : '-.',
-       'TCW100' : ':',
+       'TCW' : {'prior' : {'ls' : '-', 'mkr' : 'o', 'clr' : 'k'}},
+       'TCW0-1' : {'loc1000' : {'ls' : ' ', 'mkr' : 'o', 'clr' : 'y'}},
+       'TCW1' : {'loc1000' : {'ls' : '--', 'mkr' : 'o', 'clr' : 'g'}},
+       'TCW10' : {'loc1000' : {'ls' : '-.', 'mkr' : 'o', 'clr' : 'b'}},
+       'TCW100' : {'loc1000' : {'ls' : ':', 'mkr' : 'o', 'clr' : 'r'}},
        
        'IWV' : {'prior' : {'ls' : '-', 'mkr' : 'o', 'clr' : 'k'}},
        'IWV1' : {'loc1000' : {'ls' : '', 'mkr' : 'o', 'clr' : 'y'}},
        'IWV5' : {'loc1000' : {'ls' : ':', 'mkr' : 'o', 'clr' : 'r'}},
-       'IWV10' : {'loc1000' : {'ls' : '--', 'mkr' : 'o', 'clr' : 'g'}},
-       'IWV20' : {'loc1000' : {'ls' : '-.', 'mkr' : 'o', 'clr' : 'c'},
+       'IWV10' : {'loc1000' : {'ls' : '-.', 'mkr' : 'o', 'clr' : 'g'}},
+       'IWV20' : {'loc1000' : {'ls' : '--', 'mkr' : 'o', 'clr' : 'c'},
                   'loc2000hybrid': {'ls' : ':', 'mkr' : 'o', 'clr' : 'b'},
-                  'loc5000hybrid': {'ls' : '--', 'mkr' : 'o', 'clr' : 'c'},
+                  'loc5000hybrid': {'ls' : '-.', 'mkr' : 'o', 'clr' : 'c'},
                   'loc10000hybrid': {'ls' : ':', 'mkr' : 'x', 'clr' : 'r'}},
        'IWV100' : {'loc1000' : {'ls' : ':', 'mkr' : 'x', 'clr' : 'b'}},
        'IWV1000' : {'loc1000' : {'ls' : '', 'mkr' : 'o', 'clr' : 'r'}},
@@ -244,20 +113,20 @@ plot_dict = {
        'IWV10000' : {'loc1000' : {'ls' : '--', 'mkr' : 'o', 'clr' : 'g'}},
        'IWV20000' : {'loc1000' : {'ls' : ':', 'mkr' : 'o', 'clr' : 'c'}},
        
-       'IVT_prior' : '-',
-       'IVT1' : '',
-       'IVT5' : ':',
-       'IVT10' : '--',
-       'IVT20' : '-.',
-       'IVT100' : ':',
-       'IVT1000' : '',
-       'IVT5000' : '-.',
-       'IVT10000_loc1000' : '--',
-       'IVT20000' : ':',
-       'IVT10000_loc2000hybrid' : ':',
-       'IVT10000_loc5000hybrid' : '-.',
-       'IVT10000_loc10000hybrid' : ':',
-        }
+       'IVT' : {'prior' : {'ls' : '-', 'mkr' : 'o', 'clr' : 'k'}},
+       'IVT1' : {'loc1000' : {'ls' : '', 'mkr' : 'o', 'clr' : 'y'}},
+       'IVT5' : {'loc1000' : {'ls' : ':', 'mkr' : 'o', 'clr' : 'r'}},
+       'IVT10' : {'loc1000' : {'ls' : '--', 'mkr' : 'o', 'clr' : 'g'}},
+       'IVT20' : {'loc1000' : {'ls' : '-.', 'mkr' : 'o', 'clr' : 'c'}},
+       'IVT100' : {'loc1000' : {'ls' : ':', 'mkr' : 'x', 'clr' : 'b'}},
+       'IVT1000' : {'loc1000' : {'ls' : '', 'mkr' : 'o', 'clr' : 'r'}},
+       'IVT5000' : {'loc1000' : {'ls' : '-.', 'mkr' : 'o', 'clr' : 'y'}},
+       'IVT10000' : {'loc1000' : {'ls' : '--', 'mkr' : 'o', 'clr' : 'g'},
+                  'loc2000hybrid': {'ls' : ':', 'mkr' : 'o', 'clr' : 'b'},
+                  'loc5000hybrid': {'ls' : '-.', 'mkr' : 'o', 'clr' : 'c'},
+                  'loc10000hybrid': {'ls' : ':', 'mkr' : 'x', 'clr' : 'r'}},
+       'IVT20000' : {'loc1000' : {'ls' : ':', 'mkr' : 'o', 'clr' : 'c'}}
+      }
 
 ens_dict = {
         'eccc': 'CMC',
@@ -409,14 +278,28 @@ def plot_stats(separate):
         variables = stats_dict[m]
     #each variable
     for v in variables:
-        print(v)
+        #for plotting
+        varoev, loc = v.split('_')
+        #for plotting title and ylabel
+        if v.startswith('QF850'):
+            vstr = v[0:5]
+        else:
+            vstr = v[0:3]
+        #if we want to plot the change in statistics instead of actual statistics
+        if plot_change_stats == True:
+            compare_var = plot_ob + '_prior' 
+            plot_stats = stats_dict[m][v][s] - stats_dict[m][compare_var][s]
+            title_str = 'Change vs Prior in '+title_dict[vstr]+s
+        elif plot_change_stats == False:
+            plot_stats = stats_dict[m][v][s]
+            title_str = title_dict[vstr]+s
         #if we are plotting gridded obs stats
         if separate == False:
-            plt.plot(stats_dict[m][v]['Forecast_Hour_Gridded'],stats_dict[m][v][s],
-                     linestyle=ls2[v],marker=md[v],color=clr[m],label=v+' '+ens_dict[m])
+            plt.plot(stats_dict[m][v]['Forecast_Hour_Gridded'],plot_stats,
+                     linestyle=plot_dict[varoev][loc]['ls'],marker=plot_dict[varoev][loc]['mkr'],color=clr[m],label=v+' '+ens_dict[m])
         elif separate == True:
-            plt.plot(stats_dict[m][v]['Forecast_Hour_Gridded'],stats_dict[m][v][s],
-                     linestyle=ls2[v],marker=md[v],color=clr_sp[v],label=v+' '+ens_dict[m])            
+            plt.plot(stats_dict[m][v]['Forecast_Hour_Gridded'],plot_stats,
+                     linestyle=plot_dict[varoev][loc]['ls'],marker=plot_dict[varoev][loc]['mkr'],color=plot_dict[varoev][loc]['clr'],label=v+' '+ens_dict[m])            
         
         plt.xticks(np.arange(min(stats_dict[m][v]['Forecast_Hour_Gridded']), 
         max(stats_dict[m][v]['Forecast_Hour_Gridded'])+12, 12))
@@ -424,11 +307,7 @@ def plot_stats(separate):
 #            ax.set_yticks(numpy.arange(0, 1., 0.1))
         plt.grid(True)
         plt.legend(loc = 'upper left')
-        if v.startswith('QF850'):
-            vstr = v[0:5]
-        else:
-            vstr = v[0:3]
-        plt.title(title_dict[vstr]+s,fontsize=20)
+        plt.title(title_str,fontsize=20)
         plt.xlabel('Forecast Hour',fontsize=14)
         plt.ylabel(var_units[vstr],fontsize=14)
 
