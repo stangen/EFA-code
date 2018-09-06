@@ -39,8 +39,10 @@ control_vars = True
 #plot_vars = ['TCW_prior','TCW0-1_loc1000','TCW1_loc1000','TCW10_loc1000','TCW100_loc1000']
 #plot_vars = ['IVT_prior','IVT100_loc1000','IVT1000_loc1000','IVT5000_loc1000','IVT10000_loc1000','IVT20000_loc1000']
 #plot_vars = ['IWV_prior','IWV1_loc1000','IWV5_loc1000','IWV10_loc1000','IWV20_loc1000','IWV100_loc1000']
-#plot_vars = ['IVT_prior','IVT10000_loc1000','IVT10000_loc2000hybrid','IVT10000_loc5000hybrid','IVT10000_loc10000hybrid']
-plot_vars = ['IWV_prior','IWV20_loc1000','IWV20_loc2000hybrid','IWV20_loc5000hybrid','IWV20_loc10000hybrid']
+#plot_vars = ['IVT_prior','IVT10000_loc1000','IVT10000_loc2000hybrid','IVT10000_loc5000hybrid','IVT10000_loc10000hybrid','IVT10000_loc10000']
+#plot_vars = ['IWV_prior','IWV20_loc1000','IWV20_loc2000hybrid','IWV20_loc5000hybrid','IWV20_loc10000hybrid','IWV20_loc10000']
+#plot_vars = ['IVT_prior','IVT10000_loc1000','IVT10000_loc10000']
+plot_vars = ['IWV_prior', 'IWV20_loc1000','IWV20_loc10000']
 
 #are we wanting to look at statistics for MSE/variance within a specific AR?
 AR_specific = True
@@ -106,7 +108,8 @@ plot_dict = {
        'IWV20' : {'loc1000' : {'ls' : '--', 'mkr' : 'o', 'clr' : 'c'},
                   'loc2000hybrid': {'ls' : ':', 'mkr' : 'o', 'clr' : 'b'},
                   'loc5000hybrid': {'ls' : '-.', 'mkr' : 'o', 'clr' : 'c'},
-                  'loc10000hybrid': {'ls' : ':', 'mkr' : 'x', 'clr' : 'r'}},
+                  'loc10000hybrid': {'ls' : ':', 'mkr' : 'x', 'clr' : 'r'},
+                  'loc10000' : {'ls' : '-.', 'mkr' : 'x', 'clr' : 'y'}},
        'IWV100' : {'loc1000' : {'ls' : ':', 'mkr' : 'x', 'clr' : 'b'}},
        'IWV1000' : {'loc1000' : {'ls' : '', 'mkr' : 'o', 'clr' : 'r'}},
        'IWV5000' : {'loc1000' : {'ls' : '-.', 'mkr' : 'o', 'clr' : 'y'}},
@@ -124,7 +127,8 @@ plot_dict = {
        'IVT10000' : {'loc1000' : {'ls' : '--', 'mkr' : 'o', 'clr' : 'g'},
                   'loc2000hybrid': {'ls' : ':', 'mkr' : 'o', 'clr' : 'b'},
                   'loc5000hybrid': {'ls' : '-.', 'mkr' : 'o', 'clr' : 'c'},
-                  'loc10000hybrid': {'ls' : ':', 'mkr' : 'x', 'clr' : 'r'}},
+                  'loc10000hybrid': {'ls' : ':', 'mkr' : 'x', 'clr' : 'r'},
+                  'loc10000' : {'ls' : '-.', 'mkr' : 'x', 'clr' : 'y'}},
        'IVT20000' : {'loc1000' : {'ls' : ':', 'mkr' : 'o', 'clr' : 'c'}}
       }
 
@@ -288,7 +292,7 @@ def plot_stats(separate):
         #if we want to plot the change in statistics instead of actual statistics
         if plot_change_stats == True:
             compare_var = plot_ob + '_prior' 
-            plot_stats = stats_dict[m][v][s] - stats_dict[m][compare_var][s]
+            plot_stats = (stats_dict[m][v][s] - stats_dict[m][compare_var][s])#/stats_dict[m][v][s]
             title_str = 'Change vs Prior in '+title_dict[vstr]+s
         elif plot_change_stats == False:
             plot_stats = stats_dict[m][v][s]
