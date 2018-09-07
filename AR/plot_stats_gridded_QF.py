@@ -42,7 +42,9 @@ control_vars = True
 #plot_vars = ['IVT_prior','IVT10000_loc1000','IVT10000_loc2000hybrid','IVT10000_loc5000hybrid','IVT10000_loc10000hybrid','IVT10000_loc10000']
 #plot_vars = ['IWV_prior','IWV20_loc1000','IWV20_loc2000hybrid','IWV20_loc5000hybrid','IWV20_loc10000hybrid','IWV20_loc10000']
 #plot_vars = ['IVT_prior','IVT10000_loc1000','IVT10000_loc10000']
-plot_vars = ['IWV_prior', 'IWV20_loc1000','IWV20_loc10000']
+#plot_vars = ['IWV_prior', 'IWV20_loc1000','IWV20_loc10000']
+#plot_vars = ['IVT_prior','IVT10000_loc99statsig','IVT10000_loc98statsig','IVT10000_loc95statsig','IVT10000_loc90statsig']
+plot_vars = ['IWV_prior','IWV20_loc99statsig','IWV20_loc98statsig','IWV20_loc95statsig','IWV20_loc90statsig']
 
 #are we wanting to look at statistics for MSE/variance within a specific AR?
 AR_specific = True
@@ -50,8 +52,8 @@ AR_specific = True
 #do we want a separate plot for each ensemble type?
 separate_plots = False
 
-#plot actual statistics, or change in statistics?
-plot_change_stats = True
+#plot actual statistics, or change in statistics compared to prior?
+plot_change_stats = False
 
 #gridded or madis obs?
 
@@ -109,6 +111,10 @@ plot_dict = {
                   'loc2000hybrid': {'ls' : ':', 'mkr' : 'o', 'clr' : 'b'},
                   'loc5000hybrid': {'ls' : '-.', 'mkr' : 'o', 'clr' : 'c'},
                   'loc10000hybrid': {'ls' : ':', 'mkr' : 'x', 'clr' : 'r'},
+                  'loc99statsig' : {'ls' : ':', 'mkr' : 'o', 'clr' : 'b'},
+                  'loc98statsig' : {'ls' : '--', 'mkr' : 'x', 'clr' : 'c'},
+                  'loc95statsig' : {'ls' : '-.', 'mkr' : 'o', 'clr' : 'r'},
+                  'loc90statsig' : {'ls' : ':', 'mkr' : 'x', 'clr' : 'g'},
                   'loc10000' : {'ls' : '-.', 'mkr' : 'x', 'clr' : 'y'}},
        'IWV100' : {'loc1000' : {'ls' : ':', 'mkr' : 'x', 'clr' : 'b'}},
        'IWV1000' : {'loc1000' : {'ls' : '', 'mkr' : 'o', 'clr' : 'r'}},
@@ -128,6 +134,10 @@ plot_dict = {
                   'loc2000hybrid': {'ls' : ':', 'mkr' : 'o', 'clr' : 'b'},
                   'loc5000hybrid': {'ls' : '-.', 'mkr' : 'o', 'clr' : 'c'},
                   'loc10000hybrid': {'ls' : ':', 'mkr' : 'x', 'clr' : 'r'},
+                  'loc99statsig' : {'ls' : ':', 'mkr' : 'o', 'clr' : 'b'},
+                  'loc98statsig' : {'ls' : '--', 'mkr' : 'x', 'clr' : 'c'},
+                  'loc95statsig' : {'ls' : '-.', 'mkr' : 'o', 'clr' : 'r'},
+                  'loc90statsig' : {'ls' : ':', 'mkr' : 'x', 'clr' : 'g'},
                   'loc10000' : {'ls' : '-.', 'mkr' : 'x', 'clr' : 'y'}},
        'IVT20000' : {'loc1000' : {'ls' : ':', 'mkr' : 'o', 'clr' : 'c'}}
       }
@@ -320,7 +330,7 @@ for s in stats_list:
     if separate_plots == False:
         fig = plt.figure(figsize=(14,8))  
         #each ensemble type      
-        for m in stats_dict_vars:
+        for m in ['eccc','ecmwf']:#stats_dict_vars:
             plot_stats(False)
             #plt.show()
             #fig.savefig(savedir+'850mb_Moisture_Flux_'+s+'_'+datestr+'.png',frameon=False,bbox_inches='tight')
