@@ -34,15 +34,15 @@ if shell_script == False:
     variables = ['IWV','IVT','D-IVT']#['TCW']#['QF850','D-QF850']#['T2M','ALT']#['T2M', 'ALT', 'P6HR', 'TCW']
     
     #the ob type of the observations we are assimilating
-    obs_type = ['IVT']#['IVT','IWV']#['TCW']#['QF850']#['ALT','ALT']
+    obs_type = ['IVT','IWV']#['IVT','IWV']#['TCW']#['QF850']#['ALT','ALT']
     
     #observation error variance associated with the variables defined in obs_type.
     #list must be same length as obs_type. i.e. ob error variance for IVT is 10000,
     #ob error variance for IWV is 20.     
-    ob_err_var = ['1000']#['10000','20'] #or ['ensvar'] for using ensemble variance as ob error variance
+    ob_err_var = ['1000','10']#['10000','20'] #or ['ensvar'] for using ensemble variance as ob error variance
     
     #the variables in the netCDF we want to update- if self_update=True, this should match obs_type
-    update_vars= ['IVT']#['IVT','IWV']#['IWV','IVT','D-IVT']#['TCW']#['QF850','D-QF850']#['ALT'] #['T2M','ALT']
+    update_vars= ['IVT','IWV']#['IVT','IWV']#['IWV','IVT','D-IVT']#['TCW']#['QF850','D-QF850']#['ALT'] #['T2M','ALT']
     
     #is each observation type only updating its corresponding variable, or
     #is it updating all variables? -ie t2m only updates t2m, alt only updates alt
@@ -56,15 +56,17 @@ if shell_script == False:
     #covary with the ob estimate at a confidence threshold, defined in localize_radius
     #'statsig' uses the covariances from the ensemble which is being updated as observations are assimilated,
     #'statsig2' uses the prior ensemble to determine statistical significance
-    loc_type = 'GC'
+    #'cutoff' fully updates points within the localize_radius but does not update
+    #at all points outside of the localize_radius
+    loc_type = 'cutoff'
     
     #localization halfwidth in km (for loc_type = 'GC') or, confidence threshold for
     #statistical significance ('statsig'/'statsig2') in percent- i.e. 99 = 99% confidence threshold.
     #for 'hybrid', the localization radius for obs within the AR, other obs use 1000 km.
-    localize_radius = 10000 
+    localize_radius = 1000 
     
     #date to run efa
-    date = datetime(2015,11,13,12)#2013,4,1,0)
+    date = datetime(2015,11,11,0)#2013,4,1,0)
     
     #inflation?
     inflation = 'none' #scalar value is all I have set up to deal with. 
@@ -157,6 +159,12 @@ def run_efa(ob_type,update_var,ob_err_var):
         loc_str = str(localize_radius)+loc_type
         
     elif loc_type.startswith('statsig'):
+        localize_type = loc_type
+        loc_rad = localize_radius
+        loc_str = str(localize_radius)+loc_type
+    
+    #points within a radius of ob will be fully updated by covariance (not localized)    
+    elif loc_type == 'cutoff':
         localize_type = loc_type
         loc_rad = localize_radius
         loc_str = str(localize_radius)+loc_type
