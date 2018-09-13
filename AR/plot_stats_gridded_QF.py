@@ -45,6 +45,7 @@ plot_vars = ['IVT_prior','IVT100_loc1000','IVT1000_loc1000','IVT5000_loc1000','I
 #plot_vars = ['IWV_prior', 'IWV20_loc1000','IWV20_loc10000']
 #plot_vars = ['IVT_prior','IVT10000_loc99statsig','IVT10000_loc98statsig','IVT10000_loc95statsig','IVT10000_loc90statsig']
 #plot_vars = ['IWV_prior','IWV20_loc99statsig','IWV20_loc98statsig','IWV20_loc95statsig','IWV20_loc90statsig']
+#plot_vars = ['IVT_prior','IVT1000_loc1000','IVT1000_loc10000']
 
 #are we wanting to look at statistics for MSE/variance within a specific AR?
 AR_specific = True
@@ -53,7 +54,7 @@ AR_specific = True
 separate_plots = False
 
 #plot actual statistics, or change in statistics compared to prior?
-plot_change_stats = True
+plot_change_stats = False
 
 #gridded or madis obs?
 
@@ -128,7 +129,9 @@ plot_dict = {
        'IVT10' : {'loc1000' : {'ls' : '--', 'mkr' : 'o', 'clr' : 'g'}},
        'IVT20' : {'loc1000' : {'ls' : '-.', 'mkr' : 'o', 'clr' : 'c'}},
        'IVT100' : {'loc1000' : {'ls' : '-', 'mkr' : '*', 'clr' : 'b', 'lw' : .75}},
-       'IVT1000' : {'loc1000' : {'ls' : '-', 'mkr' : 'd', 'clr' : 'r', 'lw' : 1.5}},
+       'IVT1000' : {'loc1000' : {'ls' : '-', 'mkr' : 'd', 'clr' : 'r', 'lw' : 1.5},
+                    'loc10000hybrid' : {'ls' : ':', 'mkr' : 'o', 'clr' : 'r', 'lw' : 1.5},
+                    'loc10000' : {'ls' : '-.', 'mkr' : 'x', 'clr' : 'y', 'lw' : 1.5}},
        'IVT5000' : {'loc1000' : {'ls' : '-.', 'mkr' : 'x', 'clr' : 'y', 'lw' : 1.5}},
        'IVT10000' : {'loc1000' : {'ls' : '--', 'mkr' : 'v', 'clr' : 'g', 'lw' : 1.5},
                   'loc2000hybrid': {'ls' : ':', 'mkr' : 'o', 'clr' : 'b'},
@@ -330,7 +333,7 @@ for s in stats_list:
     if separate_plots == False:
         fig = plt.figure(figsize=(14,8))  
         #each ensemble type      
-        for m in stats_dict_vars:#['eccc','ecmwf']:
+        for m in stats_dict_vars: #['eccc','ecmwf']:['eccc']:
             plot_stats(False)
             #plt.show()
             #fig.savefig(savedir+'850mb_Moisture_Flux_'+s+'_'+datestr+'.png',frameon=False,bbox_inches='tight')
