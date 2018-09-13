@@ -91,6 +91,12 @@ class Observation:
             localization = np.ones(distances.shape)
             boolarray = distances > 4000
             localization[boolarray] = 0
+        
+        #only allow points within a certain radius to be updated by observation
+        elif type == 'cutoff':
+            localization = np.ones(distances.shape)
+            boolarray = distances > halfwidth
+            localization[boolarray] = 0
 
             
 
