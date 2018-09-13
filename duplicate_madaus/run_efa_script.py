@@ -33,17 +33,16 @@ if shell_script == False:
     #All variables in the prior netCDF
     variables = ['IWV','IVT','D-IVT']#['TCW']#['QF850','D-QF850']#['T2M','ALT']#['T2M', 'ALT', 'P6HR', 'TCW']
     
-    #the ob type of the observations we are assimilating, and its associated    
-    #observation error variance
-    obs_type = ['IVT','IWV']#['TCW']#['QF850']#['ALT','ALT']
+    #the ob type of the observations we are assimilating
+    obs_type = ['IVT']#['IVT','IWV']#['TCW']#['QF850']#['ALT','ALT']
     
     #observation error variance associated with the variables defined in obs_type.
     #list must be same length as obs_type. i.e. ob error variance for IVT is 10000,
     #ob error variance for IWV is 20.     
-    ob_err_var = ['10000','20'] #or ['ensvar'] for using ensemble variance as ob error variance
+    ob_err_var = ['1000']#['10000','20'] #or ['ensvar'] for using ensemble variance as ob error variance
     
-    #the variables in the netCDF we want to update
-    update_vars= ['IVT','IWV']#['IWV','IVT','D-IVT']#['TCW']#['QF850','D-QF850']#['ALT'] #['T2M','ALT']
+    #the variables in the netCDF we want to update- if self_update=True, this should match obs_type
+    update_vars= ['IVT']#['IVT','IWV']#['IWV','IVT','D-IVT']#['TCW']#['QF850','D-QF850']#['ALT'] #['T2M','ALT']
     
     #is each observation type only updating its corresponding variable, or
     #is it updating all variables? -ie t2m only updates t2m, alt only updates alt
@@ -62,10 +61,10 @@ if shell_script == False:
     #localization halfwidth in km (for loc_type = 'GC') or, confidence threshold for
     #statistical significance ('statsig'/'statsig2') in percent- i.e. 99 = 99% confidence threshold.
     #for 'hybrid', the localization radius for obs within the AR, other obs use 1000 km.
-    localize_radius = 1000 
+    localize_radius = 10000 
     
     #date to run efa
-    date = datetime(2015,11,10,0)#2013,4,1,0)
+    date = datetime(2015,11,13,12)#2013,4,1,0)
     
     #inflation?
     inflation = 'none' #scalar value is all I have set up to deal with. 
@@ -194,7 +193,7 @@ def run_efa(ob_type,update_var,ob_err_var):
     for o, o_type in enumerate(ob_type):
         
         #if we are wanting to use ensemble variance as ob error variance
-        if ob_err_var[o] == 'ensvar':
+        if ob_err_var[o].startswith('ensvar'):
             use_ens_var = True
         else:
             use_ens_var = False
@@ -235,7 +234,14 @@ def run_efa(ob_type,update_var,ob_err_var):
                 
             #if we are using ens variance as ob error variance
             if use_ens_var == True:
-                ob_var = ob_dict['variance']
+                #multiply by factor specified at end of 'ensvar'
+                mult_factor = ob_err_var[o].replace('ensvar','')
+                if mult_factor == '':
+                    mult_factor = 1
+                else:
+                    mult_factor = float(mult_factor)
+                print('multiplication factor: ',mult_factor)
+                ob_var = ob_dict['variance']*mult_factor
             elif use_ens_var == False:
                 ob_var = float(ob_err_var[o])
                 
@@ -372,7 +378,7 @@ if self_update == True:
     for i, obs in enumerate(obs_type):
         #put back into list format or won't run in the function properly (due to ob_type loop)
         #make the ob_type and update_var match, so order of entry shouldn't matter
-        #this basically runs EFA on one ob_type using its associated ob error var
+        #this runs EFA on one ob_type using its associated ob error var
         #at a time, and only updates the variable matching the ob type. The updates 
         #will be appended together into one netCDF if updating more than 1 variable.
         run_efa([obs],[update_vars[update_vars.index(obs)]],[ob_err_var[i]])
