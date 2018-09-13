@@ -19,12 +19,12 @@ end_date = datetime(2015,11,15,12)
 
 #which ob type(s) were assimilated? used to load the correct .txt filename
 #or, if desired, naming convention could be all types of obs the .txt file contains.
-assim_obs = ['IWV']#['TCW']#
+assim_obs = ['IVT']#['TCW']#
 
 #what ob types are we looking at? could differ from assim_obs if
 #we used assim_obs to update more than one variable (i.e. we didn't self-update)
 #used if plotting change in statistic (if plot_change_stats = True)
-plot_ob = 'IWV'
+plot_ob = 'IVT'
 
 #grid used to generate gridded obs, used for loading correct .txt filename
 grid = [-180,180,90,0,3]
@@ -37,14 +37,14 @@ control_vars = True
 #if there are lots of different variables in the txt file and we don't want to plot them all.
 #plot_vars = ['QF850_prior','QF8501_loc1000','QF85010_loc1000','QF850100_loc1000','QF850250_loc1000','QF850500_loc1000','QF850750_loc1000','QF8501000_loc1000']
 #plot_vars = ['TCW_prior','TCW0-1_loc1000','TCW1_loc1000','TCW10_loc1000','TCW100_loc1000']
-#plot_vars = ['IVT_prior','IVT100_loc1000','IVT1000_loc1000','IVT5000_loc1000','IVT10000_loc1000','IVT20000_loc1000']
+plot_vars = ['IVT_prior','IVT100_loc1000','IVT1000_loc1000','IVT5000_loc1000','IVT10000_loc1000','IVT20000_loc1000']
 #plot_vars = ['IWV_prior','IWV1_loc1000','IWV5_loc1000','IWV10_loc1000','IWV20_loc1000','IWV100_loc1000']
 #plot_vars = ['IVT_prior','IVT10000_loc1000','IVT10000_loc2000hybrid','IVT10000_loc5000hybrid','IVT10000_loc10000hybrid','IVT10000_loc10000']
 #plot_vars = ['IWV_prior','IWV20_loc1000','IWV20_loc2000hybrid','IWV20_loc5000hybrid','IWV20_loc10000hybrid','IWV20_loc10000']
 #plot_vars = ['IVT_prior','IVT10000_loc1000','IVT10000_loc10000']
 #plot_vars = ['IWV_prior', 'IWV20_loc1000','IWV20_loc10000']
 #plot_vars = ['IVT_prior','IVT10000_loc99statsig','IVT10000_loc98statsig','IVT10000_loc95statsig','IVT10000_loc90statsig']
-plot_vars = ['IWV_prior','IWV20_loc99statsig','IWV20_loc98statsig','IWV20_loc95statsig','IWV20_loc90statsig']
+#plot_vars = ['IWV_prior','IWV20_loc99statsig','IWV20_loc98statsig','IWV20_loc95statsig','IWV20_loc90statsig']
 
 #are we wanting to look at statistics for MSE/variance within a specific AR?
 AR_specific = True
@@ -53,7 +53,7 @@ AR_specific = True
 separate_plots = False
 
 #plot actual statistics, or change in statistics compared to prior?
-plot_change_stats = False
+plot_change_stats = True
 
 #gridded or madis obs?
 
@@ -122,15 +122,15 @@ plot_dict = {
        'IWV10000' : {'loc1000' : {'ls' : '--', 'mkr' : 'o', 'clr' : 'g'}},
        'IWV20000' : {'loc1000' : {'ls' : ':', 'mkr' : 'o', 'clr' : 'c'}},
        
-       'IVT' : {'prior' : {'ls' : '-', 'mkr' : 'o', 'clr' : 'k'}},
+       'IVT' : {'prior' : {'ls' : '-', 'mkr' : 'o', 'clr' : 'k', 'lw' : 2.5}},
        'IVT1' : {'loc1000' : {'ls' : '', 'mkr' : 'o', 'clr' : 'y'}},
        'IVT5' : {'loc1000' : {'ls' : ':', 'mkr' : 'o', 'clr' : 'r'}},
        'IVT10' : {'loc1000' : {'ls' : '--', 'mkr' : 'o', 'clr' : 'g'}},
        'IVT20' : {'loc1000' : {'ls' : '-.', 'mkr' : 'o', 'clr' : 'c'}},
-       'IVT100' : {'loc1000' : {'ls' : ':', 'mkr' : 'x', 'clr' : 'b'}},
-       'IVT1000' : {'loc1000' : {'ls' : '', 'mkr' : 'o', 'clr' : 'r'}},
-       'IVT5000' : {'loc1000' : {'ls' : '-.', 'mkr' : 'o', 'clr' : 'y'}},
-       'IVT10000' : {'loc1000' : {'ls' : '--', 'mkr' : 'o', 'clr' : 'g'},
+       'IVT100' : {'loc1000' : {'ls' : '-', 'mkr' : '*', 'clr' : 'b', 'lw' : .75}},
+       'IVT1000' : {'loc1000' : {'ls' : '-', 'mkr' : 'd', 'clr' : 'r', 'lw' : 1.5}},
+       'IVT5000' : {'loc1000' : {'ls' : '-.', 'mkr' : 'x', 'clr' : 'y', 'lw' : 1.5}},
+       'IVT10000' : {'loc1000' : {'ls' : '--', 'mkr' : 'v', 'clr' : 'g', 'lw' : 1.5},
                   'loc2000hybrid': {'ls' : ':', 'mkr' : 'o', 'clr' : 'b'},
                   'loc5000hybrid': {'ls' : '-.', 'mkr' : 'o', 'clr' : 'c'},
                   'loc10000hybrid': {'ls' : ':', 'mkr' : 'x', 'clr' : 'r'},
@@ -139,7 +139,7 @@ plot_dict = {
                   'loc95statsig' : {'ls' : '-.', 'mkr' : 'o', 'clr' : 'r'},
                   'loc90statsig' : {'ls' : ':', 'mkr' : 'x', 'clr' : 'g'},
                   'loc10000' : {'ls' : '-.', 'mkr' : 'x', 'clr' : 'y'}},
-       'IVT20000' : {'loc1000' : {'ls' : ':', 'mkr' : 'o', 'clr' : 'c'}}
+       'IVT20000' : {'loc1000' : {'ls' : ':', 'mkr' : '+', 'clr' : 'c', 'lw' : 1.5}}
       }
 
 ens_dict = {
@@ -310,10 +310,10 @@ def plot_stats(separate):
         #if we are plotting gridded obs stats
         if separate == False:
             plt.plot(stats_dict[m][v]['Forecast_Hour_Gridded'],plot_stats,
-                     linestyle=plot_dict[varoev][loc]['ls'],marker=plot_dict[varoev][loc]['mkr'],color=clr[m],label=v+' '+ens_dict[m])
+                     linestyle=plot_dict[varoev][loc]['ls'],marker=plot_dict[varoev][loc]['mkr'],color=clr[m],linewidth=plot_dict[varoev][loc]['lw'],label=v+' '+ens_dict[m])
         elif separate == True:
             plt.plot(stats_dict[m][v]['Forecast_Hour_Gridded'],plot_stats,
-                     linestyle=plot_dict[varoev][loc]['ls'],marker=plot_dict[varoev][loc]['mkr'],color=plot_dict[varoev][loc]['clr'],label=v+' '+ens_dict[m])            
+                     linestyle=plot_dict[varoev][loc]['ls'],marker=plot_dict[varoev][loc]['mkr'],color=plot_dict[varoev][loc]['clr'],linewidth=plot_dict[varoev][loc]['lw'],label=v+' '+ens_dict[m])            
         
         plt.xticks(np.arange(min(stats_dict[m][v]['Forecast_Hour_Gridded']), 
         max(stats_dict[m][v]['Forecast_Hour_Gridded'])+12, 12))
@@ -330,7 +330,7 @@ for s in stats_list:
     if separate_plots == False:
         fig = plt.figure(figsize=(14,8))  
         #each ensemble type      
-        for m in ['eccc','ecmwf']:#stats_dict_vars:
+        for m in stats_dict_vars:#['eccc','ecmwf']:
             plot_stats(False)
             #plt.show()
             #fig.savefig(savedir+'850mb_Moisture_Flux_'+s+'_'+datestr+'.png',frameon=False,bbox_inches='tight')
