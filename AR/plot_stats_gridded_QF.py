@@ -19,12 +19,12 @@ end_date = datetime(2015,11,15,12)
 
 #which ob type(s) were assimilated? used to load the correct .txt filename
 #or, if desired, naming convention could be all types of obs the .txt file contains.
-assim_obs = ['IVT']#['TCW']#
+assim_obs = ['IWV']#['TCW']#
 
 #what ob types are we looking at? could differ from assim_obs if
 #we used assim_obs to update more than one variable (i.e. we didn't self-update)
 #used if plotting change in statistic (if plot_change_stats = True)
-plot_ob = 'IVT'
+plot_ob = 'IWV'
 
 #grid used to generate gridded obs, used for loading correct .txt filename
 grid = [-180,180,90,0,3]
@@ -37,7 +37,7 @@ control_vars = True
 #if there are lots of different variables in the txt file and we don't want to plot them all.
 #plot_vars = ['QF850_prior','QF8501_loc1000','QF85010_loc1000','QF850100_loc1000','QF850250_loc1000','QF850500_loc1000','QF850750_loc1000','QF8501000_loc1000']
 #plot_vars = ['TCW_prior','TCW0-1_loc1000','TCW1_loc1000','TCW10_loc1000','TCW100_loc1000']
-plot_vars = ['IVT_prior','IVT100_loc1000','IVT1000_loc1000','IVT5000_loc1000','IVT10000_loc1000','IVT20000_loc1000']
+#plot_vars = ['IVT_prior','IVT100_loc1000','IVT1000_loc1000','IVT5000_loc1000','IVT10000_loc1000','IVT20000_loc1000']
 #plot_vars = ['IWV_prior','IWV1_loc1000','IWV5_loc1000','IWV10_loc1000','IWV20_loc1000','IWV100_loc1000']
 #plot_vars = ['IVT_prior','IVT10000_loc1000','IVT10000_loc2000hybrid','IVT10000_loc5000hybrid','IVT10000_loc10000hybrid','IVT10000_loc10000']
 #plot_vars = ['IWV_prior','IWV20_loc1000','IWV20_loc2000hybrid','IWV20_loc5000hybrid','IWV20_loc10000hybrid','IWV20_loc10000']
@@ -45,7 +45,7 @@ plot_vars = ['IVT_prior','IVT100_loc1000','IVT1000_loc1000','IVT5000_loc1000','I
 #plot_vars = ['IWV_prior', 'IWV20_loc1000','IWV20_loc10000']
 #plot_vars = ['IVT_prior','IVT10000_loc99statsig','IVT10000_loc98statsig','IVT10000_loc95statsig','IVT10000_loc90statsig']
 #plot_vars = ['IWV_prior','IWV20_loc99statsig','IWV20_loc98statsig','IWV20_loc95statsig','IWV20_loc90statsig']
-#plot_vars = ['IVT_prior','IVT1000_loc1000','IVT1000_loc10000']
+plot_vars = ['IVT_prior','IVT1000_loc1000','IVT1000_loc10000','IVT1000_loc10000hybrid']
 
 #are we wanting to look at statistics for MSE/variance within a specific AR?
 AR_specific = True
@@ -54,7 +54,7 @@ AR_specific = True
 separate_plots = False
 
 #plot actual statistics, or change in statistics compared to prior?
-plot_change_stats = False
+plot_change_stats = True
 
 #gridded or madis obs?
 
