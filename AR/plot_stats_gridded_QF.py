@@ -50,8 +50,10 @@ control_vars = True
 #plot_vars = ['IVT_prior','IVT10000_loc1000','IVT10000_loc10000','IVT1000_loc1000','IVT1000_loc10000','IVTensvar_loc1000','IVTensvar2_loc1000','IVTensvar_loc10000','IVTensvar2_loc10000']
 #plot_vars = ['IVT_prior','IVT10000_loc10000','IVT10000_loc5000','IVT10000_loc1000','IVT5000_loc10000']
 #plot_vars = ['IWV_prior','IWV20_loc10000','IWV20_loc5000','IWV20_loc1000']
-#plot_vars = ['IVT_prior','IVT1000_loc10000','IVT5000_loc10000','IVT10000_loc10000']
-plot_vars =['IVT_prior','IVT10000_loc1000','IVT10000_loc5000','IVT10000_loc10000']
+plot_vars = ['IVT_prior','IVT1000_loc10000','IVT5000_loc10000','IVT10000_loc10000','IVT20000_loc10000']
+#plot_vars =['IVT_prior','IVT10000_loc1000','IVT10000_loc5000','IVT10000_loc10000']
+#plot_vars = ['IVT_prior','IVT10000_loc10000','IVTensvar5_loc10000','IVTensvar10_loc10000']
+#plot_vars = ['IWV_prior','IWV20_loc10000','IWVensvar5_loc10000','IWVensvar10_loc10000']
 
 #are we wanting to look at statistics for MSE/variance within a specific AR?
 AR_specific = True
@@ -61,7 +63,7 @@ separate_plots = False
 
 #plot actual statistics, or change in statistics compared to prior?
 #False = raw values, 'difference' = post-prior, 'percent' = percent change
-plot_change_stats = False
+plot_change_stats = 'percent'
 
 #gridded or madis obs?
 
@@ -123,13 +125,15 @@ plot_dict = {
                   'loc98statsig' : {'ls' : '--', 'mkr' : 'x', 'clr' : 'c'},
                   'loc95statsig' : {'ls' : '-.', 'mkr' : 'o', 'clr' : 'r'},
                   'loc90statsig' : {'ls' : ':', 'mkr' : 'x', 'clr' : 'g'},
-                  'loc5000' : {'ls' : '--', 'mkr' : '+', 'clr' : 'b', 'lw' : 1.5},
+                  'loc5000' : {'ls' : '-', 'mkr' : '+', 'clr' : 'b', 'lw' : 1},
                   'loc10000' : {'ls' : '-.', 'mkr' : 'x', 'clr' : 'c', 'lw' : 1.5}},
        'IWV100' : {'loc1000' : {'ls' : ':', 'mkr' : 'x', 'clr' : 'b'}},
        'IWV1000' : {'loc1000' : {'ls' : '', 'mkr' : 'o', 'clr' : 'r'}},
        'IWV5000' : {'loc1000' : {'ls' : '-.', 'mkr' : 'o', 'clr' : 'y'}},
        'IWV10000' : {'loc1000' : {'ls' : '--', 'mkr' : 'o', 'clr' : 'g'}},
        'IWV20000' : {'loc1000' : {'ls' : ':', 'mkr' : 'o', 'clr' : 'c'}},
+       'IWVensvar10': {'loc10000' : {'ls' : '--', 'mkr' : 'd', 'clr' : 'r', 'lw' : 1.5}},
+       'IWVensvar5' : {'loc10000' : {'ls' : ':', 'mkr' : 'v', 'clr' : 'g', 'lw' : 1.5}},
        
        'IVT' : {'prior' : {'ls' : '-', 'mkr' : 'o', 'clr' : 'k', 'lw' : 2.5}},
        'IVT1' : {'loc1000' : {'ls' : '', 'mkr' : 'o', 'clr' : 'y'}},
@@ -137,11 +141,11 @@ plot_dict = {
        'IVT10' : {'loc1000' : {'ls' : '--', 'mkr' : 'o', 'clr' : 'g'}},
        'IVT20' : {'loc1000' : {'ls' : '-.', 'mkr' : 'o', 'clr' : 'c'}},
        'IVT100' : {'loc1000' : {'ls' : '-', 'mkr' : '*', 'clr' : 'b', 'lw' : .75}},
-       'IVT1000' : {'loc1000' : {'ls' : '-', 'mkr' : 'd', 'clr' : 'r', 'lw' : 1.5},
+       'IVT1000' : {'loc1000' : {'ls' : '-', 'mkr' : 'd', 'clr' : 'r', 'lw' : 1},
                     'loc10000hybrid' : {'ls' : ':', 'mkr' : 'o', 'clr' : 'r', 'lw' : 1.5},
-                    'loc10000' : {'ls' : ':', 'mkr' : '*', 'clr' : 'y', 'lw' : 1.5}},
+                    'loc10000' : {'ls' : '-', 'mkr' : '*', 'clr' : 'y', 'lw' : 1}},
        'IVT5000' : {'loc1000' : {'ls' : '-.', 'mkr' : 'x', 'clr' : 'y', 'lw' : 1.5},
-                    'loc10000' : {'ls' : ':', 'mkr' : 'd', 'clr' : 'r', 'lw' : 1.5}},
+                    'loc10000' : {'ls' : '--', 'mkr' : 'd', 'clr' : 'r', 'lw' : 1.5}},
        'IVT10000' : {'loc1000' : {'ls' : '--', 'mkr' : 'v', 'clr' : 'g', 'lw' : 1.5},
                   'loc2000hybrid': {'ls' : ':', 'mkr' : 'o', 'clr' : 'b'},
                   'loc5000hybrid': {'ls' : '-.', 'mkr' : 'o', 'clr' : 'c'},
@@ -150,13 +154,16 @@ plot_dict = {
                   'loc98statsig' : {'ls' : '--', 'mkr' : 'x', 'clr' : 'c'},
                   'loc95statsig' : {'ls' : '-.', 'mkr' : 'o', 'clr' : 'r'},
                   'loc90statsig' : {'ls' : ':', 'mkr' : 'x', 'clr' : 'g'},
-                  'loc5000' : {'ls' : '--', 'mkr' : '+', 'clr' : 'b', 'lw' : 1.5},
+                  'loc5000' : {'ls' : '-', 'mkr' : '+', 'clr' : 'b', 'lw' : 1},
                   'loc10000' : {'ls' : '-.', 'mkr' : 'x', 'clr' : 'c', 'lw' : 1.5}},
-       'IVT20000' : {'loc1000' : {'ls' : ':', 'mkr' : '+', 'clr' : 'c', 'lw' : 1.5}},
+       'IVT20000' : {'loc1000' : {'ls' : ':', 'mkr' : '+', 'clr' : 'c', 'lw' : 1.5},
+                     'loc10000' : {'ls' : ':', 'mkr' : '*', 'clr' : 'b', 'lw' : 1.5}},
        'IVTensvar' : {'loc1000' : {'ls' : ':','mkr' : '+', 'clr' : 'b', 'lw' : 1.5},
                       'loc10000' : {'ls' : ':', 'mkr' : 'o', 'clr' : 'k', 'lw' : 1.5}},
        'IVTensvar2': {'loc1000' : {'ls' : ':','mkr' : 'v', 'clr' : 'm', 'lw' : 1.5},
-                      'loc10000' : {'ls' : ':', 'mkr' : 'd', 'clr' : 'b', 'lw' : 1.5}}
+                      'loc10000' : {'ls' : ':', 'mkr' : 'd', 'clr' : 'b', 'lw' : 1.5}},
+       'IVTensvar10': {'loc10000' : {'ls' : '--', 'mkr' : 'd', 'clr' : 'r', 'lw' : 1.5}},
+       'IVTensvar5' : {'loc10000' : {'ls' : ':', 'mkr' : 'v', 'clr' : 'g', 'lw' : 1.5}}
       }
 
 ens_dict = {
@@ -325,7 +332,7 @@ def plot_stats(separate):
             ylabel_str = var_units[vstr]
         elif plot_change_stats == 'percent':
             compare_var = plot_ob + '_prior' 
-            plot_stats = (stats_dict[m][v][s] - stats_dict[m][compare_var][s])/stats_dict[m][v][s] * 100
+            plot_stats = (stats_dict[m][v][s] - stats_dict[m][compare_var][s])/stats_dict[m][compare_var][s] * 100
             title_str = 'Percent Change vs Prior in '+title_dict[vstr]+s
             ylabel_str = '% change'
             ax1.yaxis.set_major_formatter(ticker.PercentFormatter())
