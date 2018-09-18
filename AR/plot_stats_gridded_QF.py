@@ -7,6 +7,7 @@ Created on Tue Jun 26 11:49:37 2018
 """
 
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 import numpy as np
 from datetime import datetime
 import EFA.duplicate_madaus.efa_functions as ef
@@ -19,12 +20,12 @@ end_date = datetime(2015,11,15,12)
 
 #which ob type(s) were assimilated? used to load the correct .txt filename
 #or, if desired, naming convention could be all types of obs the .txt file contains.
-assim_obs = ['IWV']#['TCW']#
+assim_obs = ['IVT']#['TCW']#
 
 #what ob types are we looking at? could differ from assim_obs if
 #we used assim_obs to update more than one variable (i.e. we didn't self-update)
 #used if plotting change in statistic (if plot_change_stats = True)
-plot_ob = 'IWV'
+plot_ob = 'IVT'
 
 #grid used to generate gridded obs, used for loading correct .txt filename
 grid = [-180,180,90,0,3]
@@ -45,7 +46,12 @@ control_vars = True
 #plot_vars = ['IWV_prior', 'IWV20_loc1000','IWV20_loc10000']
 #plot_vars = ['IVT_prior','IVT10000_loc99statsig','IVT10000_loc98statsig','IVT10000_loc95statsig','IVT10000_loc90statsig']
 #plot_vars = ['IWV_prior','IWV20_loc99statsig','IWV20_loc98statsig','IWV20_loc95statsig','IWV20_loc90statsig']
-plot_vars = ['IVT_prior','IVT1000_loc1000','IVT1000_loc10000','IVT1000_loc10000hybrid']
+#plot_vars = ['IVT_prior','IVT1000_loc1000','IVT1000_loc10000','IVT1000_loc10000hybrid']
+#plot_vars = ['IVT_prior','IVT10000_loc1000','IVT10000_loc10000','IVT1000_loc1000','IVT1000_loc10000','IVTensvar_loc1000','IVTensvar2_loc1000','IVTensvar_loc10000','IVTensvar2_loc10000']
+#plot_vars = ['IVT_prior','IVT10000_loc10000','IVT10000_loc5000','IVT10000_loc1000','IVT5000_loc10000']
+#plot_vars = ['IWV_prior','IWV20_loc10000','IWV20_loc5000','IWV20_loc1000']
+#plot_vars = ['IVT_prior','IVT1000_loc10000','IVT5000_loc10000','IVT10000_loc10000']
+plot_vars =['IVT_prior','IVT10000_loc1000','IVT10000_loc5000','IVT10000_loc10000']
 
 #are we wanting to look at statistics for MSE/variance within a specific AR?
 AR_specific = True
@@ -54,7 +60,8 @@ AR_specific = True
 separate_plots = False
 
 #plot actual statistics, or change in statistics compared to prior?
-plot_change_stats = True
+#False = raw values, 'difference' = post-prior, 'percent' = percent change
+plot_change_stats = False
 
 #gridded or madis obs?
 
@@ -104,11 +111,11 @@ plot_dict = {
        'TCW10' : {'loc1000' : {'ls' : '-.', 'mkr' : 'o', 'clr' : 'b'}},
        'TCW100' : {'loc1000' : {'ls' : ':', 'mkr' : 'o', 'clr' : 'r'}},
        
-       'IWV' : {'prior' : {'ls' : '-', 'mkr' : 'o', 'clr' : 'k'}},
+       'IWV' : {'prior' : {'ls' : '-', 'mkr' : 'o', 'clr' : 'k', 'lw' : 2.5}},
        'IWV1' : {'loc1000' : {'ls' : '', 'mkr' : 'o', 'clr' : 'y'}},
        'IWV5' : {'loc1000' : {'ls' : ':', 'mkr' : 'o', 'clr' : 'r'}},
-       'IWV10' : {'loc1000' : {'ls' : '-.', 'mkr' : 'o', 'clr' : 'g'}},
-       'IWV20' : {'loc1000' : {'ls' : '--', 'mkr' : 'o', 'clr' : 'c'},
+       'IWV10' : {'loc1000' : {'ls' : '-.', 'mkr' : 'o', 'clr' : 'y'}},
+       'IWV20' : {'loc1000' : {'ls' : '--', 'mkr' : 'v', 'clr' : 'g', 'lw' : 1.5},
                   'loc2000hybrid': {'ls' : ':', 'mkr' : 'o', 'clr' : 'b'},
                   'loc5000hybrid': {'ls' : '-.', 'mkr' : 'o', 'clr' : 'c'},
                   'loc10000hybrid': {'ls' : ':', 'mkr' : 'x', 'clr' : 'r'},
@@ -116,7 +123,8 @@ plot_dict = {
                   'loc98statsig' : {'ls' : '--', 'mkr' : 'x', 'clr' : 'c'},
                   'loc95statsig' : {'ls' : '-.', 'mkr' : 'o', 'clr' : 'r'},
                   'loc90statsig' : {'ls' : ':', 'mkr' : 'x', 'clr' : 'g'},
-                  'loc10000' : {'ls' : '-.', 'mkr' : 'x', 'clr' : 'y'}},
+                  'loc5000' : {'ls' : '--', 'mkr' : '+', 'clr' : 'b', 'lw' : 1.5},
+                  'loc10000' : {'ls' : '-.', 'mkr' : 'x', 'clr' : 'c', 'lw' : 1.5}},
        'IWV100' : {'loc1000' : {'ls' : ':', 'mkr' : 'x', 'clr' : 'b'}},
        'IWV1000' : {'loc1000' : {'ls' : '', 'mkr' : 'o', 'clr' : 'r'}},
        'IWV5000' : {'loc1000' : {'ls' : '-.', 'mkr' : 'o', 'clr' : 'y'}},
@@ -131,8 +139,9 @@ plot_dict = {
        'IVT100' : {'loc1000' : {'ls' : '-', 'mkr' : '*', 'clr' : 'b', 'lw' : .75}},
        'IVT1000' : {'loc1000' : {'ls' : '-', 'mkr' : 'd', 'clr' : 'r', 'lw' : 1.5},
                     'loc10000hybrid' : {'ls' : ':', 'mkr' : 'o', 'clr' : 'r', 'lw' : 1.5},
-                    'loc10000' : {'ls' : '-.', 'mkr' : 'x', 'clr' : 'y', 'lw' : 1.5}},
-       'IVT5000' : {'loc1000' : {'ls' : '-.', 'mkr' : 'x', 'clr' : 'y', 'lw' : 1.5}},
+                    'loc10000' : {'ls' : ':', 'mkr' : '*', 'clr' : 'y', 'lw' : 1.5}},
+       'IVT5000' : {'loc1000' : {'ls' : '-.', 'mkr' : 'x', 'clr' : 'y', 'lw' : 1.5},
+                    'loc10000' : {'ls' : ':', 'mkr' : 'd', 'clr' : 'r', 'lw' : 1.5}},
        'IVT10000' : {'loc1000' : {'ls' : '--', 'mkr' : 'v', 'clr' : 'g', 'lw' : 1.5},
                   'loc2000hybrid': {'ls' : ':', 'mkr' : 'o', 'clr' : 'b'},
                   'loc5000hybrid': {'ls' : '-.', 'mkr' : 'o', 'clr' : 'c'},
@@ -141,8 +150,13 @@ plot_dict = {
                   'loc98statsig' : {'ls' : '--', 'mkr' : 'x', 'clr' : 'c'},
                   'loc95statsig' : {'ls' : '-.', 'mkr' : 'o', 'clr' : 'r'},
                   'loc90statsig' : {'ls' : ':', 'mkr' : 'x', 'clr' : 'g'},
-                  'loc10000' : {'ls' : '-.', 'mkr' : 'x', 'clr' : 'y'}},
-       'IVT20000' : {'loc1000' : {'ls' : ':', 'mkr' : '+', 'clr' : 'c', 'lw' : 1.5}}
+                  'loc5000' : {'ls' : '--', 'mkr' : '+', 'clr' : 'b', 'lw' : 1.5},
+                  'loc10000' : {'ls' : '-.', 'mkr' : 'x', 'clr' : 'c', 'lw' : 1.5}},
+       'IVT20000' : {'loc1000' : {'ls' : ':', 'mkr' : '+', 'clr' : 'c', 'lw' : 1.5}},
+       'IVTensvar' : {'loc1000' : {'ls' : ':','mkr' : '+', 'clr' : 'b', 'lw' : 1.5},
+                      'loc10000' : {'ls' : ':', 'mkr' : 'o', 'clr' : 'k', 'lw' : 1.5}},
+       'IVTensvar2': {'loc1000' : {'ls' : ':','mkr' : 'v', 'clr' : 'm', 'lw' : 1.5},
+                      'loc10000' : {'ls' : ':', 'mkr' : 'd', 'clr' : 'b', 'lw' : 1.5}}
       }
 
 ens_dict = {
@@ -289,6 +303,7 @@ def plot_stats(separate):
     """
     takes in a boolean argument which affects which color table to use
     """
+    
     if control_vars == True:
         variables = plot_vars
     else:
@@ -303,13 +318,23 @@ def plot_stats(separate):
         else:
             vstr = v[0:3]
         #if we want to plot the change in statistics instead of actual statistics
-        if plot_change_stats == True:
+        if plot_change_stats == 'difference':
             compare_var = plot_ob + '_prior' 
             plot_stats = (stats_dict[m][v][s] - stats_dict[m][compare_var][s])#/stats_dict[m][v][s]
             title_str = 'Change vs Prior in '+title_dict[vstr]+s
+            ylabel_str = var_units[vstr]
+        elif plot_change_stats == 'percent':
+            compare_var = plot_ob + '_prior' 
+            plot_stats = (stats_dict[m][v][s] - stats_dict[m][compare_var][s])/stats_dict[m][v][s] * 100
+            title_str = 'Percent Change vs Prior in '+title_dict[vstr]+s
+            ylabel_str = '% change'
+            ax1.yaxis.set_major_formatter(ticker.PercentFormatter())
+
         elif plot_change_stats == False:
             plot_stats = stats_dict[m][v][s]
             title_str = title_dict[vstr]+s
+            ylabel_str = var_units[vstr]
+
         #if we are plotting gridded obs stats
         if separate == False:
             plt.plot(stats_dict[m][v]['Forecast_Hour_Gridded'],plot_stats,
@@ -326,21 +351,24 @@ def plot_stats(separate):
         plt.legend(loc = 'upper left')
         plt.title(title_str,fontsize=20)
         plt.xlabel('Forecast Hour',fontsize=14)
-        plt.ylabel(var_units[vstr],fontsize=14)
+        plt.ylabel(ylabel_str,fontsize=14)
 
 
 for s in stats_list:
     if separate_plots == False:
         fig = plt.figure(figsize=(14,8))  
+        ax1 = fig.add_subplot(111)
+
         #each ensemble type      
-        for m in stats_dict_vars: #['eccc','ecmwf']:['eccc']:
+        for m in stats_dict_vars: #['eccc','ecmwf']::['eccc']:
             plot_stats(False)
             #plt.show()
             #fig.savefig(savedir+'850mb_Moisture_Flux_'+s+'_'+datestr+'.png',frameon=False,bbox_inches='tight')
        
     elif separate_plots == True:
         for m in stats_dict_vars:
-            fig = plt.figure(figsize=(14,8))  
+            fig = plt.figure(figsize=(14,8))
+            ax1 = fig.add_subplot(111)
             plot_stats(True)
             #plt.show()
             #fig.savefig(savedir+'850mb_Moisture_Flux_'+s+'_'+datestr+'.png',frameon=False,bbox_inches='tight')
