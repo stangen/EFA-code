@@ -59,8 +59,8 @@ class EnsembleState(xarray.Dataset):
     def split_state(self,nChunks):
         """ Function to split the state xarray object into nChunks number of
         smaller xarray objects for multiprocessing.  Returns a dictionary of state
-        chunks.  This dictionary may be re-fed into the master state using the
-        function "reintegrate_state" which will overwrite the master state xarray
+        chunks.  This dictionary may be re-fed into the main state using the
+        function "reintegrate_state" which will overwrite the main state xarray
         object with the separate parts """
         
         state_chunks = {}
@@ -82,7 +82,7 @@ class EnsembleState(xarray.Dataset):
         # Get the bounds
         bounds = self.chunk_bounds(num_chunks)
 
-        # Now reset the master state vector
+        # Now reset the main state vector
         for cnum, bnds in bounds.items():
             self.state[dict(location=slice(bnds[0],bnds[1]))] = state_chunks[cnum].state
 
