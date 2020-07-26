@@ -59,7 +59,7 @@ def get_cfsv2_ensemble(ndays, start, end, vrbls=['Z500'],
 # and the timedelta part and indent after the for loop.
 #    for i in range(4*ndays):
     idate = start #- timedelta(hours=i*6)
-    # List the four members at this time and append to master list
+    # List the four members at this time and append to main list
     datestr = idate.strftime('%Y%m%d%H')
     command = 'ls -1a {}/*.nc'.format(indir,datestr)
     print(command)
